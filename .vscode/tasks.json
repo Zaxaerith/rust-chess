@@ -1,0 +1,29 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "cargo build --release - 编译发布版",
+      "type": "shell",
+      "command": "cargo build --release",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": ["$rustc"]
+    },
+    {
+      "label": "cargo build - 编译调试版",
+      "type": "shell",
+      "command": "cargo build",
+      "group": "build",
+      "problemMatcher": ["$rustc"]
+    },
+    {
+      "label": "cargo run --release - 启动游戏",
+      "type": "shell",
+      "command": "cargo run --release",
+      "group": "build",
+      "problemMatcher": ["$rustc"]
+    }
+  ]
+}

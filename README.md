@@ -30,6 +30,12 @@ cargo build --release
 
 编译产物位于 `target/release/chess_rust.exe`，可以复制到任意位置直接运行。
 
+## 发布打包
+
+- 本地手动打包：运行 `.\package.ps1`，产物在 `dist/` 目录
+- GitHub 自动发布：推送 `v*` 开头的 tag，Actions 会自动编译、打包并创建
+  Release，详见 [RELEASE.md](RELEASE.md)
+
 ## VSCode 开发
 
 1. 用 VSCode 打开项目根目录。

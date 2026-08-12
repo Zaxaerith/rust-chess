@@ -1,0 +1,37 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release
+        run: cargo build --release
+
+      - name: Package zip
+        shell: pwsh
+        run: |
+          $version = $env:GITHUB_REF_NAME.TrimStart('v')
+          $dir = "dist/chess-rust-$version"
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          Copy-Item "target/release/chess_rust.exe" "$dir/chess_rust.exe"
+          Copy-Item "README.md" "$dir/README.md"
+          Copy-Item "LICENSE" "$dir/LICENSE"
+          Compress-Archive -Path "$dir/*" -DestinationPath "dist/chess-rust-$version.zip" -Force
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/chess-rust-*.zip
+          generate_release_notes: true

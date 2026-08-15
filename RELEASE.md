@@ -1,7 +1,7 @@
 # 发布打包说明
 
 本项目有两种发布方式：本地手动打包，或利用 GitHub Actions 自动发布。
-两种方式最终都会得到一个包含 `chess_rust.exe` 的 zip 压缩包。
+两种方式最终都会得到一个包含 `rust-chess.exe` 的 zip 压缩包。
 
 ## 方式一：本地手动打包
 
@@ -21,16 +21,16 @@ cargo build --release
 连同 `README.md`、`LICENSE` 一起打包到：
 
 ```text
-dist/chess-rust-<版本号>.zip
+dist/rust-chess-<版本号>.zip
 ```
 
 3. 打开 GitHub 仓库的 Releases 页面：
 
-   https://github.com/Zaxaerith/chess-rust/releases
+   https://github.com/Zaxaerith/rust-chess/releases
 
 4. 点击 `Draft a new release`。
 5. 填写版本号（例如 `v0.1.0`）、标题和更新说明。
-6. 把 `dist/chess-rust-<版本号>.zip` 拖入 Assets 区域。
+6. 把 `dist/rust-chess-<版本号>.zip` 拖入 Assets 区域。
 7. 点击 `Publish release`。
 
 ## 方式二：GitHub Actions 自动发布
@@ -53,7 +53,7 @@ git push origin v0.1.0
 
 3. 打开仓库的 **Actions** 页面，等待 `release` 工作流跑完。
 4. 打开仓库的 **Releases** 页面，就能看到自动创建的 `v0.1.0` Release，
-   里面带 `chess-rust-0.1.0.zip`。
+   里面带 `rust-chess-0.1.0.zip`。
 5. 可以在 Release 页面点击 `Edit`，补充更新说明后再发布。
 
 ## 版本号约定
@@ -76,9 +76,9 @@ git push origin v0.1.0
 
 ## 下载
 
-- Windows：chess-rust-<版本号>.zip
+- Windows：rust-chess-<版本号>.zip
 
 ## 运行
 
-解压后直接双击 chess_rust.exe 即可，无需安装其他依赖。
+解压后直接双击 rust-chess.exe 即可，无需安装其他依赖。
 ```

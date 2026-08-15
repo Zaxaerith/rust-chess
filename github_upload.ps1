@@ -2,7 +2,7 @@
 #
 # 使用步骤：
 # 1. 打开 https://github.com/new 创建一个空仓库（不要勾选 README/LICENSE/.gitignore）
-# 2. 复制仓库地址，例如 https://github.com/你的用户名/chess-rust.git
+# 2. 复制仓库地址，例如 https://github.com/你的用户名/rust-chess.git
 # 3. 在本项目根目录运行 PowerShell，然后执行：
 #    Set-ExecutionPolicy -Scope Process Bypass
 #    .\github_upload.ps1

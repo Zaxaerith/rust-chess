@@ -23,15 +23,15 @@ jobs:
         shell: pwsh
         run: |
           $version = $env:GITHUB_REF_NAME.TrimStart('v')
-          $dir = "dist/chess-rust-$version"
+          $dir = "dist/rust-chess-$version"
           New-Item -ItemType Directory -Force -Path $dir | Out-Null
-          Copy-Item "target/release/chess_rust.exe" "$dir/chess_rust.exe"
+          Copy-Item "target/release/chess_rust.exe" "$dir/rust-chess.exe"
           Copy-Item "README.md" "$dir/README.md"
           Copy-Item "LICENSE" "$dir/LICENSE"
-          Compress-Archive -Path "$dir/*" -DestinationPath "dist/chess-rust-$version.zip" -Force
+          Compress-Archive -Path "$dir/*" -DestinationPath "dist/rust-chess-$version.zip" -Force
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/chess-rust-*.zip
+          files: dist/rust-chess-*.zip
           generate_release_notes: true

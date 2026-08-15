@@ -4,10 +4,12 @@ use ab_glyph::{point, Font, FontArc, FontVec, PxScale, ScaleFont};
 
 pub struct TextRenderer {
     font: Option<FontArc>,
+    serif_font: Option<FontArc>,
 }
 
 impl TextRenderer {
     pub fn load() -> Self {
+        let mut regular = None;
         let candidates = [
             r"C:\Windows\Fonts\Deng.ttf",
             r"C:\Windows\Fonts\simhei.ttf",
@@ -15,18 +17,34 @@ impl TextRenderer {
         for path in candidates {
             if let Ok(data) = fs::read(path) {
                 if let Ok(font) = FontArc::try_from_vec(data) {
-                    return Self { font: Some(font) };
+                    regular = Some(font);
+                    break;
                 }
             }
         }
-        if let Ok(data) = fs::read(r"C:\Windows\Fonts\msyh.ttc") {
+        if regular.is_none() {
+            if let Ok(data) = fs::read(r"C:\Windows\Fonts\msyh.ttc") {
             if let Ok(font) = FontVec::try_from_vec_and_index(data, 0) {
-                return Self {
-                    font: Some(font.into()),
-                };
+                    regular = Some(font.into());
+                }
             }
         }
-        Self { font: None }
+
+        let serif_font = [
+            r"C:\Windows\Fonts\georgiab.ttf",
+            r"C:\Windows\Fonts\timesbd.ttf",
+            r"C:\Windows\Fonts\cambria.ttc",
+        ]
+        .iter()
+        .find_map(|path| {
+            let data = fs::read(path).ok()?;
+            FontArc::try_from_vec(data).ok()
+        });
+
+        Self {
+            font: regular,
+            serif_font,
+        }
     }
 
     pub fn text_width(&self, text: &str, size: f32) -> f32 {
@@ -74,6 +92,72 @@ impl TextRenderer {
                 });
             }
             pen_x += scale.h_advance(id);
+        }
+    }
+
+    pub fn serif_text_width(
+        &self,
+        text: &str,
+        size: f32,
+        horizontal_stretch: f32,
+        tracking: f32,
+    ) -> f32 {
+        let font = self.serif_font.as_ref().or(self.font.as_ref());
+        if let Some(font) = font {
+            let scale = font.as_scaled(PxScale {
+                x: size * horizontal_stretch,
+                y: size,
+            });
+            text.chars()
+                .map(|c| scale.h_advance(scale.glyph_id(c)) + tracking)
+                .sum::<f32>()
+                .max(0.0)
+        } else {
+            text.len() as f32 * (size * horizontal_stretch * 0.6 + tracking)
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn draw_serif_text(
+        &self,
+        buf: &mut [u32],
+        w: usize,
+        h: usize,
+        x: f32,
+        baseline_y: f32,
+        text: &str,
+        color: u32,
+        size: f32,
+        horizontal_stretch: f32,
+        tracking: f32,
+    ) {
+        let Some(font) = self.serif_font.as_ref().or(self.font.as_ref()) else {
+            return;
+        };
+        let px_scale = PxScale {
+            x: size * horizontal_stretch,
+            y: size,
+        };
+        let scale = font.as_scaled(px_scale);
+        let mut pen_x = x;
+        for ch in text.chars() {
+            let id = scale.glyph_id(ch);
+            let glyph = id.with_scale_and_position(px_scale, point(pen_x, baseline_y));
+            if let Some(outlined) = scale.outline_glyph(glyph) {
+                let bounds = outlined.px_bounds();
+                outlined.draw(|gx, gy, cov| {
+                    let px = bounds.min.x as i32 + gx as i32;
+                    let py = bounds.min.y as i32 + gy as i32;
+                    if px >= 0 && py >= 0 && (px as usize) < w && (py as usize) < h {
+                        let alpha = ((cov * 255.0).round() as u32).min(255);
+                        if alpha > 0 {
+                            let idx = py as usize * w + px as usize;
+                            buf[idx] = blend(buf[idx], color, alpha);
+                        }
+                    }
+                });
+            }
+            pen_x += scale.h_advance(id) + tracking;
         }
     }
 }

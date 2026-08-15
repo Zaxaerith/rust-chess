@@ -56,3 +56,16 @@ pub fn best_move(pos: &Chess, level: u32) -> Move {
                 .expect("至少存在一个合法着法")
         })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::best_move;
+    use shakmaty::{Chess, Position};
+
+    #[test]
+    fn suggested_move_is_legal() {
+        let pos = Chess::default();
+        let suggestion = best_move(&pos, 1);
+        assert!(pos.legal_moves().iter().any(|mv| mv == &suggestion));
+    }
+}

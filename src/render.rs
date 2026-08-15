@@ -1,10 +1,11 @@
 use shakmaty::{Chess, Color, File, Outcome, Piece, Position, Rank, Role, Square};
 
 use crate::assets::{
-    draw_arrow_down, draw_arrow_up, draw_ring, draw_scaled, fill_circle, fill_rect,
-    fill_rect_alpha, PieceImages,
+    draw_arrow_down, draw_arrow_up, draw_ring, draw_scaled, draw_scaled_rotated,
+    draw_scaled_tinted, fill_circle, fill_rect, fill_rect_alpha, PieceImages,
 };
 use crate::font::TextRenderer;
+use crate::i18n::Language;
 use crate::theme::{Palette, Theme};
 
 pub struct ViewState {
@@ -14,6 +15,8 @@ pub struct ViewState {
     pub legal_targets: Vec<Square>,
     pub history_sans: Vec<String>,
     pub ai_thinking: bool,
+    pub hint_thinking: bool,
+    pub suggestion: Option<(Square, Square, String)>,
     pub promotion: Option<(Square, Square)>,
     pub screen: Screen,
     pub settings: Settings,
@@ -25,6 +28,7 @@ pub struct ViewState {
     pub game_over_progress: f32,
     pub mouse: Option<(f32, f32)>,
     pub mouse_pressed: bool,
+    pub menu_time: f32,
 }
 
 #[derive(Clone, Copy)]
@@ -50,6 +54,8 @@ pub struct Settings {
     pub resolution: (u32, u32),
     pub fps: u32,
     pub theme: Theme,
+    pub language: Language,
+    pub flip_for_black: bool,
 }
 
 impl Default for Settings {
@@ -60,6 +66,8 @@ impl Default for Settings {
             resolution: (1280, 720),
             fps: 60,
             theme: Theme::DarkPlus,
+            language: Language::Chinese,
+            flip_for_black: true,
         }
     }
 }
@@ -71,6 +79,8 @@ pub enum DropdownKind {
     Resolution,
     Fps,
     Theme,
+    Language,
+    BoardView,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -83,9 +93,12 @@ pub enum UiAction {
     SetResolution((u32, u32)),
     SetFps(u32),
     SetTheme(Theme),
+    SetLanguage(Language),
+    SetFlipForBlack(bool),
     ToggleDropdown(DropdownKind),
     NewGame,
     Undo,
+    Hint,
     Mode(Option<Color>),
     Square(Square),
     Promote(Role),
@@ -156,7 +169,7 @@ impl<'a> Renderer<'a> {
                     self.draw_promotion_dialog(buf, &layout, &pal, view, &mut actions);
                 } else if let Some((mx, my)) = view.mouse {
                     if view.mouse_pressed {
-                        if let Some(sq) = self.square_at(mx, my, &layout) {
+                        if let Some(sq) = self.square_at(mx, my, &layout, board_flipped(view)) {
                             actions.push(UiAction::Square(sq));
                         }
                     }
@@ -169,17 +182,15 @@ impl<'a> Renderer<'a> {
         actions
     }
 
-    fn square_at(&self, mx: f32, my: f32, layout: &Layout) -> Option<Square> {
+    fn square_at(&self, mx: f32, my: f32, layout: &Layout, flipped: bool) -> Option<Square> {
         if mx >= layout.board_left
             && mx < layout.board_left + layout.board_size
             && my >= layout.board_top
             && my < layout.board_top + layout.board_size
         {
-            let file = ((mx - layout.board_left) / layout.sq).floor() as u32;
-            let rank = 7 - ((my - layout.board_top) / layout.sq).floor() as u32;
-            if file < 8 && rank < 8 {
-                return Some(Square::from_coords(File::new(file), Rank::new(rank)));
-            }
+            let screen_file = ((mx - layout.board_left) / layout.sq).floor() as u32;
+            let screen_rank = ((my - layout.board_top) / layout.sq).floor() as u32;
+            return oriented_square(screen_file, screen_rank, flipped);
         }
         None
     }
@@ -192,34 +203,90 @@ impl<'a> Renderer<'a> {
         view: &ViewState,
         actions: &mut Vec<UiAction>,
     ) {
-        let cx = layout.w as f32 / 2.0;
-        let wk = self.images.get(Color::White, Role::King);
-        let bk = self.images.get(Color::Black, Role::King);
-        draw_scaled(buf, layout.w, layout.h, wk, cx - 260.0, 36.0, 130.0, 130.0);
-        draw_scaled(buf, layout.w, layout.h, bk, cx + 130.0, 36.0, 130.0, 130.0);
+        let tr = view.settings.language.text();
+        let window_w = layout.w as f32;
+        let window_h = layout.h as f32;
+        let logo_size = (window_h * 0.60).min(window_w * 0.40).clamp(250.0, 430.0);
+        let logo_cx = window_w * 0.70;
+        let logo_cy = window_h * 0.45;
+        let gear_size = logo_size * 1.32;
+        let horse_size = logo_size * 0.92;
+        let gear_cy = logo_cy - logo_size * 0.08;
+        let gear_x = logo_cx - gear_size / 2.0;
+        let gear_y = gear_cy - gear_size / 2.0;
+        let horse_x = logo_cx - horse_size / 2.0;
+        let horse_y = logo_cy - horse_size / 2.0;
+        draw_scaled_rotated(
+            buf,
+            layout.w,
+            layout.h,
+            self.images.menu_gear(),
+            gear_x,
+            gear_y,
+            gear_size,
+            view.menu_time * 0.18,
+            2.0 / 3.0,
+        );
+        draw_scaled_tinted(
+            buf,
+            layout.w,
+            layout.h,
+            self.images.menu_knight_buffer(),
+            horse_x,
+            horse_y,
+            horse_size,
+            horse_size,
+            pal.bg,
+        );
+        draw_scaled(
+            buf,
+            layout.w,
+            layout.h,
+            self.images.menu_knight(),
+            horse_x,
+            horse_y,
+            horse_size,
+            horse_size,
+        );
 
-        let title = "国际象棋";
-        let tw = self.font.text_width(title, 64.0);
+        let title = tr.title;
+        let title_size = 44.0;
+        let title_stretch = 1.28;
+        let title_tracking = 3.5;
+        let tw = self
+            .font
+            .serif_text_width(title, title_size, title_stretch, title_tracking);
+        self.font.draw_serif_text(
+            buf,
+            layout.w,
+            layout.h,
+            logo_cx - tw / 2.0,
+            gear_y + gear_size + 16.0,
+            title,
+            pal.text,
+            title_size,
+            title_stretch,
+            title_tracking,
+        );
+        let sub = tr.subtitle;
+        let sw = self.font.text_width(sub, 18.0);
         self.font
-            .draw_text(buf, layout.w, layout.h, cx - tw / 2.0, 210.0, title, pal.text, 64.0);
-        let sub = "Rust · 本地窗口对弈";
-        let sw = self.font.text_width(sub, 20.0);
-        self.font
-            .draw_text(buf, layout.w, layout.h, cx - sw / 2.0, 250.0, sub, pal.muted, 20.0);
+            .draw_text(buf, layout.w, layout.h, logo_cx - sw / 2.0, gear_y + gear_size + 46.0, sub, pal.muted, 18.0);
 
-        let btn_w = 320.0;
+        let btn_w = (window_w * 0.31).clamp(280.0, 390.0);
         let btn_h = 58.0;
-        let x = cx - btn_w / 2.0;
+        let x = (window_w * 0.06).max(36.0);
+        let first_y = (window_h * 0.37).clamp(190.0, 310.0);
         self.button(
             buf,
             layout,
             pal,
             view,
             x,
-            330.0,
+            first_y,
             btn_w,
             btn_h,
-            "开始游戏",
+            tr.start_game,
             pal.button,
             22.0,
             actions,
@@ -231,10 +298,10 @@ impl<'a> Renderer<'a> {
             pal,
             view,
             x,
-            402.0,
+            first_y + 76.0,
             btn_w,
             btn_h,
-            "游戏设置",
+            tr.settings,
             pal.button,
             22.0,
             actions,
@@ -246,23 +313,23 @@ impl<'a> Renderer<'a> {
             pal,
             view,
             x,
-            474.0,
+            first_y + 152.0,
             btn_w,
             btn_h,
-            "退出游戏",
+            tr.exit,
             pal.button,
             22.0,
             actions,
             UiAction::ExitGame,
         );
 
-        let footer = "素材来源：chess-viewer 开源项目 · CBurnett";
+        let footer = tr.attribution;
         let fw = self.font.text_width(footer, 14.0);
         self.font.draw_text(
             buf,
             layout.w,
             layout.h,
-            cx - fw / 2.0,
+            logo_cx - fw / 2.0,
             layout.h as f32 - 24.0,
             footer,
             pal.muted,
@@ -278,20 +345,25 @@ impl<'a> Renderer<'a> {
         view: &ViewState,
         actions: &mut Vec<UiAction>,
     ) {
+        let tr = view.settings.language.text();
         self.font
-            .draw_text(buf, layout.w, layout.h, 56.0, 76.0, "游戏设置", pal.text, 40.0);
+            .draw_text(buf, layout.w, layout.h, 56.0, 66.0, tr.settings, pal.text, 36.0);
 
         self.font
-            .draw_text(buf, layout.w, layout.h, 56.0, 140.0, "对战模式", pal.muted, 18.0);
+            .draw_text(buf, layout.w, layout.h, 56.0, 112.0, tr.mode, pal.muted, 17.0);
         self.font
-            .draw_text(buf, layout.w, layout.h, 56.0, 330.0, "AI 难度", pal.muted, 18.0);
+            .draw_text(buf, layout.w, layout.h, 56.0, 222.0, tr.difficulty, pal.muted, 17.0);
         let right_x = 520.0;
         self.font
-            .draw_text(buf, layout.w, layout.h, right_x, 140.0, "窗口分辨率", pal.muted, 18.0);
+            .draw_text(buf, layout.w, layout.h, right_x, 112.0, tr.resolution, pal.muted, 17.0);
         self.font
-            .draw_text(buf, layout.w, layout.h, right_x, 330.0, "刷新率", pal.muted, 18.0);
+            .draw_text(buf, layout.w, layout.h, right_x, 222.0, tr.refresh_rate, pal.muted, 17.0);
         self.font
-            .draw_text(buf, layout.w, layout.h, 56.0, 520.0, "主题", pal.muted, 18.0);
+            .draw_text(buf, layout.w, layout.h, 56.0, 332.0, tr.theme, pal.muted, 17.0);
+        self.font
+            .draw_text(buf, layout.w, layout.h, right_x, 332.0, tr.language, pal.muted, 17.0);
+        self.font
+            .draw_text(buf, layout.w, layout.h, 56.0, 442.0, tr.board_view, pal.muted, 17.0);
 
         let dropdown_w = 420.0;
         let mut any_base_clicked = false;
@@ -303,7 +375,7 @@ impl<'a> Renderer<'a> {
             view,
             actions,
             56.0,
-            158.0,
+            126.0,
             dropdown_w,
             DropdownKind::Mode,
             dropdown_current(view, DropdownKind::Mode),
@@ -315,7 +387,7 @@ impl<'a> Renderer<'a> {
             view,
             actions,
             56.0,
-            348.0,
+            236.0,
             dropdown_w,
             DropdownKind::Difficulty,
             dropdown_current(view, DropdownKind::Difficulty),
@@ -327,7 +399,7 @@ impl<'a> Renderer<'a> {
             view,
             actions,
             right_x,
-            158.0,
+            126.0,
             dropdown_w,
             DropdownKind::Resolution,
             dropdown_current(view, DropdownKind::Resolution),
@@ -339,7 +411,7 @@ impl<'a> Renderer<'a> {
             view,
             actions,
             right_x,
-            348.0,
+            236.0,
             dropdown_w,
             DropdownKind::Fps,
             dropdown_current(view, DropdownKind::Fps),
@@ -351,10 +423,18 @@ impl<'a> Renderer<'a> {
             view,
             actions,
             56.0,
-            538.0,
+            346.0,
             dropdown_w,
             DropdownKind::Theme,
             dropdown_current(view, DropdownKind::Theme),
+        );
+        any_base_clicked |= self.dropdown_base(
+            buf, layout, pal, view, actions, right_x, 346.0, dropdown_w,
+            DropdownKind::Language, dropdown_current(view, DropdownKind::Language),
+        );
+        any_base_clicked |= self.dropdown_base(
+            buf, layout, pal, view, actions, 56.0, 456.0, dropdown_w,
+            DropdownKind::BoardView, dropdown_current(view, DropdownKind::BoardView),
         );
 
         let back_w = 260.0;
@@ -373,7 +453,7 @@ impl<'a> Renderer<'a> {
             back_y,
             back_w,
             50.0,
-            "返回主菜单",
+            tr.back_to_menu,
             pal.button,
             20.0,
             actions,
@@ -596,7 +676,7 @@ impl<'a> Renderer<'a> {
             158.0,
             dropdown_w,
             DropdownKind::Mode,
-            mode_name(view.settings.mode).to_string(),
+            mode_name(view.settings.mode, view.settings.language).to_string(),
             &mode_options,
         );
 
@@ -618,7 +698,7 @@ impl<'a> Renderer<'a> {
             348.0,
             dropdown_w,
             DropdownKind::Difficulty,
-            depth_name(view.settings.ai_depth).to_string(),
+            depth_name(view.settings.ai_depth, view.settings.language).to_string(),
             &difficulty_options,
         );
 
@@ -824,6 +904,7 @@ impl<'a> Renderer<'a> {
     }
 
     fn draw_board(&self, buf: &mut [u32], layout: &Layout, pal: &Palette, view: &ViewState) {
+        let flipped = board_flipped(view);
         fill_rect(
             buf,
             layout.w,
@@ -837,8 +918,8 @@ impl<'a> Renderer<'a> {
 
         for file in 0..8u32 {
             for rank in 0..8u32 {
-                let x = layout.board_left + file as f32 * layout.sq;
-                let y = layout.board_top + (7 - rank) as f32 * layout.sq;
+                let sq = Square::from_coords(File::new(file), Rank::new(rank));
+                let (x, y) = square_rect(sq, layout, flipped);
                 let color = if (file + rank) % 2 == 0 {
                     pal.light_square
                 } else {
@@ -858,15 +939,19 @@ impl<'a> Renderer<'a> {
         }
 
         if let Some((from, to)) = view.last_move {
-            self.highlight_square(buf, layout, pal.last_move, 95, from);
-            self.highlight_square(buf, layout, pal.last_move, 95, to);
+            self.highlight_square(buf, layout, pal.last_move, 95, from, flipped);
+            self.highlight_square(buf, layout, pal.last_move, 95, to, flipped);
         }
         if let Some(sq) = view.selected {
-            self.highlight_square(buf, layout, pal.selected, 120, sq);
+            self.highlight_square(buf, layout, pal.selected, 120, sq, flipped);
+        }
+        if let Some((from, to, _)) = &view.suggestion {
+            self.highlight_square(buf, layout, pal.accent, 105, *from, flipped);
+            self.highlight_square(buf, layout, pal.accent, 150, *to, flipped);
         }
 
         for &sq in &view.legal_targets {
-            let (x, y) = square_rect(sq, layout);
+            let (x, y) = square_rect(sq, layout, flipped);
             let cx = x + layout.sq / 2.0;
             let cy = y + layout.sq / 2.0;
             if view.pos.board().piece_at(sq).is_some() {
@@ -896,7 +981,7 @@ impl<'a> Renderer<'a> {
 
         if view.pos.is_check() {
             if let Some(ksq) = king_square(&view.pos, view.pos.turn()) {
-                let (x, y) = square_rect(ksq, layout);
+                let (x, y) = square_rect(ksq, layout, flipped);
                 draw_ring(
                     buf,
                     layout.w,
@@ -917,7 +1002,7 @@ impl<'a> Renderer<'a> {
                     continue;
                 }
                 let tex = self.images.get(piece.color, piece.role);
-                let (x, y) = square_rect(sq, layout);
+                let (x, y) = square_rect(sq, layout, flipped);
                 draw_scaled(
                     buf,
                     layout.w,
@@ -933,8 +1018,8 @@ impl<'a> Renderer<'a> {
 
         for anim in &view.animations {
             let tex = self.images.get(anim.color, anim.role);
-            let (fx, fy) = square_rect(anim.from, layout);
-            let (tx, ty) = square_rect(anim.to, layout);
+            let (fx, fy) = square_rect(anim.from, layout, flipped);
+            let (tx, ty) = square_rect(anim.to, layout, flipped);
             let x = fx + (tx - fx) * anim.progress;
             let y = fy + (ty - fy) * anim.progress;
             draw_scaled(
@@ -949,9 +1034,10 @@ impl<'a> Renderer<'a> {
             );
         }
 
-        for file in 0..8u32 {
+        for screen_file in 0..8u32 {
+            let file = if flipped { 7 - screen_file } else { screen_file };
             let letter = char::from(b'a' + file as u8);
-            let x = layout.board_left + file as f32 * layout.sq + layout.sq - 20.0;
+            let x = layout.board_left + screen_file as f32 * layout.sq + layout.sq - 20.0;
             let y = layout.board_top + layout.board_size + 8.0;
             self.font.draw_text(
                 buf,
@@ -964,8 +1050,9 @@ impl<'a> Renderer<'a> {
                 14.0,
             );
         }
-        for rank in 0..8u32 {
-            let y = layout.board_top + (7 - rank) as f32 * layout.sq + 10.0;
+        for screen_rank in 0..8u32 {
+            let rank = if flipped { screen_rank } else { 7 - screen_rank };
+            let y = layout.board_top + screen_rank as f32 * layout.sq + 10.0;
             let x = layout.board_left - 20.0;
             self.font.draw_text(
                 buf,
@@ -987,8 +1074,9 @@ impl<'a> Renderer<'a> {
         color: u32,
         alpha: u32,
         sq: Square,
+        flipped: bool,
     ) {
-        let (x, y) = square_rect(sq, layout);
+        let (x, y) = square_rect(sq, layout, flipped);
         fill_rect_alpha(
             buf,
             layout.w,
@@ -1010,6 +1098,7 @@ impl<'a> Renderer<'a> {
         view: &ViewState,
         actions: &mut Vec<UiAction>,
     ) {
+        let tr = view.settings.language.text();
         fill_rect(
             buf,
             layout.w,
@@ -1033,9 +1122,9 @@ impl<'a> Renderer<'a> {
 
         let x = layout.panel_x + 16.0;
         self.font
-            .draw_text(buf, layout.w, layout.h, x, 34.0, "国际象棋", pal.text, 30.0);
+            .draw_text(buf, layout.w, layout.h, x, 34.0, tr.title, pal.text, 30.0);
         self.font
-            .draw_text(buf, layout.w, layout.h, x, 58.0, "本地窗口 · Rust", pal.muted, 14.0);
+            .draw_text(buf, layout.w, layout.h, x, 58.0, tr.subtitle, pal.muted, 14.0);
 
         let btn_x = layout.panel_x + 14.0;
         let btn_w = layout.panel_w - 28.0;
@@ -1045,10 +1134,10 @@ impl<'a> Renderer<'a> {
             pal,
             view,
             btn_x,
-            84.0,
+            80.0,
             btn_w,
-            42.0,
-            "新对局",
+            38.0,
+            tr.new_game,
             pal.button,
             18.0,
             actions,
@@ -1060,10 +1149,10 @@ impl<'a> Renderer<'a> {
             pal,
             view,
             btn_x,
-            136.0,
+            126.0,
             btn_w,
-            42.0,
-            "悔棋",
+            38.0,
+            tr.undo,
             pal.button,
             18.0,
             actions,
@@ -1075,10 +1164,25 @@ impl<'a> Renderer<'a> {
             pal,
             view,
             btn_x,
-            188.0,
+            172.0,
             btn_w,
-            42.0,
-            "主菜单",
+            38.0,
+            if view.hint_thinking { tr.hint_thinking } else { tr.hint },
+            if view.hint_thinking { pal.button_active } else { pal.button },
+            18.0,
+            actions,
+            UiAction::Hint,
+        );
+        self.button(
+            buf,
+            layout,
+            pal,
+            view,
+            btn_x,
+            218.0,
+            btn_w,
+            38.0,
+            tr.menu,
             pal.button,
             18.0,
             actions,
@@ -1086,26 +1190,26 @@ impl<'a> Renderer<'a> {
         );
 
         self.font
-            .draw_text(buf, layout.w, layout.h, x, 258.0, "对战模式", pal.muted, 16.0);
+            .draw_text(buf, layout.w, layout.h, x, 282.0, tr.mode, pal.muted, 16.0);
         self.font.draw_text(
             buf,
             layout.w,
             layout.h,
             x,
-            284.0,
-            mode_name(view.settings.mode),
+            306.0,
+            mode_name(view.settings.mode, view.settings.language),
             pal.accent,
             18.0,
         );
         self.font
-            .draw_text(buf, layout.w, layout.h, x, 320.0, "AI 难度", pal.muted, 16.0);
+            .draw_text(buf, layout.w, layout.h, x, 340.0, tr.difficulty, pal.muted, 16.0);
         self.font.draw_text(
             buf,
             layout.w,
             layout.h,
             x,
-            346.0,
-            depth_name(view.settings.ai_depth),
+            364.0,
+            depth_name(view.settings.ai_depth, view.settings.language),
             pal.accent,
             18.0,
         );
@@ -1117,14 +1221,20 @@ impl<'a> Renderer<'a> {
             pal.text
         };
         self.font
-            .draw_text(buf, layout.w, layout.h, x, 420.0, &status, status_color, 19.0);
+            .draw_text(buf, layout.w, layout.h, x, 410.0, &status, status_color, 18.0);
+
+        if let Some((_, _, san)) = &view.suggestion {
+            let hint = format!("{}: {}", tr.suggested, san);
+            self.font
+                .draw_text(buf, layout.w, layout.h, x, 442.0, &hint, pal.accent, 17.0);
+        }
 
         self.font
-            .draw_text(buf, layout.w, layout.h, x, 466.0, "棋谱", pal.muted, 16.0);
+            .draw_text(buf, layout.w, layout.h, x, 474.0, tr.moves, pal.muted, 16.0);
         let start = view.history_sans.len().saturating_sub(11);
         for (i, san) in view.history_sans.iter().enumerate().skip(start) {
             let line = format!("{}. {}", i + 1, san);
-            let y = 492.0 + (i - start) as f32 * 18.0;
+            let y = 498.0 + (i - start) as f32 * 18.0;
             if y < layout.h as f32 - 12.0 {
                 self.font
                     .draw_text(buf, layout.w, layout.h, x, y, &line, pal.history, 15.0);
@@ -1244,6 +1354,7 @@ impl<'a> Renderer<'a> {
         view: &ViewState,
         actions: &mut Vec<UiAction>,
     ) {
+        let tr = view.settings.language.text();
         let p = view.game_over_progress;
         fill_rect_alpha(
             buf,
@@ -1294,7 +1405,7 @@ impl<'a> Renderer<'a> {
             pal.text,
             34.0,
         );
-        let sub = "本局结束";
+        let sub = tr.game_over;
         let sw = self.font.text_width(sub, 20.0);
         self.font.draw_text(
             buf,
@@ -1321,7 +1432,7 @@ impl<'a> Renderer<'a> {
             by + 146.0,
             btn_w,
             btn_h,
-            "再来一局",
+            tr.play_again,
             pal.button_active,
             18.0,
             actions,
@@ -1336,7 +1447,7 @@ impl<'a> Renderer<'a> {
             by + 146.0,
             btn_w,
             btn_h,
-            "返回主菜单",
+            tr.back_to_menu,
             pal.button,
             18.0,
             actions,
@@ -1352,6 +1463,7 @@ impl<'a> Renderer<'a> {
         view: &ViewState,
         actions: &mut Vec<UiAction>,
     ) {
+        let tr = view.settings.language.text();
         fill_rect_alpha(
             buf,
             layout.w,
@@ -1394,14 +1506,14 @@ impl<'a> Renderer<'a> {
             layout.h,
             bx + 30.0,
             by + 44.0,
-            "选择升变棋子",
+            tr.promotion,
             pal.text,
             26.0,
         );
 
         let color = view.pos.turn();
         let roles = [Role::Queen, Role::Rook, Role::Bishop, Role::Knight];
-        let names = ["后", "车", "象", "马"];
+        let names = [tr.queen, tr.rook, tr.bishop, tr.knight];
         let bw = 100.0;
         let bh = 120.0;
         let gap = 16.0;
@@ -1444,13 +1556,28 @@ impl<'a> Renderer<'a> {
     }
 }
 
-fn square_rect(sq: Square, layout: &Layout) -> (f32, f32) {
+fn square_rect(sq: Square, layout: &Layout, flipped: bool) -> (f32, f32) {
     let file = u32::from(sq.file()) as f32;
     let rank = u32::from(sq.rank()) as f32;
+    let screen_file = if flipped { 7.0 - file } else { file };
+    let screen_rank = if flipped { rank } else { 7.0 - rank };
     (
-        layout.board_left + file * layout.sq,
-        layout.board_top + (7.0 - rank) * layout.sq,
+        layout.board_left + screen_file * layout.sq,
+        layout.board_top + screen_rank * layout.sq,
     )
+}
+
+fn board_flipped(view: &ViewState) -> bool {
+    view.settings.flip_for_black && view.settings.mode == Some(Color::White)
+}
+
+fn oriented_square(screen_file: u32, screen_rank: u32, flipped: bool) -> Option<Square> {
+    if screen_file >= 8 || screen_rank >= 8 {
+        return None;
+    }
+    let file = if flipped { 7 - screen_file } else { screen_file };
+    let rank = if flipped { screen_rank } else { 7 - screen_rank };
+    Some(Square::from_coords(File::new(file), Rank::new(rank)))
 }
 
 fn king_square(pos: &Chess, color: Color) -> Option<Square> {
@@ -1460,21 +1587,22 @@ fn king_square(pos: &Chess, color: Color) -> Option<Square> {
 }
 
 fn dropdown_options(view: &ViewState, kind: DropdownKind) -> Vec<(String, UiAction)> {
+    let tr = view.settings.language.text();
     match kind {
         DropdownKind::Mode => [
-            ("双人对战", UiAction::Mode(None)),
-            ("人机 · 执白", UiAction::Mode(Some(Color::White))),
-            ("人机 · 执黑", UiAction::Mode(Some(Color::Black))),
+            (tr.two_players, UiAction::Mode(None)),
+            (tr.play_white, UiAction::Mode(Some(Color::Black))),
+            (tr.play_black, UiAction::Mode(Some(Color::White))),
         ]
         .iter()
         .map(|(label, action)| ((*label).to_string(), *action))
         .collect(),
         DropdownKind::Difficulty => [
-            ("入门", UiAction::SetDifficulty(1)),
-            ("简单", UiAction::SetDifficulty(2)),
-            ("中等", UiAction::SetDifficulty(3)),
-            ("困难", UiAction::SetDifficulty(4)),
-            ("大师", UiAction::SetDifficulty(5)),
+            (tr.beginner, UiAction::SetDifficulty(1)),
+            (tr.easy, UiAction::SetDifficulty(2)),
+            (tr.medium, UiAction::SetDifficulty(3)),
+            (tr.hard, UiAction::SetDifficulty(4)),
+            (tr.master, UiAction::SetDifficulty(5)),
         ]
         .iter()
         .map(|(label, action)| ((*label).to_string(), *action))
@@ -1493,64 +1621,143 @@ fn dropdown_options(view: &ViewState, kind: DropdownKind) -> Vec<(String, UiActi
             .iter()
             .map(|&theme| (theme.label().to_string(), UiAction::SetTheme(theme)))
             .collect(),
+        DropdownKind::Language => Language::ALL
+            .iter()
+            .map(|&language| (language.native_name().to_string(), UiAction::SetLanguage(language)))
+            .collect(),
+        DropdownKind::BoardView => [
+            (tr.flip_on, UiAction::SetFlipForBlack(true)),
+            (tr.flip_off, UiAction::SetFlipForBlack(false)),
+        ]
+        .iter()
+        .map(|(label, action)| ((*label).to_string(), *action))
+        .collect(),
     }
 }
 
 fn dropdown_position(kind: DropdownKind) -> (f32, f32) {
     match kind {
-        DropdownKind::Mode => (56.0, 158.0),
-        DropdownKind::Difficulty => (56.0, 348.0),
-        DropdownKind::Resolution => (520.0, 158.0),
-        DropdownKind::Fps => (520.0, 348.0),
-        DropdownKind::Theme => (56.0, 538.0),
+        DropdownKind::Mode => (56.0, 126.0),
+        DropdownKind::Difficulty => (56.0, 236.0),
+        DropdownKind::Resolution => (520.0, 126.0),
+        DropdownKind::Fps => (520.0, 236.0),
+        DropdownKind::Theme => (56.0, 346.0),
+        DropdownKind::Language => (520.0, 346.0),
+        DropdownKind::BoardView => (56.0, 456.0),
     }
 }
 
 fn dropdown_current(view: &ViewState, kind: DropdownKind) -> String {
     match kind {
-        DropdownKind::Mode => mode_name(view.settings.mode).to_string(),
-        DropdownKind::Difficulty => depth_name(view.settings.ai_depth).to_string(),
+        DropdownKind::Mode => mode_name(view.settings.mode, view.settings.language).to_string(),
+        DropdownKind::Difficulty => depth_name(view.settings.ai_depth, view.settings.language).to_string(),
         DropdownKind::Resolution => format!(
             "{} × {}",
             view.settings.resolution.0, view.settings.resolution.1
         ),
         DropdownKind::Fps => format!("{} Hz", view.settings.fps),
         DropdownKind::Theme => view.settings.theme.label().to_string(),
+        DropdownKind::Language => view.settings.language.native_name().to_string(),
+        DropdownKind::BoardView => if view.settings.flip_for_black {
+            view.settings.language.text().flip_on
+        } else {
+            view.settings.language.text().flip_off
+        }.to_string(),
     }
 }
 
 fn status_text(view: &ViewState) -> String {
+    let tr = view.settings.language.text();
     if view.ai_thinking {
-        return "电脑思考中…".to_string();
+        return tr.ai_thinking.to_string();
     }
     if let Some(outcome) = view.pos.outcome() {
         return match outcome {
             Outcome::Decisive { winner } => {
-                let name = if winner == Color::White { "白方" } else { "黑方" };
-                format!("将杀！{name}获胜")
+                let name = if winner == Color::White { tr.white } else { tr.black };
+                format!("{}{name}{}", tr.checkmate, tr.wins)
             }
-            Outcome::Draw => "和棋".to_string(),
+            Outcome::Draw => tr.draw.to_string(),
         };
     }
-    let turn = if view.pos.turn() == Color::White { "白方" } else { "黑方" };
-    let check = if view.pos.is_check() { "（将军！）" } else { "" };
-    format!("{turn}行棋{check}")
+    let turn = if view.pos.turn() == Color::White { tr.white } else { tr.black };
+    let check = if view.pos.is_check() { tr.check } else { "" };
+    format!("{turn}{}{check}", tr.to_move)
 }
 
-fn mode_name(mode: Option<Color>) -> &'static str {
+fn mode_name(mode: Option<Color>, language: Language) -> &'static str {
+    let tr = language.text();
     match mode {
-        None => "双人对战",
-        Some(Color::White) => "人机 · 执白",
-        Some(Color::Black) => "人机 · 执黑",
+        None => tr.two_players,
+        Some(Color::White) => tr.play_black,
+        Some(Color::Black) => tr.play_white,
     }
 }
 
-fn depth_name(depth: u32) -> &'static str {
+fn depth_name(depth: u32, language: Language) -> &'static str {
+    let tr = language.text();
     match depth {
-        1 => "入门",
-        2 => "简单",
-        3 => "中等",
-        4 => "困难",
-        _ => "大师",
+        1 => tr.beginner,
+        2 => tr.easy,
+        3 => tr.medium,
+        4 => tr.hard,
+        _ => tr.master,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{DropdownKind, Renderer, Screen, Settings, ViewState, oriented_square};
+    use crate::{assets::PieceImages, font::TextRenderer, i18n::Language};
+    use shakmaty::{Chess, Color, Square};
+
+    #[test]
+    fn board_orientation_maps_corner_squares() {
+        assert_eq!(oriented_square(0, 0, false), Some(Square::A8));
+        assert_eq!(oriented_square(7, 7, false), Some(Square::H1));
+        assert_eq!(oriented_square(0, 0, true), Some(Square::H1));
+        assert_eq!(oriented_square(7, 7, true), Some(Square::A8));
+    }
+
+    #[test]
+    fn every_language_renders_all_screens() {
+        let images = PieceImages::load();
+        let text = TextRenderer::load();
+        let renderer = Renderer::new(&images, &text);
+
+        for language in Language::ALL {
+            for screen in [Screen::Menu, Screen::Settings, Screen::Game] {
+                let mut buffer = vec![0; 1280 * 720];
+                let view = ViewState {
+                    pos: Chess::default(),
+                    selected: None,
+                    last_move: None,
+                    legal_targets: Vec::new(),
+                    history_sans: Vec::new(),
+                    ai_thinking: false,
+                    hint_thinking: false,
+                    suggestion: Some((Square::E2, Square::E4, "e4".to_string())),
+                    promotion: None,
+                    screen,
+                    settings: Settings {
+                        mode: Some(Color::White),
+                        language,
+                        ..Settings::default()
+                    },
+                    animations: Vec::new(),
+                    resolutions: vec![(1280, 720)],
+                    refreshes: vec![60],
+                    open_dropdown: Some(DropdownKind::Language),
+                    dropdown_scroll: 0,
+                    game_over_progress: 0.0,
+                    mouse: None,
+                    mouse_pressed: false,
+                    menu_time: 1.0,
+                };
+                let actions = renderer.render(&mut buffer, 1280, 720, &view);
+                assert!(actions.is_empty());
+                assert!(buffer.iter().any(|&pixel| pixel != buffer[0]));
+            }
+        }
     }
 }

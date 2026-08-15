@@ -4,6 +4,7 @@ mod ai;
 mod assets;
 mod display;
 mod font;
+mod i18n;
 mod render;
 mod settings;
 mod theme;
@@ -70,11 +71,15 @@ struct App {
     ai_mode: Option<Color>,
     ai_rx: Option<Receiver<Move>>,
     ai_thinking: bool,
+    hint_rx: Option<Receiver<Move>>,
+    hint_thinking: bool,
+    suggestion: Option<(Square, Square, String)>,
     promotion: Option<(Square, Square)>,
     screen: Screen,
     settings: Settings,
     exit_requested: bool,
-    resolution_changed: bool,
+    window_resize_requested: Option<(u32, u32)>,
+    window_title_update_requested: bool,
     animations: Vec<PieceAnim>,
     ai_reply_at: Option<Instant>,
     resolutions: Vec<(u32, u32)>,
@@ -82,6 +87,7 @@ struct App {
     open_dropdown: Option<DropdownKind>,
     dropdown_scroll: usize,
     game_over_at: Option<Instant>,
+    started_at: Instant,
 }
 
 impl App {
@@ -110,11 +116,15 @@ impl App {
             ai_mode: None,
             ai_rx: None,
             ai_thinking: false,
+            hint_rx: None,
+            hint_thinking: false,
+            suggestion: None,
             promotion: None,
             screen: Screen::Menu,
             settings: loaded,
             exit_requested: false,
-            resolution_changed: false,
+            window_resize_requested: None,
+            window_title_update_requested: false,
             animations: Vec::new(),
             ai_reply_at: None,
             resolutions,
@@ -122,6 +132,7 @@ impl App {
             open_dropdown: None,
             dropdown_scroll: 0,
             game_over_at: None,
+            started_at: Instant::now(),
         }
     }
 
@@ -156,6 +167,43 @@ impl App {
                 self.ai_reply_at = None;
             }
         }
+    }
+
+    fn poll_hint(&mut self) {
+        let Some(rx) = self.hint_rx.take() else {
+            return;
+        };
+        match rx.try_recv() {
+            Ok(mv) => {
+                self.hint_thinking = false;
+                let san = San::from_move(&self.pos, &mv).to_string();
+                if let Some(from) = mv.from() {
+                    self.suggestion = Some((from, mv.to(), san));
+                }
+            }
+            Err(TryRecvError::Empty) => self.hint_rx = Some(rx),
+            Err(TryRecvError::Disconnected) => self.hint_thinking = false,
+        }
+    }
+
+    fn request_hint(&mut self) {
+        if self.game_over()
+            || self.ai_thinking
+            || self.hint_thinking
+            || self.promotion.is_some()
+        {
+            return;
+        }
+        self.suggestion = None;
+        let pos = self.pos.clone();
+        let depth = self.settings.ai_depth.max(3);
+        let (tx, rx) = mpsc::channel();
+        thread::spawn(move || {
+            let mv = ai::best_move(&pos, depth);
+            let _ = tx.send(mv);
+        });
+        self.hint_rx = Some(rx);
+        self.hint_thinking = true;
     }
 
     fn spawn_ai(&mut self) {
@@ -197,6 +245,9 @@ impl App {
     }
 
     fn apply_move(&mut self, mv: Move) {
+        self.hint_rx = None;
+        self.hint_thinking = false;
+        self.suggestion = None;
         let san = San::from_move(&self.pos, &mv).to_string();
         let now = Instant::now();
         let mut anims = Vec::new();
@@ -268,7 +319,7 @@ impl App {
             UiAction::SetResolution((w, h)) => {
                 if self.settings.resolution != (w, h) {
                     self.settings.resolution = (w, h);
-                    self.resolution_changed = true;
+                    self.window_resize_requested = Some((w, h));
                 }
                 self.open_dropdown = None;
                 settings::save(&self.settings);
@@ -283,6 +334,17 @@ impl App {
                 self.open_dropdown = None;
                 settings::save(&self.settings);
             }
+            UiAction::SetLanguage(language) => {
+                self.settings.language = language;
+                self.open_dropdown = None;
+                self.window_title_update_requested = true;
+                settings::save(&self.settings);
+            }
+            UiAction::SetFlipForBlack(enabled) => {
+                self.settings.flip_for_black = enabled;
+                self.open_dropdown = None;
+                settings::save(&self.settings);
+            }
             UiAction::ToggleDropdown(kind) => {
                 let opening = self.open_dropdown != Some(kind);
                 self.open_dropdown = if opening { Some(kind) } else { None };
@@ -292,6 +354,7 @@ impl App {
             }
             UiAction::NewGame => self.new_game(),
             UiAction::Undo => self.undo(),
+            UiAction::Hint => self.request_hint(),
             UiAction::Mode(mode) => {
                 self.settings.mode = mode;
                 self.open_dropdown = None;
@@ -304,6 +367,9 @@ impl App {
                 self.ai_thinking = false;
                 self.promotion = None;
                 self.selected = None;
+                self.hint_rx = None;
+                self.hint_thinking = false;
+                self.suggestion = None;
                 self.ai_mode = mode;
                 self.maybe_spawn_ai();
             }
@@ -326,6 +392,9 @@ impl App {
         self.ai_rx = None;
         self.ai_reply_at = None;
         self.ai_thinking = false;
+        self.hint_rx = None;
+        self.hint_thinking = false;
+        self.suggestion = None;
         self.game_over_at = None;
         self.screen = Screen::Menu;
     }
@@ -389,6 +458,9 @@ impl App {
         self.ai_rx = None;
         self.ai_reply_at = None;
         self.ai_thinking = false;
+        self.hint_rx = None;
+        self.hint_thinking = false;
+        self.suggestion = None;
         self.promotion = None;
         self.selected = None;
         if self.history.is_empty() {
@@ -426,6 +498,9 @@ impl App {
         self.ai_rx = None;
         self.ai_reply_at = None;
         self.ai_thinking = false;
+        self.hint_rx = None;
+        self.hint_thinking = false;
+        self.suggestion = None;
         self.game_over_at = None;
         self.maybe_spawn_ai();
     }
@@ -477,6 +552,8 @@ impl App {
             legal_targets,
             history_sans: self.history_sans.clone(),
             ai_thinking: self.ai_thinking,
+            hint_thinking: self.hint_thinking,
+            suggestion: self.suggestion.clone(),
             promotion: self.promotion,
             screen: self.screen,
             settings: self.settings,
@@ -488,6 +565,7 @@ impl App {
             game_over_progress,
             mouse,
             mouse_pressed,
+            menu_time: now.duration_since(self.started_at).as_secs_f32(),
         }
     }
 
@@ -504,6 +582,76 @@ impl App {
     }
 }
 
+#[cfg(target_os = "windows")]
+fn resize_native_window(window: &Window, client_width: u32, client_height: u32) {
+    use winapi::shared::windef::{HWND, RECT};
+    use winapi::um::winuser::{
+        AdjustWindowRectEx, GWL_EXSTYLE, GWL_STYLE, GetWindowLongW, SWP_NOACTIVATE, SWP_NOMOVE,
+        SWP_NOZORDER, SetWindowPos,
+    };
+
+    let hwnd = window.get_window_handle() as HWND;
+    unsafe {
+        let style = GetWindowLongW(hwnd, GWL_STYLE) as u32;
+        let ex_style = GetWindowLongW(hwnd, GWL_EXSTYLE) as u32;
+        let mut rect = RECT {
+            left: 0,
+            top: 0,
+            right: client_width as i32,
+            bottom: client_height as i32,
+        };
+        if AdjustWindowRectEx(&mut rect, style, 0, ex_style) != 0 {
+            SetWindowPos(
+                hwnd,
+                std::ptr::null_mut(),
+                0,
+                0,
+                rect.right - rect.left,
+                rect.bottom - rect.top,
+                SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE,
+            );
+        }
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn set_native_window_icons(window: &Window) {
+    use winapi::shared::windef::{HICON, HWND};
+    use winapi::um::libloaderapi::GetModuleHandleW;
+    use winapi::um::winuser::{
+        GetSystemMetrics, ICON_BIG, ICON_SMALL, IMAGE_ICON, LR_DEFAULTCOLOR, LoadImageW,
+        MAKEINTRESOURCEW, SM_CXICON, SM_CXSMICON, SM_CYICON, SM_CYSMICON, SendMessageW,
+        WM_SETICON,
+    };
+
+    let hwnd = window.get_window_handle() as HWND;
+    unsafe {
+        let module = GetModuleHandleW(std::ptr::null());
+        let small = LoadImageW(
+            module,
+            MAKEINTRESOURCEW(1),
+            IMAGE_ICON,
+            GetSystemMetrics(SM_CXSMICON),
+            GetSystemMetrics(SM_CYSMICON),
+            LR_DEFAULTCOLOR,
+        ) as HICON;
+        let big = LoadImageW(
+            module,
+            MAKEINTRESOURCEW(1),
+            IMAGE_ICON,
+            GetSystemMetrics(SM_CXICON),
+            GetSystemMetrics(SM_CYICON),
+            LR_DEFAULTCOLOR,
+        ) as HICON;
+        if !small.is_null() {
+            SendMessageW(hwnd, WM_SETICON, ICON_SMALL as usize, small as isize);
+        }
+        if !big.is_null() {
+            SendMessageW(hwnd, WM_SETICON, ICON_BIG as usize, big as isize);
+        }
+    }
+}
+
 #[allow(deprecated)]
 fn main() {
     #[cfg(target_os = "windows")]
@@ -516,61 +664,95 @@ fn main() {
     let renderer = Renderer::new(&images, &text);
     let mut app = App::new();
 
-    loop {
-        if app.exit_requested {
-            break;
+    let (win_w, win_h) = (
+        app.settings.resolution.0 as usize,
+        app.settings.resolution.1 as usize,
+    );
+    let options = WindowOptions {
+        resize: true,
+        ..Default::default()
+    };
+    let window_title = format!("{} · Rust", app.settings.language.text().title);
+    let mut window = match Window::new(&window_title, win_w, win_h, options) {
+        Ok(window) => window,
+        Err(e) => {
+            eprintln!("窗口创建失败: {e}");
+            return;
         }
-        let (win_w, win_h) = (
-            app.settings.resolution.0 as usize,
-            app.settings.resolution.1 as usize,
-        );
-        let options = WindowOptions {
-            resize: true,
-            ..Default::default()
-        };
-        let mut window = match Window::new("国际象棋 · Rust", win_w, win_h, options) {
-            Ok(window) => window,
-            Err(e) => {
-                eprintln!("窗口创建失败: {e}");
-                break;
-            }
-        };
-        let mut buffer = vec![0u32; win_w * win_h];
-        let mut mouse_was_down = false;
+    };
+    let (screen_w, screen_h) =
+        display::desktop_resolution().unwrap_or((win_w as u32, win_h as u32));
+    window.set_position(
+        ((screen_w as isize - win_w as isize) / 2).max(0),
+        ((screen_h as isize - win_h as isize) / 2).max(0),
+    );
+    set_native_window_icons(&window);
 
-        loop {
-            if !window.is_open() || window.is_key_down(Key::Escape) || app.exit_requested {
-                break;
-            }
-            app.poll_ai();
-            let (mut cur_w, mut cur_h) = window.get_size();
-            cur_w = cur_w.max(1);
-            cur_h = cur_h.max(1);
-            if buffer.len() != cur_w * cur_h {
-                buffer.resize(cur_w * cur_h, 0);
-            }
-            let mouse = window.get_mouse_pos(MouseMode::Discard);
-            let mouse_down = window.get_mouse_down(MouseButton::Left);
-            let pressed = mouse_down && !mouse_was_down;
-            mouse_was_down = mouse_down;
-            if let Some((_, scroll_y)) = window.get_scroll_wheel() {
-                app.handle_scroll(scroll_y);
-            }
-            let view = app.view_state(mouse, pressed);
-            let actions = renderer.render(&mut buffer, cur_w, cur_h, &view);
-            for action in actions {
-                app.handle_action(action);
-            }
-            if app.resolution_changed {
-                break;
-            }
-            window.limit_update_rate(Some(Duration::from_secs_f64(
-                1.0 / app.settings.fps.max(1) as f64,
-            )));
-            window
-                .update_with_buffer(&buffer, cur_w, cur_h)
-                .expect("更新窗口失败");
+    let mut buffer = vec![0u32; win_w * win_h];
+    let mut mouse_was_down = false;
+    while window.is_open() && !window.is_key_down(Key::Escape) && !app.exit_requested {
+        app.poll_ai();
+        app.poll_hint();
+        let (mut cur_w, mut cur_h) = window.get_size();
+        cur_w = cur_w.max(1);
+        cur_h = cur_h.max(1);
+        if buffer.len() != cur_w * cur_h {
+            buffer.resize(cur_w * cur_h, 0);
         }
-        app.resolution_changed = false;
+        let mouse = window.get_mouse_pos(MouseMode::Discard);
+        let mouse_down = window.get_mouse_down(MouseButton::Left);
+        let pressed = mouse_down && !mouse_was_down;
+        mouse_was_down = mouse_down;
+        if let Some((_, scroll_y)) = window.get_scroll_wheel() {
+            app.handle_scroll(scroll_y);
+        }
+        let view = app.view_state(mouse, pressed);
+        let actions = renderer.render(&mut buffer, cur_w, cur_h, &view);
+        for action in actions {
+            app.handle_action(action);
+        }
+
+        if app.window_title_update_requested {
+            let title = format!("{} · Rust", app.settings.language.text().title);
+            window.set_title(&title);
+            app.window_title_update_requested = false;
+        }
+        if let Some((width, height)) = app.window_resize_requested.take() {
+            resize_native_window(&window, width, height);
+        }
+
+        let frame_rate = if app.screen == Screen::Menu {
+            app.settings.fps.min(60)
+        } else {
+            app.settings.fps
+        };
+        window.limit_update_rate(Some(Duration::from_secs_f64(
+            1.0 / frame_rate.max(1) as f64,
+        )));
+        window
+            .update_with_buffer(&buffer, cur_w, cur_h)
+            .expect("更新窗口失败");
+    }
+}
+
+#[cfg(all(test, target_os = "windows"))]
+mod windows_resource_tests {
+    use winapi::um::libloaderapi::GetModuleHandleW;
+    use winapi::um::winuser::{IMAGE_ICON, LR_DEFAULTCOLOR, LoadImageW, MAKEINTRESOURCEW};
+
+    #[test]
+    fn embedded_window_icon_is_loadable() {
+        unsafe {
+            let module = GetModuleHandleW(std::ptr::null());
+            let icon = LoadImageW(
+                module,
+                MAKEINTRESOURCEW(1),
+                IMAGE_ICON,
+                16,
+                16,
+                LR_DEFAULTCOLOR,
+            );
+            assert!(!icon.is_null());
+        }
     }
 }

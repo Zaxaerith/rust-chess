@@ -1,7 +1,8 @@
 [package]
 name = "chess_rust"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
+build = "build.rs"
 
 [dependencies]
 ab_glyph = "0.2"
@@ -11,4 +12,4 @@ png = "0.17"
 shakmaty = "0.27"
 
 [target.'cfg(windows)'.dependencies]
-winapi = { version = "0.3", features = ["winuser", "wingdi"] }
+winapi = { version = "0.3", features = ["winuser", "wingdi", "libloaderapi"] }

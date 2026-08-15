@@ -1,8 +1,8 @@
-# Rust 国际象棋
+# RUST CHESS
 
 一个用 Rust 编写的本地窗口国际象棋游戏。支持双人对战、人机对战、5 档 AI
 难度、走棋动画、AI 思考停顿、开局结束动画、设置记忆，以及多套仿 VSCode
-主题。
+主题。v0.1.1 新增五语言界面、执黑视角和游玩中的决策建议。
 
 ## 功能
 
@@ -14,6 +14,10 @@
 - 游戏设置记忆（保存到 exe 同目录的 `settings.cfg`）
 - 分辨率/刷新率选项自动读取系统显示模式
 - 5 套主题：Dark+ / Light+ / Monokai / Solarized / Nord
+- 语言：简体中文 / English / Français / Español / Latina
+- 玩家执黑时可选择自动翻转棋盘
+- 对局中可请求基于 Pleco 搜索器的决策建议
+- 左侧纵向主菜单与动态旋转齿轮 Logo
 
 ## 直接运行
 
@@ -63,6 +67,8 @@ cargo run --release
 - 窗口分辨率：自动读取系统支持的显示模式
 - 刷新率：自动读取系统支持的刷新率
 - 主题：Dark+ / Light+ / Monokai / Solarized / Nord
+- 语言：中文、英语、法语、西班牙语、拉丁语
+- 执黑时翻转棋盘：开启或关闭
 
 设置会立即生效并保存到 `settings.cfg`，下次启动自动恢复。
 
@@ -80,7 +86,8 @@ cargo run --release
 src/
   main.rs       程序入口与对局逻辑
   render.rs     棋盘、菜单、设置、动画渲染
-  ai.rs         Pleco AI 难度映射
+  ai.rs         Pleco AI 难度映射与决策建议搜索
+  i18n.rs       五语言界面文本
   theme.rs      主题配色
   display.rs    读取系统分辨率/刷新率
   settings.rs   设置保存与读取

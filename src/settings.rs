@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use shakmaty::Color;
 
 use crate::render::Settings;
+use crate::i18n::Language;
 use crate::theme::Theme;
 
 pub fn settings_path() -> PathBuf {
@@ -16,13 +17,15 @@ pub fn settings_path() -> PathBuf {
 
 pub fn save(settings: &Settings) {
     let text = format!(
-        "mode={}\nai_depth={}\nresolution={}x{}\nfps={}\ntheme={}\n",
+        "mode={}\nai_depth={}\nresolution={}x{}\nfps={}\ntheme={}\nlanguage={}\nflip_for_black={}\n",
         mode_key(settings.mode),
         settings.ai_depth,
         settings.resolution.0,
         settings.resolution.1,
         settings.fps,
         settings.theme.key(),
+        settings.language.key(),
+        settings.flip_for_black,
     );
     let _ = fs::write(settings_path(), text);
 }
@@ -56,6 +59,12 @@ pub fn load() -> Option<Settings> {
                     settings.theme = theme;
                 }
             }
+            "language" => {
+                if let Some(language) = Language::from_key(value) {
+                    settings.language = language;
+                }
+            }
+            "flip_for_black" => settings.flip_for_black = value == "true",
             _ => {}
         }
     }

@@ -83,6 +83,9 @@ impl PieceTexture {
 pub struct PieceImages {
     white: [PieceTexture; 6],
     black: [PieceTexture; 6],
+    menu_gear: PieceTexture,
+    menu_knight: PieceTexture,
+    menu_knight_buffer: PieceTexture,
 }
 
 const W_P: &[u8] = include_bytes!("../assets/pieces/wP.png");
@@ -97,6 +100,9 @@ const B_B: &[u8] = include_bytes!("../assets/pieces/bB.png");
 const B_R: &[u8] = include_bytes!("../assets/pieces/bR.png");
 const B_Q: &[u8] = include_bytes!("../assets/pieces/bQ.png");
 const B_K: &[u8] = include_bytes!("../assets/pieces/bK.png");
+const MENU_GEAR: &[u8] = include_bytes!("../assets/menu-gear.png");
+const MENU_KNIGHT: &[u8] = include_bytes!("../assets/menu-knight.png");
+const MENU_KNIGHT_BUFFER: &[u8] = include_bytes!("../assets/menu-knight-buffer.png");
 
 impl PieceImages {
     pub fn load() -> Self {
@@ -127,7 +133,25 @@ impl PieceImages {
         PieceImages {
             white: white.try_into().expect("6 white pieces"),
             black: black.try_into().expect("6 black pieces"),
+            menu_gear: PieceTexture::from_bytes(MENU_GEAR, "menu gear"),
+            menu_knight: PieceTexture::from_bytes(MENU_KNIGHT, "menu knight"),
+            menu_knight_buffer: PieceTexture::from_bytes(
+                MENU_KNIGHT_BUFFER,
+                "menu knight buffer",
+            ),
         }
+    }
+
+    pub fn menu_gear(&self) -> &PieceTexture {
+        &self.menu_gear
+    }
+
+    pub fn menu_knight(&self) -> &PieceTexture {
+        &self.menu_knight
+    }
+
+    pub fn menu_knight_buffer(&self) -> &PieceTexture {
+        &self.menu_knight_buffer
     }
 
     pub fn get(&self, color: Color, role: Role) -> &PieceTexture {
@@ -371,6 +395,106 @@ pub fn draw_scaled(
                 let idx = py as usize * w + px as usize;
                 let alpha = (color >> 24) & 0xff;
                 buf[idx] = blend_color(buf[idx], color, alpha);
+            }
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn draw_scaled_rotated(
+    buf: &mut [u32],
+    w: usize,
+    h: usize,
+    tex: &PieceTexture,
+    x: f32,
+    y: f32,
+    size: f32,
+    angle: f32,
+    fade_start: f32,
+) {
+    let dest_size = size.round() as i32;
+    let x = x.round() as i32;
+    let y = y.round() as i32;
+    if dest_size <= 0 {
+        return;
+    }
+    let half = dest_size as f32 / 2.0;
+    let cos = angle.cos();
+    let sin = angle.sin();
+    let tex_w = tex.w as f32;
+    let tex_h = tex.h as f32;
+
+    for dy in 0..dest_size {
+        for dx in 0..dest_size {
+            let centered_x = dx as f32 + 0.5 - half;
+            let centered_y = dy as f32 + 0.5 - half;
+            let source_x = (centered_x * cos + centered_y * sin) / dest_size as f32
+                * tex_w
+                + tex_w / 2.0;
+            let source_y = (-centered_x * sin + centered_y * cos) / dest_size as f32
+                * tex_h
+                + tex_h / 2.0;
+            if source_x < 0.0 || source_y < 0.0 || source_x >= tex_w || source_y >= tex_h {
+                continue;
+            }
+            let sx = source_x.floor() as usize;
+            let sy = source_y.floor() as usize;
+            let color = tex.pixels[sy * tex.w + sx];
+            let vertical = (dy as f32 / dest_size as f32).clamp(0.0, 1.0);
+            let fade = if vertical <= fade_start {
+                1.0
+            } else {
+                let progress = ((vertical - fade_start) / (1.0 - fade_start)).clamp(0.0, 1.0);
+                0.5 + 0.5 * (std::f32::consts::PI * progress).cos()
+            };
+            let alpha = (((color >> 24) & 0xff) as f32 * fade).round() as u32;
+            if alpha == 0 {
+                continue;
+            }
+            let px = x + dx;
+            let py = y + dy;
+            if px >= 0 && py >= 0 && px < w as i32 && py < h as i32 {
+                let idx = py as usize * w + px as usize;
+                buf[idx] = blend_color(buf[idx], color, alpha);
+            }
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn draw_scaled_tinted(
+    buf: &mut [u32],
+    w: usize,
+    h: usize,
+    tex: &PieceTexture,
+    x: f32,
+    y: f32,
+    dw: f32,
+    dh: f32,
+    tint: u32,
+) {
+    let (dw, dh) = (dw.round() as i32, dh.round() as i32);
+    let (x, y) = (x.round() as i32, y.round() as i32);
+    if dw <= 0 || dh <= 0 {
+        return;
+    }
+    for dy in 0..dh {
+        let sy = ((dy as f32 + 0.5) * tex.h as f32 / dh as f32)
+            .floor()
+            .clamp(0.0, tex.h as f32 - 1.0) as usize;
+        for dx in 0..dw {
+            let sx = ((dx as f32 + 0.5) * tex.w as f32 / dw as f32)
+                .floor()
+                .clamp(0.0, tex.w as f32 - 1.0) as usize;
+            let alpha = (tex.pixels[sy * tex.w + sx] >> 24) & 0xff;
+            if alpha == 0 {
+                continue;
+            }
+            let px = x + dx;
+            let py = y + dy;
+            if px >= 0 && py >= 0 && px < w as i32 && py < h as i32 {
+                let idx = py as usize * w + px as usize;
+                buf[idx] = blend_color(buf[idx], tint, alpha);
             }
         }
     }

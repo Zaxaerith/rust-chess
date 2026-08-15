@@ -24,4 +24,5 @@
 ## 特别说明
 
 - `pleco` 本身采用 MIT 协议，其算法来自 Stockfish，感谢 Stockfish 作者。
+- v0.1.1 的建议高亮交互参考了 Lichess Chessground 的开源棋盘设计思路；本项目未复制或链接其代码。
 - 运行时使用 Windows 系统中文字体（等线/黑体）渲染文字，字体不随项目分发。

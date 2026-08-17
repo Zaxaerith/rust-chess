@@ -17,9 +17,7 @@ use minifb::{Key, MouseButton, MouseMode, Window, WindowOptions};
 use shakmaty::san::San;
 use shakmaty::{Chess, Color, File, Move, Position, Role, Square};
 
-use render::{
-    DropdownKind, PieceAnimView, Renderer, Screen, Settings, UiAction, ViewState,
-};
+use render::{DropdownKind, PieceAnimView, Renderer, Screen, Settings, UiAction, ViewState};
 
 struct PieceAnim {
     color: Color,
@@ -187,11 +185,7 @@ impl App {
     }
 
     fn request_hint(&mut self) {
-        if self.game_over()
-            || self.ai_thinking
-            || self.hint_thinking
-            || self.promotion.is_some()
-        {
+        if self.game_over() || self.ai_thinking || self.hint_thinking || self.promotion.is_some() {
             return;
         }
         self.suggestion = None;
@@ -252,7 +246,9 @@ impl App {
         let now = Instant::now();
         let mut anims = Vec::new();
         match &mv {
-            Move::Normal { role: _, from, to, .. } => {
+            Move::Normal {
+                role: _, from, to, ..
+            } => {
                 if let Some(piece) = self.pos.board().piece_at(*from) {
                     anims.push(PieceAnim::new(piece, *from, *to, now));
                 }
@@ -331,6 +327,16 @@ impl App {
             }
             UiAction::SetTheme(theme) => {
                 self.settings.theme = theme;
+                self.open_dropdown = None;
+                settings::save(&self.settings);
+            }
+            UiAction::SetBoardStyle(style) => {
+                self.settings.board_style = style;
+                self.open_dropdown = None;
+                settings::save(&self.settings);
+            }
+            UiAction::SetPieceSet(style) => {
+                self.settings.piece_set = style;
                 self.open_dropdown = None;
                 settings::save(&self.settings);
             }
@@ -440,12 +446,10 @@ impl App {
 
     fn handle_promotion(&mut self, role: Role) {
         if let Some((from, to)) = self.promotion {
-            let mv = self
-                .pos
-                .legal_moves()
-                .iter()
-                .cloned()
-                .find(|m| m.from() == Some(from) && m.to() == to && m.promotion() == Some(role));
+            let mv =
+                self.pos.legal_moves().iter().cloned().find(|m| {
+                    m.from() == Some(from) && m.to() == to && m.promotion() == Some(role)
+                });
             if let Some(mv) = mv {
                 self.apply_move(mv);
             }
@@ -620,8 +624,7 @@ fn set_native_window_icons(window: &Window) {
     use winapi::um::libloaderapi::GetModuleHandleW;
     use winapi::um::winuser::{
         GetSystemMetrics, ICON_BIG, ICON_SMALL, IMAGE_ICON, LR_DEFAULTCOLOR, LoadImageW,
-        MAKEINTRESOURCEW, SM_CXICON, SM_CXSMICON, SM_CYICON, SM_CYSMICON, SendMessageW,
-        WM_SETICON,
+        MAKEINTRESOURCEW, SM_CXICON, SM_CXSMICON, SM_CYICON, SM_CYSMICON, SendMessageW, WM_SETICON,
     };
 
     let hwnd = window.get_window_handle() as HWND;

@@ -3,9 +3,10 @@ use std::path::PathBuf;
 
 use shakmaty::Color;
 
-use crate::render::Settings;
+use crate::assets::PieceSet;
 use crate::i18n::Language;
-use crate::theme::Theme;
+use crate::render::Settings;
+use crate::theme::{BoardStyle, Theme};
 
 pub fn settings_path() -> PathBuf {
     let dir = std::env::current_exe()
@@ -17,13 +18,15 @@ pub fn settings_path() -> PathBuf {
 
 pub fn save(settings: &Settings) {
     let text = format!(
-        "mode={}\nai_depth={}\nresolution={}x{}\nfps={}\ntheme={}\nlanguage={}\nflip_for_black={}\n",
+        "mode={}\nai_depth={}\nresolution={}x{}\nfps={}\ntheme={}\nboard_style={}\npiece_set={}\nlanguage={}\nflip_for_black={}\n",
         mode_key(settings.mode),
         settings.ai_depth,
         settings.resolution.0,
         settings.resolution.1,
         settings.fps,
         settings.theme.key(),
+        settings.board_style.key(),
+        settings.piece_set.key(),
         settings.language.key(),
         settings.flip_for_black,
     );
@@ -57,6 +60,16 @@ pub fn load() -> Option<Settings> {
             "theme" => {
                 if let Some(theme) = Theme::from_key(value) {
                     settings.theme = theme;
+                }
+            }
+            "board_style" => {
+                if let Some(style) = BoardStyle::from_key(value) {
+                    settings.board_style = style;
+                }
+            }
+            "piece_set" => {
+                if let Some(style) = PieceSet::from_key(value) {
+                    settings.piece_set = style;
                 }
             }
             "language" => {

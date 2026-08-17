@@ -1,38 +1,20 @@
 # Piece Set Attribution
 
-The chess piece SVG sets in this directory are sourced from the
-[Lichess](https://lichess.org) project ([lichess-org/lila](https://github.com/lichess-org/lila),
-`public/piece/`). They are self-hosted here so ChessViewer does not depend on
-the Lichess CDN at runtime. Each set remains the work of its original author
-under the license listed below.
+RUST CHESS bundles five chess-piece sets. Their SVG sources come from the
+[Lichess lila repository](https://github.com/lichess-org/lila/tree/master/public/piece),
+and the PNG files in `assets/pieces/` are rasterized copies for the game renderer.
+Each set remains under its original license.
 
-ChessViewer is a free, non-commercial, open-source project (AGPLv3). Only sets
-with clear, verifiable licenses permitting redistribution are included.
+| Set | Author | License | Upstream directory |
+| --- | --- | --- | --- |
+| CBurnett | Colin M.L. Burnett | GPLv2+ | [`public/piece/cburnett`](https://github.com/lichess-org/lila/tree/master/public/piece/cburnett) |
+| Merida | Armando Hernandez Marroquin | GPLv2+ | [`public/piece/merida`](https://github.com/lichess-org/lila/tree/master/public/piece/merida) |
+| Chessnut | Alexis Luengas | Apache-2.0 | [`public/piece/chessnut`](https://github.com/lichess-org/lila/tree/master/public/piece/chessnut) |
+| RhosGFX | RhosGFX | CC0-1.0 | [`public/piece/rhosgfx`](https://github.com/lichess-org/lila/tree/master/public/piece/rhosgfx) |
+| Fantasy | Maurizio Monge | MIT | [`public/piece/fantasy`](https://github.com/lichess-org/lila/tree/master/public/piece/fantasy) |
 
-| Set (id)   | Author                                                                    | License                                                               |
-| ---------- | ------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| california | [Jerry S.](https://sites.google.com/view/jerrychess/home)                 | [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) |
-| cardinal   | sadsnake1                                                                 | [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) |
-| cburnett   | [Colin M.L. Burnett](https://en.wikipedia.org/wiki/User:Cburnett)         | [GPLv2+](https://www.gnu.org/licenses/gpl-2.0.txt)                    |
-| companion  | David Kirkby                                                              | [GPLv2+](https://www.gnu.org/licenses/gpl-2.0.txt)                    |
-| dubrovny   | sadsnake1                                                                 | [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) |
-| fantasy    | [Maurizio Monge](https://github.com/maurimo/chess-art)                    | [MIT](https://github.com/maurimo/chess-art/blob/main/LICENSE)         |
-| fresca     | sadsnake1                                                                 | [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) |
-| gioco      | sadsnake1                                                                 | [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) |
-| governor   | [armando](https://lichess.org/@/armando)                                  | [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) |
-| horsey     | cham, michael1241                                                         | [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) |
-| icpieces   | sadsnake1                                                                 | [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) |
-| kosal      | [Pierre Rondelaire](https://lichess.org/@/Tatemiya)                       | [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) |
-| leipzig    | [Armando Hernandez Marroquin](https://www.enpassant.dk/chess/fonteng.htm) | [GPLv2+](https://www.gnu.org/licenses/gpl-2.0.txt)                    |
-| maestro    | sadsnake1                                                                 | [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) |
-| merida     | Armando Hernandez Marroquin                                               | [GPLv2+](https://www.gnu.org/licenses/gpl-2.0.txt)                    |
-| pirouetti  | [pirouetti](https://lichess.org/@/pirouetti)                              | [AGPLv3+](https://www.gnu.org/licenses/agpl-3.0.txt)                  |
-| pixel      | therealqtpi                                                               | [AGPLv3+](https://www.gnu.org/licenses/agpl-3.0.txt)                  |
-| spatial    | [Maurizio Monge](https://github.com/maurimo/chess-art)                    | [MIT](https://github.com/maurimo/chess-art/blob/main/LICENSE)         |
-| staunty    | sadsnake1                                                                 | [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) |
-| tatiana    | sadsnake1                                                                 | [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) |
+The authoritative author and license list is maintained in Lichess
+[`COPYING.md`](https://github.com/lichess-org/lila/blob/master/COPYING.md).
 
-Full attribution and license details are maintained upstream in the Lichess
-[COPYING.md](https://github.com/lichess-org/lila/blob/master/COPYING.md).
-
-With gratitude to Lichess and every piece-set author for their work.
+The six board skins in RUST CHESS are original flat-color palettes and do not
+redistribute Lichess board texture files.

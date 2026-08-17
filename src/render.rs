@@ -1,12 +1,12 @@
 use shakmaty::{Chess, Color, File, Outcome, Piece, Position, Rank, Role, Square};
 
 use crate::assets::{
-    draw_arrow_down, draw_arrow_up, draw_ring, draw_scaled, draw_scaled_rotated,
-    draw_scaled_tinted, fill_circle, fill_rect, fill_rect_alpha, PieceImages,
+    PieceImages, PieceSet, draw_arrow_down, draw_arrow_up, draw_ring, draw_scaled,
+    draw_scaled_rotated, draw_scaled_tinted, fill_circle, fill_rect, fill_rect_alpha,
 };
 use crate::font::TextRenderer;
 use crate::i18n::Language;
-use crate::theme::{Palette, Theme};
+use crate::theme::{BoardStyle, Palette, Theme};
 
 pub struct ViewState {
     pub pos: Chess,
@@ -54,6 +54,8 @@ pub struct Settings {
     pub resolution: (u32, u32),
     pub fps: u32,
     pub theme: Theme,
+    pub board_style: BoardStyle,
+    pub piece_set: PieceSet,
     pub language: Language,
     pub flip_for_black: bool,
 }
@@ -66,6 +68,8 @@ impl Default for Settings {
             resolution: (1280, 720),
             fps: 60,
             theme: Theme::DarkPlus,
+            board_style: BoardStyle::Classic,
+            piece_set: PieceSet::Cburnett,
             language: Language::Chinese,
             flip_for_black: true,
         }
@@ -79,6 +83,8 @@ pub enum DropdownKind {
     Resolution,
     Fps,
     Theme,
+    BoardStyle,
+    PieceSet,
     Language,
     BoardView,
 }
@@ -93,6 +99,8 @@ pub enum UiAction {
     SetResolution((u32, u32)),
     SetFps(u32),
     SetTheme(Theme),
+    SetBoardStyle(BoardStyle),
+    SetPieceSet(PieceSet),
     SetLanguage(Language),
     SetFlipForBlack(bool),
     ToggleDropdown(DropdownKind),
@@ -158,7 +166,16 @@ impl<'a> Renderer<'a> {
         let layout = Layout::new(width, height);
         let pal = view.settings.theme.palette();
         let mut actions = Vec::new();
-        fill_rect(buf, width, height, 0, 0, width as i32, height as i32, pal.bg);
+        fill_rect(
+            buf,
+            width,
+            height,
+            0,
+            0,
+            width as i32,
+            height as i32,
+            pal.bg,
+        );
         match view.screen {
             Screen::Menu => self.draw_menu(buf, &layout, &pal, view, &mut actions),
             Screen::Settings => self.draw_settings(buf, &layout, &pal, view, &mut actions),
@@ -252,7 +269,9 @@ impl<'a> Renderer<'a> {
         let title = tr.title;
         let title_size = 44.0;
         let title_stretch = 1.28;
+        let title_vertical_stretch = 1.22;
         let title_tracking = 3.5;
+        let title_baseline = gear_y + gear_size + 18.0;
         let tw = self
             .font
             .serif_text_width(title, title_size, title_stretch, title_tracking);
@@ -261,17 +280,37 @@ impl<'a> Renderer<'a> {
             layout.w,
             layout.h,
             logo_cx - tw / 2.0,
-            gear_y + gear_size + 16.0,
+            title_baseline,
             title,
             pal.text,
             title_size,
             title_stretch,
+            title_vertical_stretch,
             title_tracking,
+        );
+        let line_w = tw * 0.86;
+        fill_rect(
+            buf,
+            layout.w,
+            layout.h,
+            (logo_cx - line_w / 2.0) as i32,
+            (title_baseline + 9.0) as i32,
+            line_w as i32,
+            3,
+            0x0505_05,
         );
         let sub = tr.subtitle;
         let sw = self.font.text_width(sub, 18.0);
-        self.font
-            .draw_text(buf, layout.w, layout.h, logo_cx - sw / 2.0, gear_y + gear_size + 46.0, sub, pal.muted, 18.0);
+        self.font.draw_text(
+            buf,
+            layout.w,
+            layout.h,
+            logo_cx - sw / 2.0,
+            title_baseline + 37.0,
+            sub,
+            pal.muted,
+            18.0,
+        );
 
         let btn_w = (window_w * 0.31).clamp(280.0, 390.0);
         let btn_h = 58.0;
@@ -346,26 +385,36 @@ impl<'a> Renderer<'a> {
         actions: &mut Vec<UiAction>,
     ) {
         let tr = view.settings.language.text();
-        self.font
-            .draw_text(buf, layout.w, layout.h, 56.0, 66.0, tr.settings, pal.text, 36.0);
+        self.font.draw_text(
+            buf,
+            layout.w,
+            layout.h,
+            56.0,
+            66.0,
+            tr.settings,
+            pal.text,
+            36.0,
+        );
 
-        self.font
-            .draw_text(buf, layout.w, layout.h, 56.0, 112.0, tr.mode, pal.muted, 17.0);
-        self.font
-            .draw_text(buf, layout.w, layout.h, 56.0, 222.0, tr.difficulty, pal.muted, 17.0);
-        let right_x = 520.0;
-        self.font
-            .draw_text(buf, layout.w, layout.h, right_x, 112.0, tr.resolution, pal.muted, 17.0);
-        self.font
-            .draw_text(buf, layout.w, layout.h, right_x, 222.0, tr.refresh_rate, pal.muted, 17.0);
-        self.font
-            .draw_text(buf, layout.w, layout.h, 56.0, 332.0, tr.theme, pal.muted, 17.0);
-        self.font
-            .draw_text(buf, layout.w, layout.h, right_x, 332.0, tr.language, pal.muted, 17.0);
-        self.font
-            .draw_text(buf, layout.w, layout.h, 56.0, 442.0, tr.board_view, pal.muted, 17.0);
+        let (left_x, right_x, dropdown_w, first_label_y, row_gap) = settings_geometry(layout);
+        let label_y = |row: usize| first_label_y + row as f32 * row_gap;
+        let base_y = |row: usize| label_y(row) + 14.0;
 
-        let dropdown_w = 420.0;
+        for (x, y, label) in [
+            (left_x, label_y(0), tr.mode),
+            (right_x, label_y(0), tr.resolution),
+            (left_x, label_y(1), tr.difficulty),
+            (right_x, label_y(1), tr.refresh_rate),
+            (left_x, label_y(2), tr.theme),
+            (right_x, label_y(2), tr.language),
+            (left_x, label_y(3), tr.board_skin),
+            (right_x, label_y(3), tr.piece_skin),
+            (left_x, label_y(4), tr.board_view),
+        ] {
+            self.font
+                .draw_text(buf, layout.w, layout.h, x, y, label, pal.muted, 17.0);
+        }
+
         let mut any_base_clicked = false;
 
         any_base_clicked |= self.dropdown_base(
@@ -374,8 +423,8 @@ impl<'a> Renderer<'a> {
             pal,
             view,
             actions,
-            56.0,
-            126.0,
+            left_x,
+            base_y(0),
             dropdown_w,
             DropdownKind::Mode,
             dropdown_current(view, DropdownKind::Mode),
@@ -386,8 +435,8 @@ impl<'a> Renderer<'a> {
             pal,
             view,
             actions,
-            56.0,
-            236.0,
+            left_x,
+            base_y(1),
             dropdown_w,
             DropdownKind::Difficulty,
             dropdown_current(view, DropdownKind::Difficulty),
@@ -399,7 +448,7 @@ impl<'a> Renderer<'a> {
             view,
             actions,
             right_x,
-            126.0,
+            base_y(0),
             dropdown_w,
             DropdownKind::Resolution,
             dropdown_current(view, DropdownKind::Resolution),
@@ -411,7 +460,7 @@ impl<'a> Renderer<'a> {
             view,
             actions,
             right_x,
-            236.0,
+            base_y(1),
             dropdown_w,
             DropdownKind::Fps,
             dropdown_current(view, DropdownKind::Fps),
@@ -422,24 +471,64 @@ impl<'a> Renderer<'a> {
             pal,
             view,
             actions,
-            56.0,
-            346.0,
+            left_x,
+            base_y(2),
             dropdown_w,
             DropdownKind::Theme,
             dropdown_current(view, DropdownKind::Theme),
         );
         any_base_clicked |= self.dropdown_base(
-            buf, layout, pal, view, actions, right_x, 346.0, dropdown_w,
-            DropdownKind::Language, dropdown_current(view, DropdownKind::Language),
+            buf,
+            layout,
+            pal,
+            view,
+            actions,
+            right_x,
+            base_y(2),
+            dropdown_w,
+            DropdownKind::Language,
+            dropdown_current(view, DropdownKind::Language),
         );
         any_base_clicked |= self.dropdown_base(
-            buf, layout, pal, view, actions, 56.0, 456.0, dropdown_w,
-            DropdownKind::BoardView, dropdown_current(view, DropdownKind::BoardView),
+            buf,
+            layout,
+            pal,
+            view,
+            actions,
+            left_x,
+            base_y(3),
+            dropdown_w,
+            DropdownKind::BoardStyle,
+            dropdown_current(view, DropdownKind::BoardStyle),
+        );
+        any_base_clicked |= self.dropdown_base(
+            buf,
+            layout,
+            pal,
+            view,
+            actions,
+            right_x,
+            base_y(3),
+            dropdown_w,
+            DropdownKind::PieceSet,
+            dropdown_current(view, DropdownKind::PieceSet),
+        );
+        any_base_clicked |= self.dropdown_base(
+            buf,
+            layout,
+            pal,
+            view,
+            actions,
+            left_x,
+            base_y(4),
+            dropdown_w,
+            DropdownKind::BoardView,
+            dropdown_current(view, DropdownKind::BoardView),
         );
 
         let back_w = 260.0;
         let back_x = (layout.w as f32 - back_w) / 2.0;
-        let back_y = layout.h as f32 - 96.0;
+        let back_y = settings_back_y(layout);
         let back_clicked = view.mouse_pressed
             && view.mouse.map_or(false, |(mx, my)| {
                 mx >= back_x && mx <= back_x + back_w && my >= back_y && my <= back_y + 50.0
@@ -463,7 +552,7 @@ impl<'a> Renderer<'a> {
         let mut list_handled = false;
         if let Some(kind) = view.open_dropdown {
             let options = dropdown_options(view, kind);
-            let (ox, oy) = dropdown_position(kind);
+            let (ox, oy) = dropdown_position(layout, kind);
             list_handled = self.dropdown_list(
                 buf,
                 layout,
@@ -503,11 +592,13 @@ impl<'a> Renderer<'a> {
         current: String,
     ) -> bool {
         let h = 40.0;
-        let hover = view
-            .mouse
-            .map_or(false, |(mx, my)| mx >= x && mx <= x + w && my >= y && my <= y + h);
+        let hover = view.mouse.map_or(false, |(mx, my)| {
+            mx >= x && mx <= x + w && my >= y && my <= y + h
+        });
         let color = if hover { pal.button_hover } else { pal.button };
-        fill_rect(buf, layout.w, layout.h, x as i32, y as i32, w as i32, h as i32, color);
+        fill_rect(
+            buf, layout.w, layout.h, x as i32, y as i32, w as i32, h as i32, color,
+        );
         fill_rect(
             buf,
             layout.w,
@@ -528,7 +619,15 @@ impl<'a> Renderer<'a> {
             pal.text,
             17.0,
         );
-        draw_arrow_down(buf, layout.w, layout.h, x + w - 16.0, y + h / 2.0, 7.0, pal.accent);
+        draw_arrow_down(
+            buf,
+            layout.w,
+            layout.h,
+            x + w - 16.0,
+            y + h / 2.0,
+            7.0,
+            pal.accent,
+        );
         if hover && view.mouse_pressed {
             actions.push(UiAction::ToggleDropdown(kind));
             return true;
@@ -596,7 +695,11 @@ impl<'a> Renderer<'a> {
                 oy as i32,
                 w as i32,
                 option_h as i32,
-                if row_hover { pal.button_hover } else { pal.panel },
+                if row_hover {
+                    pal.button_hover
+                } else {
+                    pal.panel
+                },
             );
             self.font.draw_text(
                 buf,
@@ -615,7 +718,15 @@ impl<'a> Renderer<'a> {
         }
 
         if start > 0 {
-            draw_arrow_up(buf, layout.w, layout.h, x + w / 2.0, list_y + 12.0, 8.0, pal.accent);
+            draw_arrow_up(
+                buf,
+                layout.w,
+                layout.h,
+                x + w / 2.0,
+                list_y + 12.0,
+                8.0,
+                pal.accent,
+            );
         }
         if start + visible < options.len() {
             draw_arrow_down(
@@ -640,20 +751,61 @@ impl<'a> Renderer<'a> {
         view: &ViewState,
         actions: &mut Vec<UiAction>,
     ) {
-        self.font
-            .draw_text(buf, layout.w, layout.h, 56.0, 76.0, "游戏设置", pal.text, 40.0);
+        self.font.draw_text(
+            buf,
+            layout.w,
+            layout.h,
+            56.0,
+            76.0,
+            "游戏设置",
+            pal.text,
+            40.0,
+        );
 
-        self.font
-            .draw_text(buf, layout.w, layout.h, 56.0, 140.0, "对战模式", pal.muted, 18.0);
-        self.font
-            .draw_text(buf, layout.w, layout.h, 56.0, 330.0, "AI 难度", pal.muted, 18.0);
+        self.font.draw_text(
+            buf,
+            layout.w,
+            layout.h,
+            56.0,
+            140.0,
+            "对战模式",
+            pal.muted,
+            18.0,
+        );
+        self.font.draw_text(
+            buf,
+            layout.w,
+            layout.h,
+            56.0,
+            330.0,
+            "AI 难度",
+            pal.muted,
+            18.0,
+        );
         let right_x = 520.0;
-        self.font
-            .draw_text(buf, layout.w, layout.h, right_x, 140.0, "窗口分辨率", pal.muted, 18.0);
-        self.font
-            .draw_text(buf, layout.w, layout.h, right_x, 330.0, "刷新率", pal.muted, 18.0);
-        self.font
-            .draw_text(buf, layout.w, layout.h, 56.0, 520.0, "主题", pal.muted, 18.0);
+        self.font.draw_text(
+            buf,
+            layout.w,
+            layout.h,
+            right_x,
+            140.0,
+            "窗口分辨率",
+            pal.muted,
+            18.0,
+        );
+        self.font.draw_text(
+            buf,
+            layout.w,
+            layout.h,
+            right_x,
+            330.0,
+            "刷新率",
+            pal.muted,
+            18.0,
+        );
+        self.font.draw_text(
+            buf, layout.w, layout.h, 56.0, 520.0, "主题", pal.muted, 18.0,
+        );
 
         let dropdown_w = 420.0;
         let mut click_handled = false;
@@ -802,11 +954,13 @@ impl<'a> Renderer<'a> {
     ) -> bool {
         let h = 40.0;
         let open = view.open_dropdown == Some(kind);
-        let hover = view
-            .mouse
-            .map_or(false, |(mx, my)| mx >= x && mx <= x + w && my >= y && my <= y + h);
+        let hover = view.mouse.map_or(false, |(mx, my)| {
+            mx >= x && mx <= x + w && my >= y && my <= y + h
+        });
         let base_color = if hover { pal.button_hover } else { pal.button };
-        fill_rect(buf, layout.w, layout.h, x as i32, y as i32, w as i32, h as i32, base_color);
+        fill_rect(
+            buf, layout.w, layout.h, x as i32, y as i32, w as i32, h as i32, base_color,
+        );
         fill_rect(
             buf,
             layout.w,
@@ -817,10 +971,26 @@ impl<'a> Renderer<'a> {
             2,
             pal.border,
         );
-        self.font
-            .draw_text(buf, layout.w, layout.h, x + 12.0, y + h / 2.0 + 6.0, &current, pal.text, 17.0);
-        self.font
-            .draw_text(buf, layout.w, layout.h, x + w - 24.0, y + h / 2.0 + 6.0, "▾", pal.accent, 17.0);
+        self.font.draw_text(
+            buf,
+            layout.w,
+            layout.h,
+            x + 12.0,
+            y + h / 2.0 + 6.0,
+            &current,
+            pal.text,
+            17.0,
+        );
+        self.font.draw_text(
+            buf,
+            layout.w,
+            layout.h,
+            x + w - 24.0,
+            y + h / 2.0 + 6.0,
+            "▾",
+            pal.accent,
+            17.0,
+        );
 
         if hover && view.mouse_pressed {
             actions.push(UiAction::ToggleDropdown(kind));
@@ -871,7 +1041,11 @@ impl<'a> Renderer<'a> {
                 oy as i32,
                 w as i32,
                 option_h as i32,
-                if row_hover { pal.button_hover } else { pal.panel },
+                if row_hover {
+                    pal.button_hover
+                } else {
+                    pal.panel
+                },
             );
             self.font.draw_text(
                 buf,
@@ -905,6 +1079,7 @@ impl<'a> Renderer<'a> {
 
     fn draw_board(&self, buf: &mut [u32], layout: &Layout, pal: &Palette, view: &ViewState) {
         let flipped = board_flipped(view);
+        let (light_square, dark_square) = view.settings.board_style.squares(pal);
         fill_rect(
             buf,
             layout.w,
@@ -921,9 +1096,9 @@ impl<'a> Renderer<'a> {
                 let sq = Square::from_coords(File::new(file), Rank::new(rank));
                 let (x, y) = square_rect(sq, layout, flipped);
                 let color = if (file + rank) % 2 == 0 {
-                    pal.light_square
+                    light_square
                 } else {
-                    pal.dark_square
+                    dark_square
                 };
                 fill_rect(
                     buf,
@@ -966,16 +1141,7 @@ impl<'a> Renderer<'a> {
                     230,
                 );
             } else {
-                fill_circle(
-                    buf,
-                    layout.w,
-                    layout.h,
-                    cx,
-                    cy,
-                    12.0,
-                    pal.move_dot,
-                    210,
-                );
+                fill_circle(buf, layout.w, layout.h, cx, cy, 12.0, pal.move_dot, 210);
             }
         }
 
@@ -1001,7 +1167,9 @@ impl<'a> Renderer<'a> {
                 if view.animations.iter().any(|a| a.to == sq) {
                     continue;
                 }
-                let tex = self.images.get(piece.color, piece.role);
+                let tex = self
+                    .images
+                    .get(view.settings.piece_set, piece.color, piece.role);
                 let (x, y) = square_rect(sq, layout, flipped);
                 draw_scaled(
                     buf,
@@ -1017,7 +1185,9 @@ impl<'a> Renderer<'a> {
         }
 
         for anim in &view.animations {
-            let tex = self.images.get(anim.color, anim.role);
+            let tex = self
+                .images
+                .get(view.settings.piece_set, anim.color, anim.role);
             let (fx, fy) = square_rect(anim.from, layout, flipped);
             let (tx, ty) = square_rect(anim.to, layout, flipped);
             let x = fx + (tx - fx) * anim.progress;
@@ -1035,7 +1205,11 @@ impl<'a> Renderer<'a> {
         }
 
         for screen_file in 0..8u32 {
-            let file = if flipped { 7 - screen_file } else { screen_file };
+            let file = if flipped {
+                7 - screen_file
+            } else {
+                screen_file
+            };
             let letter = char::from(b'a' + file as u8);
             let x = layout.board_left + screen_file as f32 * layout.sq + layout.sq - 20.0;
             let y = layout.board_top + layout.board_size + 8.0;
@@ -1051,7 +1225,11 @@ impl<'a> Renderer<'a> {
             );
         }
         for screen_rank in 0..8u32 {
-            let rank = if flipped { screen_rank } else { 7 - screen_rank };
+            let rank = if flipped {
+                screen_rank
+            } else {
+                7 - screen_rank
+            };
             let y = layout.board_top + screen_rank as f32 * layout.sq + 10.0;
             let x = layout.board_left - 20.0;
             self.font.draw_text(
@@ -1123,8 +1301,16 @@ impl<'a> Renderer<'a> {
         let x = layout.panel_x + 16.0;
         self.font
             .draw_text(buf, layout.w, layout.h, x, 34.0, tr.title, pal.text, 30.0);
-        self.font
-            .draw_text(buf, layout.w, layout.h, x, 58.0, tr.subtitle, pal.muted, 14.0);
+        self.font.draw_text(
+            buf,
+            layout.w,
+            layout.h,
+            x,
+            58.0,
+            tr.subtitle,
+            pal.muted,
+            14.0,
+        );
 
         let btn_x = layout.panel_x + 14.0;
         let btn_w = layout.panel_w - 28.0;
@@ -1167,8 +1353,16 @@ impl<'a> Renderer<'a> {
             172.0,
             btn_w,
             38.0,
-            if view.hint_thinking { tr.hint_thinking } else { tr.hint },
-            if view.hint_thinking { pal.button_active } else { pal.button },
+            if view.hint_thinking {
+                tr.hint_thinking
+            } else {
+                tr.hint
+            },
+            if view.hint_thinking {
+                pal.button_active
+            } else {
+                pal.button
+            },
             18.0,
             actions,
             UiAction::Hint,
@@ -1201,8 +1395,16 @@ impl<'a> Renderer<'a> {
             pal.accent,
             18.0,
         );
-        self.font
-            .draw_text(buf, layout.w, layout.h, x, 340.0, tr.difficulty, pal.muted, 16.0);
+        self.font.draw_text(
+            buf,
+            layout.w,
+            layout.h,
+            x,
+            340.0,
+            tr.difficulty,
+            pal.muted,
+            16.0,
+        );
         self.font.draw_text(
             buf,
             layout.w,
@@ -1220,8 +1422,16 @@ impl<'a> Renderer<'a> {
         } else {
             pal.text
         };
-        self.font
-            .draw_text(buf, layout.w, layout.h, x, 410.0, &status, status_color, 18.0);
+        self.font.draw_text(
+            buf,
+            layout.w,
+            layout.h,
+            x,
+            410.0,
+            &status,
+            status_color,
+            18.0,
+        );
 
         if let Some((_, _, san)) = &view.suggestion {
             let hint = format!("{}: {}", tr.suggested, san);
@@ -1259,9 +1469,9 @@ impl<'a> Renderer<'a> {
         actions: &mut Vec<UiAction>,
         action: UiAction,
     ) {
-        let hover = view
-            .mouse
-            .map_or(false, |(mx, my)| mx >= x && mx <= x + w && my >= y && my <= y + h);
+        let hover = view.mouse.map_or(false, |(mx, my)| {
+            mx >= x && mx <= x + w && my >= y && my <= y + h
+        });
         let color = if hover {
             if base_color == pal.button_active {
                 pal.button_active_hover
@@ -1271,7 +1481,9 @@ impl<'a> Renderer<'a> {
         } else {
             base_color
         };
-        fill_rect(buf, layout.w, layout.h, x as i32, y as i32, w as i32, h as i32, color);
+        fill_rect(
+            buf, layout.w, layout.h, x as i32, y as i32, w as i32, h as i32, color,
+        );
         fill_rect(
             buf,
             layout.w,
@@ -1315,11 +1527,13 @@ impl<'a> Renderer<'a> {
         actions: &mut Vec<UiAction>,
         action: UiAction,
     ) {
-        let hover = view
-            .mouse
-            .map_or(false, |(mx, my)| mx >= x && mx <= x + w && my >= y && my <= y + h);
+        let hover = view.mouse.map_or(false, |(mx, my)| {
+            mx >= x && mx <= x + w && my >= y && my <= y + h
+        });
         let color = if hover { pal.button_hover } else { base_color };
-        fill_rect(buf, layout.w, layout.h, x as i32, y as i32, w as i32, h as i32, color);
+        fill_rect(
+            buf, layout.w, layout.h, x as i32, y as i32, w as i32, h as i32, color,
+        );
         fill_rect(
             buf,
             layout.w,
@@ -1536,8 +1750,17 @@ impl<'a> Renderer<'a> {
                 bh as i32,
                 if hover { pal.button_hover } else { pal.button },
             );
-            let tex = self.images.get(color, *role);
-            draw_scaled(buf, layout.w, layout.h, tex, x + 14.0, y + 8.0, bw - 28.0, 84.0);
+            let tex = self.images.get(view.settings.piece_set, color, *role);
+            draw_scaled(
+                buf,
+                layout.w,
+                layout.h,
+                tex,
+                x + 14.0,
+                y + 8.0,
+                bw - 28.0,
+                84.0,
+            );
             let tw = self.font.text_width(names[i], 18.0);
             self.font.draw_text(
                 buf,
@@ -1575,15 +1798,27 @@ fn oriented_square(screen_file: u32, screen_rank: u32, flipped: bool) -> Option<
     if screen_file >= 8 || screen_rank >= 8 {
         return None;
     }
-    let file = if flipped { 7 - screen_file } else { screen_file };
-    let rank = if flipped { screen_rank } else { 7 - screen_rank };
+    let file = if flipped {
+        7 - screen_file
+    } else {
+        screen_file
+    };
+    let rank = if flipped {
+        screen_rank
+    } else {
+        7 - screen_rank
+    };
     Some(Square::from_coords(File::new(file), Rank::new(rank)))
 }
 
 fn king_square(pos: &Chess, color: Color) -> Option<Square> {
-    (0..64u32)
-        .map(Square::new)
-        .find(|&sq| pos.board().piece_at(sq) == Some(Piece { color, role: Role::King }))
+    (0..64u32).map(Square::new).find(|&sq| {
+        pos.board().piece_at(sq)
+            == Some(Piece {
+                color,
+                role: Role::King,
+            })
+    })
 }
 
 fn dropdown_options(view: &ViewState, kind: DropdownKind) -> Vec<(String, UiAction)> {
@@ -1621,9 +1856,22 @@ fn dropdown_options(view: &ViewState, kind: DropdownKind) -> Vec<(String, UiActi
             .iter()
             .map(|&theme| (theme.label().to_string(), UiAction::SetTheme(theme)))
             .collect(),
+        DropdownKind::BoardStyle => BoardStyle::ALL
+            .iter()
+            .map(|&style| (style.label().to_string(), UiAction::SetBoardStyle(style)))
+            .collect(),
+        DropdownKind::PieceSet => PieceSet::ALL
+            .iter()
+            .map(|&style| (style.label().to_string(), UiAction::SetPieceSet(style)))
+            .collect(),
         DropdownKind::Language => Language::ALL
             .iter()
-            .map(|&language| (language.native_name().to_string(), UiAction::SetLanguage(language)))
+            .map(|&language| {
+                (
+                    language.native_name().to_string(),
+                    UiAction::SetLanguage(language),
+                )
+            })
             .collect(),
         DropdownKind::BoardView => [
             (tr.flip_on, UiAction::SetFlipForBlack(true)),
@@ -1635,34 +1883,60 @@ fn dropdown_options(view: &ViewState, kind: DropdownKind) -> Vec<(String, UiActi
     }
 }
 
-fn dropdown_position(kind: DropdownKind) -> (f32, f32) {
+fn settings_geometry(layout: &Layout) -> (f32, f32, f32, f32, f32) {
+    let left_x = 56.0_f32.min((layout.w as f32 * 0.07).max(24.0));
+    let column_gap = (layout.w as f32 * 0.035).clamp(24.0, 44.0);
+    let dropdown_w = ((layout.w as f32 - left_x * 2.0 - column_gap) / 2.0).clamp(220.0, 420.0);
+    let right_x = left_x + dropdown_w + column_gap;
+    let first_label_y = if layout.h < 600 { 82.0 } else { 102.0 };
+    let available_gap = (layout.h as f32 - first_label_y - 130.0) / 4.0;
+    let row_gap = available_gap.clamp(58.0, 82.0);
+    (left_x, right_x, dropdown_w, first_label_y, row_gap)
+}
+
+fn settings_back_y(layout: &Layout) -> f32 {
+    let (_, _, _, first_label_y, row_gap) = settings_geometry(layout);
+    let last_dropdown_y = first_label_y + row_gap * 4.0 + 14.0;
+    (last_dropdown_y + 58.0).min(layout.h as f32 - 64.0)
+}
+
+fn dropdown_position(layout: &Layout, kind: DropdownKind) -> (f32, f32) {
+    let (left_x, right_x, _, first_label_y, row_gap) = settings_geometry(layout);
+    let base_y = |row: usize| first_label_y + row as f32 * row_gap + 14.0;
     match kind {
-        DropdownKind::Mode => (56.0, 126.0),
-        DropdownKind::Difficulty => (56.0, 236.0),
-        DropdownKind::Resolution => (520.0, 126.0),
-        DropdownKind::Fps => (520.0, 236.0),
-        DropdownKind::Theme => (56.0, 346.0),
-        DropdownKind::Language => (520.0, 346.0),
-        DropdownKind::BoardView => (56.0, 456.0),
+        DropdownKind::Mode => (left_x, base_y(0)),
+        DropdownKind::Difficulty => (left_x, base_y(1)),
+        DropdownKind::Resolution => (right_x, base_y(0)),
+        DropdownKind::Fps => (right_x, base_y(1)),
+        DropdownKind::Theme => (left_x, base_y(2)),
+        DropdownKind::Language => (right_x, base_y(2)),
+        DropdownKind::BoardStyle => (left_x, base_y(3)),
+        DropdownKind::PieceSet => (right_x, base_y(3)),
+        DropdownKind::BoardView => (left_x, base_y(4)),
     }
 }
 
 fn dropdown_current(view: &ViewState, kind: DropdownKind) -> String {
     match kind {
         DropdownKind::Mode => mode_name(view.settings.mode, view.settings.language).to_string(),
-        DropdownKind::Difficulty => depth_name(view.settings.ai_depth, view.settings.language).to_string(),
+        DropdownKind::Difficulty => {
+            depth_name(view.settings.ai_depth, view.settings.language).to_string()
+        }
         DropdownKind::Resolution => format!(
             "{} × {}",
             view.settings.resolution.0, view.settings.resolution.1
         ),
         DropdownKind::Fps => format!("{} Hz", view.settings.fps),
         DropdownKind::Theme => view.settings.theme.label().to_string(),
+        DropdownKind::BoardStyle => view.settings.board_style.label().to_string(),
+        DropdownKind::PieceSet => view.settings.piece_set.label().to_string(),
         DropdownKind::Language => view.settings.language.native_name().to_string(),
         DropdownKind::BoardView => if view.settings.flip_for_black {
             view.settings.language.text().flip_on
         } else {
             view.settings.language.text().flip_off
-        }.to_string(),
+        }
+        .to_string(),
     }
 }
 
@@ -1674,13 +1948,21 @@ fn status_text(view: &ViewState) -> String {
     if let Some(outcome) = view.pos.outcome() {
         return match outcome {
             Outcome::Decisive { winner } => {
-                let name = if winner == Color::White { tr.white } else { tr.black };
+                let name = if winner == Color::White {
+                    tr.white
+                } else {
+                    tr.black
+                };
                 format!("{}{name}{}", tr.checkmate, tr.wins)
             }
             Outcome::Draw => tr.draw.to_string(),
         };
     }
-    let turn = if view.pos.turn() == Color::White { tr.white } else { tr.black };
+    let turn = if view.pos.turn() == Color::White {
+        tr.white
+    } else {
+        tr.black
+    };
     let check = if view.pos.is_check() { tr.check } else { "" };
     format!("{turn}{}{check}", tr.to_move)
 }

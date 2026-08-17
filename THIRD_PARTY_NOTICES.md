@@ -14,15 +14,20 @@
 
 ## 素材
 
-棋盘棋子素材来自开源项目：
+棋子素材来自开源项目：
 
 - CBurnett 棋子：Colin M.L. Burnett，GPLv2+，来源为
-  [lichess-org/lila](https://github.com/lichess-org/lila) 与
-  [chess-viewer-org/chess-viewer](https://github.com/chessviewer-org/chess-viewer)
+  [lichess-org/lila](https://github.com/lichess-org/lila)
+- Merida 棋子：Armando Hernandez Marroquin，GPLv2+
+- Chessnut 棋子：Alexis Luengas，Apache-2.0
+- RhosGFX 棋子：RhosGFX，CC0-1.0
+- Fantasy 棋子：Maurizio Monge，MIT
 - 完整版权表见 [assets/ATTRIBUTION.md](assets/ATTRIBUTION.md)
 
 ## 特别说明
 
 - `pleco` 本身采用 MIT 协议，其算法来自 Stockfish，感谢 Stockfish 作者。
 - v0.1.1 的建议高亮交互参考了 Lichess Chessground 的开源棋盘设计思路；本项目未复制或链接其代码。
-- 运行时使用 Windows 系统中文字体（等线/黑体）渲染文字，字体不随项目分发。
+- v0.1.2 的新增界面主题参考 Microsoft Visual Studio Code 官方内置主题；VS Code 源码采用 MIT 许可证。
+- 六套棋盘皮肤为本项目自行定义的纯色调色板，未复制 Lichess 的 AGPL 棋盘纹理。
+- 运行时使用 Windows 系统字体渲染拉丁、西里尔及中日韩文字，字体不随项目分发。

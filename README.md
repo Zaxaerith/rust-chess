@@ -2,7 +2,7 @@
 
 一个用 Rust 编写的本地窗口国际象棋游戏。支持双人对战、人机对战、5 档 AI
 难度、走棋动画、AI 思考停顿、开局结束动画、设置记忆，以及多套仿 VSCode
-主题。v0.1.1 新增五语言界面、执黑视角和游玩中的决策建议。
+主题。v0.1.2 已扩展至 11 种语言、10 套界面主题、5 套棋子和 6 套棋盘皮肤。
 
 ## 功能
 
@@ -13,8 +13,10 @@
 - 走棋滑动动画、AI 思考停顿、对局结束结算面板
 - 游戏设置记忆（保存到 exe 同目录的 `settings.cfg`）
 - 分辨率/刷新率选项自动读取系统显示模式
-- 5 套主题：Dark+ / Light+ / Monokai / Solarized / Nord
-- 语言：简体中文 / English / Français / Español / Latina
+- 10 套主题：Dark+ / Light+ / Monokai / Solarized / Nord / Abyss / Kimbie Dark / Quiet Light / Tomorrow Night Blue / Red
+- 11 种语言：简体中文、繁體中文、English、Français、Español、Latina、日本語、한국어、Deutsch、Italiano、Русский
+- 5 套棋子：CBurnett / Merida / Chessnut / RhosGFX / Fantasy
+- 6 套棋盘：Classic / Walnut / Ocean / Emerald / Marble / Graphite
 - 玩家执黑时可选择自动翻转棋盘
 - 对局中可请求基于 Pleco 搜索器的决策建议
 - 左侧纵向主菜单与动态旋转齿轮 Logo
@@ -66,8 +68,10 @@ cargo run --release
 - AI 难度：入门 / 简单 / 中等 / 困难 / 大师
 - 窗口分辨率：自动读取系统支持的显示模式
 - 刷新率：自动读取系统支持的刷新率
-- 主题：Dark+ / Light+ / Monokai / Solarized / Nord
-- 语言：中文、英语、法语、西班牙语、拉丁语
+- 主题：10 套 VS Code 风格配色
+- 语言：简体中文、繁体中文、英语、法语、西班牙语、拉丁语、日语、韩语、德语、意大利语、俄语
+- 棋盘皮肤：Classic / Walnut / Ocean / Emerald / Marble / Graphite
+- 棋子皮肤：CBurnett / Merida / Chessnut / RhosGFX / Fantasy
 - 执黑时翻转棋盘：开启或关闭
 
 设置会立即生效并保存到 `settings.cfg`，下次启动自动恢复。
@@ -87,8 +91,8 @@ src/
   main.rs       程序入口与对局逻辑
   render.rs     棋盘、菜单、设置、动画渲染
   ai.rs         Pleco AI 难度映射与决策建议搜索
-  i18n.rs       五语言界面文本
-  theme.rs      主题配色
+  i18n.rs       十一语言界面文本
+  theme.rs      界面主题与棋盘配色
   display.rs    读取系统分辨率/刷新率
   settings.rs   设置保存与读取
   font.rs       文字渲染
@@ -113,5 +117,5 @@ assets/
 
 - [shakmaty](https://github.com/niklasf/shakmaty)：国际象棋规则引擎
 - [Pleco](https://github.com/pleco-rs/Pleco)：Rust 重写的 Stockfish，提供 AI 搜索器
-- [chess-viewer](https://github.com/chessviewer-org/chess-viewer)：开源棋子素材来源
-- [lichess](https://lichess.org)：棋子素材原始项目
+- [Lichess](https://github.com/lichess-org/lila)：开源棋子素材与许可证清单
+- [Visual Studio Code](https://github.com/microsoft/vscode)：界面主题配色参考

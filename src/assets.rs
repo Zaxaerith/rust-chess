@@ -39,10 +39,7 @@ impl PieceTexture {
             ColorType::Rgb => {
                 for px in bytes.chunks_exact(3) {
                     pixels.push(
-                        0xff00_0000
-                            | ((px[0] as u32) << 16)
-                            | ((px[1] as u32) << 8)
-                            | px[2] as u32,
+                        0xff00_0000 | ((px[0] as u32) << 16) | ((px[1] as u32) << 8) | px[2] as u32,
                     );
                 }
             }
@@ -63,11 +60,7 @@ impl PieceTexture {
                 for &idx in bytes {
                     let i = idx as usize * 3;
                     if i + 2 < pal.len() {
-                        let (r, g, b) = (
-                            pal[i] as u32,
-                            pal[i + 1] as u32,
-                            pal[i + 2] as u32,
-                        );
+                        let (r, g, b) = (pal[i] as u32, pal[i + 1] as u32, pal[i + 2] as u32);
                         pixels.push(0xff00_0000 | (r << 16) | (g << 8) | b);
                     } else {
                         pixels.push(0xff00_0000);
@@ -80,65 +73,136 @@ impl PieceTexture {
     }
 }
 
-pub struct PieceImages {
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PieceSet {
+    Cburnett,
+    Merida,
+    Chessnut,
+    RhosGfx,
+    Fantasy,
+}
+
+impl PieceSet {
+    pub const ALL: [PieceSet; 5] = [
+        PieceSet::Cburnett,
+        PieceSet::Merida,
+        PieceSet::Chessnut,
+        PieceSet::RhosGfx,
+        PieceSet::Fantasy,
+    ];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            PieceSet::Cburnett => "CBurnett",
+            PieceSet::Merida => "Merida",
+            PieceSet::Chessnut => "Chessnut",
+            PieceSet::RhosGfx => "RhosGFX",
+            PieceSet::Fantasy => "Fantasy",
+        }
+    }
+
+    pub fn key(self) -> &'static str {
+        match self {
+            PieceSet::Cburnett => "cburnett",
+            PieceSet::Merida => "merida",
+            PieceSet::Chessnut => "chessnut",
+            PieceSet::RhosGfx => "rhosgfx",
+            PieceSet::Fantasy => "fantasy",
+        }
+    }
+
+    pub fn from_key(key: &str) -> Option<Self> {
+        match key {
+            "cburnett" => Some(PieceSet::Cburnett),
+            "merida" => Some(PieceSet::Merida),
+            "chessnut" => Some(PieceSet::Chessnut),
+            "rhosgfx" => Some(PieceSet::RhosGfx),
+            "fantasy" => Some(PieceSet::Fantasy),
+            _ => None,
+        }
+    }
+
+    fn index(self) -> usize {
+        match self {
+            PieceSet::Cburnett => 0,
+            PieceSet::Merida => 1,
+            PieceSet::Chessnut => 2,
+            PieceSet::RhosGfx => 3,
+            PieceSet::Fantasy => 4,
+        }
+    }
+}
+
+struct PieceSetImages {
     white: [PieceTexture; 6],
     black: [PieceTexture; 6],
+}
+
+pub struct PieceImages {
+    sets: [PieceSetImages; 5],
     menu_gear: PieceTexture,
     menu_knight: PieceTexture,
     menu_knight_buffer: PieceTexture,
 }
 
-const W_P: &[u8] = include_bytes!("../assets/pieces/wP.png");
-const W_N: &[u8] = include_bytes!("../assets/pieces/wN.png");
-const W_B: &[u8] = include_bytes!("../assets/pieces/wB.png");
-const W_R: &[u8] = include_bytes!("../assets/pieces/wR.png");
-const W_Q: &[u8] = include_bytes!("../assets/pieces/wQ.png");
-const W_K: &[u8] = include_bytes!("../assets/pieces/wK.png");
-const B_P: &[u8] = include_bytes!("../assets/pieces/bP.png");
-const B_N: &[u8] = include_bytes!("../assets/pieces/bN.png");
-const B_B: &[u8] = include_bytes!("../assets/pieces/bB.png");
-const B_R: &[u8] = include_bytes!("../assets/pieces/bR.png");
-const B_Q: &[u8] = include_bytes!("../assets/pieces/bQ.png");
-const B_K: &[u8] = include_bytes!("../assets/pieces/bK.png");
+macro_rules! piece_assets {
+    ($prefix:literal) => {
+        [
+            ("wP", include_bytes!(concat!($prefix, "/wP.png")) as &[u8]),
+            ("wN", include_bytes!(concat!($prefix, "/wN.png")) as &[u8]),
+            ("wB", include_bytes!(concat!($prefix, "/wB.png")) as &[u8]),
+            ("wR", include_bytes!(concat!($prefix, "/wR.png")) as &[u8]),
+            ("wQ", include_bytes!(concat!($prefix, "/wQ.png")) as &[u8]),
+            ("wK", include_bytes!(concat!($prefix, "/wK.png")) as &[u8]),
+            ("bP", include_bytes!(concat!($prefix, "/bP.png")) as &[u8]),
+            ("bN", include_bytes!(concat!($prefix, "/bN.png")) as &[u8]),
+            ("bB", include_bytes!(concat!($prefix, "/bB.png")) as &[u8]),
+            ("bR", include_bytes!(concat!($prefix, "/bR.png")) as &[u8]),
+            ("bQ", include_bytes!(concat!($prefix, "/bQ.png")) as &[u8]),
+            ("bK", include_bytes!(concat!($prefix, "/bK.png")) as &[u8]),
+        ]
+    };
+}
+
+const CBURNETT_ASSETS: [(&str, &[u8]); 12] = piece_assets!("../assets/pieces");
+const MERIDA_ASSETS: [(&str, &[u8]); 12] = piece_assets!("../assets/pieces/merida");
+const CHESSNUT_ASSETS: [(&str, &[u8]); 12] = piece_assets!("../assets/pieces/chessnut");
+const RHOSGFX_ASSETS: [(&str, &[u8]); 12] = piece_assets!("../assets/pieces/rhosgfx");
+const FANTASY_ASSETS: [(&str, &[u8]); 12] = piece_assets!("../assets/pieces/fantasy");
 const MENU_GEAR: &[u8] = include_bytes!("../assets/menu-gear.png");
 const MENU_KNIGHT: &[u8] = include_bytes!("../assets/menu-knight.png");
 const MENU_KNIGHT_BUFFER: &[u8] = include_bytes!("../assets/menu-knight-buffer.png");
 
+fn load_piece_set(assets: [(&str, &[u8]); 12]) -> PieceSetImages {
+    let mut white = Vec::new();
+    let mut black = Vec::new();
+    for (name, data) in assets {
+        let tex = PieceTexture::from_bytes(data, name);
+        if name.starts_with('w') {
+            white.push(tex);
+        } else {
+            black.push(tex);
+        }
+    }
+    PieceSetImages {
+        white: white.try_into().expect("6 white pieces"),
+        black: black.try_into().expect("6 black pieces"),
+    }
+}
+
 impl PieceImages {
     pub fn load() -> Self {
-        let assets: [(&str, &[u8]); 12] = [
-            ("wP", W_P),
-            ("wN", W_N),
-            ("wB", W_B),
-            ("wR", W_R),
-            ("wQ", W_Q),
-            ("wK", W_K),
-            ("bP", B_P),
-            ("bN", B_N),
-            ("bB", B_B),
-            ("bR", B_R),
-            ("bQ", B_Q),
-            ("bK", B_K),
-        ];
-        let mut white = Vec::new();
-        let mut black = Vec::new();
-        for (name, data) in assets {
-            let tex = PieceTexture::from_bytes(data, name);
-            if name.starts_with('w') {
-                white.push(tex);
-            } else {
-                black.push(tex);
-            }
-        }
         PieceImages {
-            white: white.try_into().expect("6 white pieces"),
-            black: black.try_into().expect("6 black pieces"),
+            sets: [
+                load_piece_set(CBURNETT_ASSETS),
+                load_piece_set(MERIDA_ASSETS),
+                load_piece_set(CHESSNUT_ASSETS),
+                load_piece_set(RHOSGFX_ASSETS),
+                load_piece_set(FANTASY_ASSETS),
+            ],
             menu_gear: PieceTexture::from_bytes(MENU_GEAR, "menu gear"),
             menu_knight: PieceTexture::from_bytes(MENU_KNIGHT, "menu knight"),
-            menu_knight_buffer: PieceTexture::from_bytes(
-                MENU_KNIGHT_BUFFER,
-                "menu knight buffer",
-            ),
+            menu_knight_buffer: PieceTexture::from_bytes(MENU_KNIGHT_BUFFER, "menu knight buffer"),
         }
     }
 
@@ -154,10 +218,11 @@ impl PieceImages {
         &self.menu_knight_buffer
     }
 
-    pub fn get(&self, color: Color, role: Role) -> &PieceTexture {
+    pub fn get(&self, style: PieceSet, color: Color, role: Role) -> &PieceTexture {
+        let images = &self.sets[style.index()];
         let set = match color {
-            Color::White => &self.white,
-            Color::Black => &self.black,
+            Color::White => &images.white,
+            Color::Black => &images.black,
         };
         let idx = match role {
             Role::Pawn => 0,
@@ -295,15 +360,7 @@ pub fn draw_arrow_down(
     }
 }
 
-pub fn draw_arrow_up(
-    buf: &mut [u32],
-    w: usize,
-    h: usize,
-    cx: f32,
-    cy: f32,
-    size: f32,
-    color: u32,
-) {
+pub fn draw_arrow_up(buf: &mut [u32], w: usize, h: usize, cx: f32, cy: f32, size: f32, color: u32) {
     let half = size / 2.0;
     let x0 = (cx - half).floor().max(0.0) as i32;
     let y0 = (cy - size).floor().max(0.0) as i32;
@@ -428,12 +485,10 @@ pub fn draw_scaled_rotated(
         for dx in 0..dest_size {
             let centered_x = dx as f32 + 0.5 - half;
             let centered_y = dy as f32 + 0.5 - half;
-            let source_x = (centered_x * cos + centered_y * sin) / dest_size as f32
-                * tex_w
-                + tex_w / 2.0;
-            let source_y = (-centered_x * sin + centered_y * cos) / dest_size as f32
-                * tex_h
-                + tex_h / 2.0;
+            let source_x =
+                (centered_x * cos + centered_y * sin) / dest_size as f32 * tex_w + tex_w / 2.0;
+            let source_y =
+                (-centered_x * sin + centered_y * cos) / dest_size as f32 * tex_h + tex_h / 2.0;
             if source_x < 0.0 || source_y < 0.0 || source_x >= tex_w || source_y >= tex_h {
                 continue;
             }
@@ -495,6 +550,35 @@ pub fn draw_scaled_tinted(
             if px >= 0 && py >= 0 && px < w as i32 && py < h as i32 {
                 let idx = py as usize * w + px as usize;
                 buf[idx] = blend_color(buf[idx], tint, alpha);
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{PieceImages, PieceSet};
+    use shakmaty::{Color, Role};
+
+    #[test]
+    fn every_piece_set_loads_all_roles() {
+        let images = PieceImages::load();
+        for style in PieceSet::ALL {
+            assert_eq!(PieceSet::from_key(style.key()), Some(style));
+            assert!(!style.label().is_empty());
+            for color in [Color::White, Color::Black] {
+                for role in [
+                    Role::Pawn,
+                    Role::Knight,
+                    Role::Bishop,
+                    Role::Rook,
+                    Role::Queen,
+                    Role::King,
+                ] {
+                    let texture = images.get(style, color, role);
+                    assert!(texture.w > 0 && texture.h > 0);
+                    assert_eq!(texture.pixels.len(), texture.w * texture.h);
+                }
             }
         }
     }

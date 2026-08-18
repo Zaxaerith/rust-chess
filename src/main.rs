@@ -5,6 +5,7 @@ mod assets;
 mod display;
 mod font;
 mod i18n;
+mod preferences;
 mod render;
 mod settings;
 mod theme;
@@ -17,7 +18,16 @@ use minifb::{Key, MouseButton, MouseMode, Window, WindowOptions};
 use shakmaty::san::San;
 use shakmaty::{Chess, Color, File, Move, Position, Role, Square};
 
-use render::{DropdownKind, PieceAnimView, Renderer, Screen, Settings, UiAction, ViewState};
+use assets::PieceSet;
+use preferences::{
+    AccessPolicy, AutoPromotion, AutoThreefold, CastlingMethod, ClockPosition, ClockTenths,
+    DragTarget, PieceNotation, ZenMode,
+};
+use render::{
+    DropdownKind, PieceAnimView, PreferenceItem, Renderer, Screen, Settings, SettingsPage,
+    UiAction, ViewState,
+};
+use theme::BoardStyle;
 
 struct PieceAnim {
     color: Color,
@@ -64,7 +74,12 @@ struct App {
     pos: Chess,
     history: Vec<Move>,
     history_sans: Vec<String>,
+    position_keys: Vec<String>,
+    claimed_draw: bool,
     selected: Option<Square>,
+    dragging_from: Option<Square>,
+    premove_from: Option<Square>,
+    premove: Option<(Square, Square)>,
     last_move: Option<(Square, Square)>,
     ai_mode: Option<Color>,
     ai_rx: Option<Receiver<Move>>,
@@ -73,6 +88,7 @@ struct App {
     hint_thinking: bool,
     suggestion: Option<(Square, Square, String)>,
     promotion: Option<(Square, Square)>,
+    pending_move: Option<Move>,
     screen: Screen,
     settings: Settings,
     exit_requested: bool,
@@ -84,8 +100,14 @@ struct App {
     refreshes: Vec<u32>,
     open_dropdown: Option<DropdownKind>,
     dropdown_scroll: usize,
+    settings_page: SettingsPage,
+    settings_scroll: usize,
     game_over_at: Option<Instant>,
     started_at: Instant,
+    white_clock: f32,
+    black_clock: f32,
+    clock_last_tick: Instant,
+    clock_warning_played: [bool; 2],
 }
 
 impl App {
@@ -109,7 +131,12 @@ impl App {
             pos: Chess::default(),
             history: Vec::new(),
             history_sans: Vec::new(),
+            position_keys: vec![position_key(&Chess::default())],
+            claimed_draw: false,
             selected: None,
+            dragging_from: None,
+            premove_from: None,
+            premove: None,
             last_move: None,
             ai_mode: None,
             ai_rx: None,
@@ -118,6 +145,7 @@ impl App {
             hint_thinking: false,
             suggestion: None,
             promotion: None,
+            pending_move: None,
             screen: Screen::Menu,
             settings: loaded,
             exit_requested: false,
@@ -129,13 +157,47 @@ impl App {
             refreshes,
             open_dropdown: None,
             dropdown_scroll: 0,
+            settings_page: SettingsPage::Root,
+            settings_scroll: 0,
             game_over_at: None,
             started_at: Instant::now(),
+            white_clock: 600.0,
+            black_clock: 600.0,
+            clock_last_tick: Instant::now(),
+            clock_warning_played: [false; 2],
         }
     }
 
     fn game_over(&self) -> bool {
-        self.pos.outcome().is_some()
+        self.pos.outcome().is_some() || self.claimed_draw
+    }
+
+    fn tick_clock(&mut self) {
+        let now = Instant::now();
+        let elapsed = now.duration_since(self.clock_last_tick).as_secs_f32();
+        self.clock_last_tick = now;
+        if self.screen != Screen::Game
+            || !self.settings.board.chess_clock_enabled
+            || self.game_over()
+            || self.promotion.is_some()
+            || self.pending_move.is_some()
+        {
+            return;
+        }
+        let (clock, warning_index) = match self.pos.turn() {
+            Color::White => (&mut self.white_clock, 0),
+            Color::Black => (&mut self.black_clock, 1),
+        };
+        let before = *clock;
+        *clock = (*clock - elapsed).max(0.0);
+        if self.settings.board.clock_warning
+            && before > 30.0
+            && *clock <= 30.0
+            && !self.clock_warning_played[warning_index]
+        {
+            self.clock_warning_played[warning_index] = true;
+            play_clock_warning();
+        }
     }
 
     fn poll_ai(&mut self) {
@@ -157,6 +219,7 @@ impl App {
                 self.ai_thinking = false;
                 self.ai_reply_at = None;
                 self.apply_move(mv);
+                self.try_apply_premove();
                 self.maybe_spawn_ai();
             }
             Err(TryRecvError::Empty) => self.ai_rx = Some(rx),
@@ -289,10 +352,31 @@ impl App {
             self.history.push(mv);
             self.history_sans.push(san);
             self.pos = new_pos;
+            let key = position_key(&self.pos);
+            self.position_keys.push(key.clone());
+            let repetitions = self
+                .position_keys
+                .iter()
+                .filter(|entry| **entry == key)
+                .count();
+            let should_claim = match self.settings.board.auto_threefold {
+                AutoThreefold::Always => repetitions >= 3,
+                AutoThreefold::Never => false,
+                AutoThreefold::UnderThirtySeconds => {
+                    repetitions >= 3 && self.white_clock.min(self.black_clock) < 30.0
+                }
+            };
+            if should_claim {
+                self.claimed_draw = true;
+            }
             self.selected = None;
             self.promotion = None;
-            self.animations.extend(anims);
-            if self.pos.outcome().is_some() && self.game_over_at.is_none() {
+            if self.settings.board.piece_animation {
+                self.animations.extend(anims);
+            } else {
+                self.animations.clear();
+            }
+            if self.game_over() && self.game_over_at.is_none() {
                 self.game_over_at = Some(Instant::now());
             }
         }
@@ -330,16 +414,6 @@ impl App {
                 self.open_dropdown = None;
                 settings::save(&self.settings);
             }
-            UiAction::SetBoardStyle(style) => {
-                self.settings.board_style = style;
-                self.open_dropdown = None;
-                settings::save(&self.settings);
-            }
-            UiAction::SetPieceSet(style) => {
-                self.settings.piece_set = style;
-                self.open_dropdown = None;
-                settings::save(&self.settings);
-            }
             UiAction::SetLanguage(language) => {
                 self.settings.language = language;
                 self.open_dropdown = None;
@@ -357,6 +431,30 @@ impl App {
                 if opening {
                     self.dropdown_scroll = 0;
                 }
+            }
+            UiAction::OpenSettingsPage(page) => {
+                self.settings_page = page;
+                self.settings_scroll = 0;
+                self.open_dropdown = None;
+            }
+            UiAction::SettingsBack => {
+                self.settings_page = match self.settings_page {
+                    SettingsPage::Root => {
+                        self.back_to_menu();
+                        SettingsPage::Root
+                    }
+                    SettingsPage::Board => SettingsPage::Root,
+                    SettingsPage::Display | SettingsPage::Behavior | SettingsPage::Clock => {
+                        SettingsPage::Board
+                    }
+                };
+                self.settings_scroll = 0;
+                self.open_dropdown = None;
+            }
+            UiAction::SetPreference(item, value) => {
+                self.set_preference(item, value);
+                self.open_dropdown = None;
+                settings::save(&self.settings);
             }
             UiAction::NewGame => self.new_game(),
             UiAction::Undo => self.undo(),
@@ -379,7 +477,26 @@ impl App {
                 self.ai_mode = mode;
                 self.maybe_spawn_ai();
             }
-            UiAction::Square(sq) => self.handle_board_click(sq),
+            UiAction::PointerDown(sq) => self.handle_pointer_down(sq),
+            UiAction::PointerUp(sq) => self.handle_pointer_up(sq),
+            UiAction::ConfirmMove => {
+                if let Some(mv) = self.pending_move.take() {
+                    self.apply_move(mv);
+                    self.maybe_spawn_ai();
+                }
+            }
+            UiAction::CancelMove => {
+                self.pending_move = None;
+                self.selected = None;
+            }
+            UiAction::AddClockTime(color) => {
+                if self.settings.board.give_more_time != AccessPolicy::Never {
+                    match color {
+                        Color::White => self.white_clock += 15.0,
+                        Color::Black => self.black_clock += 15.0,
+                    }
+                }
+            }
             UiAction::Promote(role) => self.handle_promotion(role),
         }
     }
@@ -391,6 +508,8 @@ impl App {
     }
 
     fn open_settings(&mut self) {
+        self.settings_page = SettingsPage::Root;
+        self.settings_scroll = 0;
         self.screen = Screen::Settings;
     }
 
@@ -402,7 +521,107 @@ impl App {
         self.hint_thinking = false;
         self.suggestion = None;
         self.game_over_at = None;
+        self.dragging_from = None;
+        self.premove_from = None;
+        self.premove = None;
+        self.pending_move = None;
         self.screen = Screen::Menu;
+    }
+
+    fn handle_pointer_down(&mut self, sq: Square) {
+        if self.game_over() || self.promotion.is_some() {
+            return;
+        }
+        if self.ai_thinking {
+            if !self.settings.board.premoves {
+                return;
+            }
+            if let Some(from) = self.premove_from.take() {
+                if from != sq {
+                    self.premove = Some((from, sq));
+                } else {
+                    self.premove = None;
+                }
+                self.selected = None;
+                return;
+            }
+            if let Some(piece) = self.pos.board().piece_at(sq) {
+                if piece.color != self.pos.turn() {
+                    self.premove_from = Some(sq);
+                    self.selected = Some(sq);
+                }
+            }
+            return;
+        }
+        if let Some(piece) = self.pos.board().piece_at(sq) {
+            if piece.color == self.pos.turn() {
+                self.selected = Some(sq);
+                self.dragging_from = Some(sq);
+                return;
+            }
+        }
+        self.dragging_from = None;
+        self.handle_board_click(sq);
+    }
+
+    fn handle_pointer_up(&mut self, target: Option<Square>) {
+        let Some(from) = self.dragging_from.take() else {
+            return;
+        };
+        let Some(to) = target else {
+            self.selected = Some(from);
+            return;
+        };
+        if from != to {
+            self.selected = Some(from);
+            self.handle_board_click(to);
+        }
+    }
+
+    fn try_apply_premove(&mut self) {
+        let Some((from, to)) = self.premove.take() else {
+            return;
+        };
+        self.premove_from = None;
+        let moves: Vec<Move> = self
+            .pos
+            .legal_moves()
+            .iter()
+            .filter(|mv| mv.from() == Some(from) && mv.to() == to)
+            .cloned()
+            .collect();
+        if moves.is_empty() {
+            self.selected = None;
+            return;
+        }
+        if moves.iter().any(|mv| mv.promotion().is_some())
+            && self.settings.board.auto_promotion == AutoPromotion::Never
+        {
+            self.promotion = Some((from, to));
+            self.selected = None;
+            return;
+        }
+        let mv = if moves.iter().any(|mv| mv.promotion().is_some()) {
+            moves
+                .iter()
+                .find(|mv| mv.promotion() == Some(Role::Queen))
+                .cloned()
+                .unwrap_or_else(|| moves[0].clone())
+        } else {
+            moves[0].clone()
+        };
+        self.apply_move(mv);
+    }
+
+    fn submit_player_move(&mut self, mv: Move) {
+        if self.settings.board.move_confirmation {
+            self.pending_move = Some(mv);
+            self.selected = None;
+            self.dragging_from = None;
+        } else {
+            self.apply_move(mv);
+            self.maybe_spawn_ai();
+        }
     }
 
     fn handle_board_click(&mut self, sq: Square) {
@@ -413,6 +632,20 @@ impl App {
             if sel == sq {
                 self.selected = None;
                 return;
+            }
+            if self.settings.board.castling_method == CastlingMethod::KingOntoRook
+                && self.pos.board().role_at(sel) == Some(Role::King)
+                && self.pos.board().role_at(sq) == Some(Role::Rook)
+                && self.pos.board().color_at(sel) == self.pos.board().color_at(sq)
+            {
+                let castle = self.pos.legal_moves().iter().find_map(|mv| match mv {
+                    Move::Castle { king, rook } if *king == sel && *rook == sq => Some(mv.clone()),
+                    _ => None,
+                });
+                if let Some(mv) = castle {
+                    self.submit_player_move(mv);
+                    return;
+                }
             }
             let moves: Vec<Move> = self
                 .pos
@@ -431,11 +664,20 @@ impl App {
                 }
                 return;
             }
-            if moves.iter().any(|m| m.promotion().is_some()) {
+            if moves.iter().any(|m| m.promotion().is_some())
+                && self.settings.board.auto_promotion == AutoPromotion::Always
+            {
+                if let Some(mv) = moves
+                    .iter()
+                    .find(|m| m.promotion() == Some(Role::Queen))
+                    .cloned()
+                {
+                    self.submit_player_move(mv);
+                }
+            } else if moves.iter().any(|m| m.promotion().is_some()) {
                 self.promotion = Some((sel, sq));
             } else {
-                self.apply_move(moves[0].clone());
-                self.maybe_spawn_ai();
+                self.submit_player_move(moves[0].clone());
             }
         } else if let Some(piece) = self.pos.board().piece_at(sq) {
             if piece.color == self.pos.turn() {
@@ -451,14 +693,16 @@ impl App {
                     m.from() == Some(from) && m.to() == to && m.promotion() == Some(role)
                 });
             if let Some(mv) = mv {
-                self.apply_move(mv);
+                self.submit_player_move(mv);
             }
         }
         self.promotion = None;
-        self.maybe_spawn_ai();
     }
 
     fn undo(&mut self) {
+        if self.settings.board.takebacks == AccessPolicy::Never {
+            return;
+        }
         self.ai_rx = None;
         self.ai_reply_at = None;
         self.ai_thinking = false;
@@ -467,6 +711,10 @@ impl App {
         self.suggestion = None;
         self.promotion = None;
         self.selected = None;
+        self.dragging_from = None;
+        self.premove_from = None;
+        self.premove = None;
+        self.pending_move = None;
         if self.history.is_empty() {
             return;
         }
@@ -496,8 +744,19 @@ impl App {
         self.pos = Chess::default();
         self.history.clear();
         self.history_sans.clear();
+        self.position_keys.clear();
+        self.position_keys.push(position_key(&self.pos));
+        self.claimed_draw = false;
         self.selected = None;
+        self.dragging_from = None;
+        self.premove_from = None;
+        self.premove = None;
+        self.pending_move = None;
         self.last_move = None;
+        self.white_clock = 600.0;
+        self.black_clock = 600.0;
+        self.clock_last_tick = Instant::now();
+        self.clock_warning_played = [false; 2];
         self.promotion = None;
         self.ai_rx = None;
         self.ai_reply_at = None;
@@ -511,17 +770,27 @@ impl App {
 
     fn rebuild(&mut self) {
         let mut pos = Chess::default();
+        self.position_keys.clear();
+        self.position_keys.push(position_key(&pos));
         for mv in &self.history {
             pos = pos.play(mv).expect("棋谱回放失败");
+            self.position_keys.push(position_key(&pos));
         }
         self.pos = pos;
+        self.claimed_draw = false;
         self.last_move = self
             .history
             .last()
             .map(|m| (m.from().expect("standard move has origin"), m.to()));
     }
 
-    fn view_state(&self, mouse: Option<(f32, f32)>, mouse_pressed: bool) -> ViewState {
+    fn view_state(
+        &self,
+        mouse: Option<(f32, f32)>,
+        mouse_pressed: bool,
+        mouse_down: bool,
+        mouse_released: bool,
+    ) -> ViewState {
         let now = Instant::now();
         let animations: Vec<PieceAnimView> = self
             .animations
@@ -529,7 +798,7 @@ impl App {
             .filter(|a| !a.done(now))
             .map(|a| a.view(now))
             .collect();
-        let game_over_progress = if self.pos.outcome().is_some() {
+        let game_over_progress = if self.game_over() {
             if let Some(start) = self.game_over_at {
                 let raw = (now.duration_since(start).as_secs_f32() / 0.6).clamp(0.0, 1.0);
                 raw * raw * (3.0 - 2.0 * raw)
@@ -559,6 +828,7 @@ impl App {
             hint_thinking: self.hint_thinking,
             suggestion: self.suggestion.clone(),
             promotion: self.promotion,
+            move_confirmation_pending: self.pending_move.is_some(),
             screen: self.screen,
             settings: self.settings,
             animations,
@@ -566,25 +836,164 @@ impl App {
             refreshes: self.refreshes.clone(),
             open_dropdown: self.open_dropdown,
             dropdown_scroll: self.dropdown_scroll,
+            settings_page: self.settings_page,
+            settings_scroll: self.settings_scroll,
             game_over_progress,
             mouse,
             mouse_pressed,
+            mouse_down,
+            mouse_released,
+            dragging_from: self.dragging_from,
             menu_time: now.duration_since(self.started_at).as_secs_f32(),
+            white_clock: self.white_clock,
+            black_clock: self.black_clock,
+            claimed_draw: self.claimed_draw,
         }
     }
 
     fn handle_scroll(&mut self, y: f32) {
-        if self.open_dropdown.is_none() {
-            return;
-        }
         let delta = (y / 3.0).round() as i32;
         if delta == 0 {
             return;
         }
-        let next = self.dropdown_scroll as i32 - delta;
-        self.dropdown_scroll = next.max(0) as usize;
+        if self.open_dropdown.is_some() {
+            let next = self.dropdown_scroll as i32 - delta;
+            self.dropdown_scroll = next.max(0) as usize;
+        } else if self.screen == Screen::Settings {
+            let next = self.settings_scroll as i32 - delta;
+            self.settings_scroll = next.max(0) as usize;
+        }
+    }
+
+    fn set_preference(&mut self, item: PreferenceItem, value: usize) {
+        let board = &mut self.settings.board;
+        match item {
+            PreferenceItem::BoardStyle => {
+                if let Some(style) = BoardStyle::ALL.get(value) {
+                    self.settings.board_style = *style;
+                }
+            }
+            PreferenceItem::PieceSet => {
+                if let Some(style) = PieceSet::ALL.get(value) {
+                    self.settings.piece_set = *style;
+                }
+            }
+            PreferenceItem::ZenMode => {
+                board.zen_mode = [ZenMode::No, ZenMode::Yes, ZenMode::GameOnly]
+                    .get(value)
+                    .copied()
+                    .unwrap_or(board.zen_mode)
+            }
+            PreferenceItem::PieceNotation => {
+                board.piece_notation = [PieceNotation::Symbols, PieceNotation::Letters]
+                    .get(value)
+                    .copied()
+                    .unwrap_or(board.piece_notation)
+            }
+            PreferenceItem::Coordinates => board.coordinates = value != 0,
+            PreferenceItem::MagnifyDraggedPiece => board.magnify_dragged_piece = value != 0,
+            PreferenceItem::DragTarget => {
+                board.drag_target = [DragTarget::Circle, DragTarget::Square, DragTarget::None]
+                    .get(value)
+                    .copied()
+                    .unwrap_or(board.drag_target)
+            }
+            PreferenceItem::PieceAnimation => board.piece_animation = value != 0,
+            PreferenceItem::ImmersiveMode => board.immersive_mode = value != 0,
+            PreferenceItem::PieceDestinations => board.piece_destinations = value != 0,
+            PreferenceItem::BoardHighlights => board.board_highlights = value != 0,
+            PreferenceItem::ShowMoveList => board.show_move_list = value != 0,
+            PreferenceItem::ClockPosition => {
+                board.clock_position = [ClockPosition::Left, ClockPosition::Right]
+                    .get(value)
+                    .copied()
+                    .unwrap_or(board.clock_position)
+            }
+            PreferenceItem::Premoves => board.premoves = value != 0,
+            PreferenceItem::Takebacks => {
+                board.takebacks = [
+                    AccessPolicy::Never,
+                    AccessPolicy::Casual,
+                    AccessPolicy::Always,
+                ]
+                .get(value)
+                .copied()
+                .unwrap_or(board.takebacks)
+            }
+            PreferenceItem::AutoPromotion => {
+                board.auto_promotion = [
+                    AutoPromotion::Never,
+                    AutoPromotion::Premove,
+                    AutoPromotion::Always,
+                ]
+                .get(value)
+                .copied()
+                .unwrap_or(board.auto_promotion)
+            }
+            PreferenceItem::AutoThreefold => {
+                board.auto_threefold = [
+                    AutoThreefold::Always,
+                    AutoThreefold::Never,
+                    AutoThreefold::UnderThirtySeconds,
+                ]
+                .get(value)
+                .copied()
+                .unwrap_or(board.auto_threefold)
+            }
+            PreferenceItem::MoveConfirmation => board.move_confirmation = value != 0,
+            PreferenceItem::ConfirmResignDraw => board.confirm_resign_draw = value != 0,
+            PreferenceItem::CastlingMethod => {
+                board.castling_method =
+                    [CastlingMethod::KingOntoRook, CastlingMethod::KingTwoSquares]
+                        .get(value)
+                        .copied()
+                        .unwrap_or(board.castling_method)
+            }
+            PreferenceItem::ChessClockEnabled => board.chess_clock_enabled = value != 0,
+            PreferenceItem::GiveMoreTime => {
+                board.give_more_time = [
+                    AccessPolicy::Never,
+                    AccessPolicy::Casual,
+                    AccessPolicy::Always,
+                ]
+                .get(value)
+                .copied()
+                .unwrap_or(board.give_more_time)
+            }
+            PreferenceItem::ClockWarning => board.clock_warning = value != 0,
+            PreferenceItem::ClockTenths => {
+                board.clock_tenths = [
+                    ClockTenths::Never,
+                    ClockTenths::UnderTenSeconds,
+                    ClockTenths::Always,
+                ]
+                .get(value)
+                .copied()
+                .unwrap_or(board.clock_tenths)
+            }
+        }
     }
 }
+
+fn position_key(position: &Chess) -> String {
+    format!(
+        "{:?}|{:?}|{:?}|{:?}",
+        position.board(),
+        position.turn(),
+        position.castles(),
+        position.maybe_ep_square()
+    )
+}
+
+#[cfg(target_os = "windows")]
+fn play_clock_warning() {
+    unsafe {
+        winapi::um::winuser::MessageBeep(0x0000_0030);
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn play_clock_warning() {}
 
 #[cfg(target_os = "windows")]
 fn resize_native_window(window: &Window, client_width: u32, client_height: u32) {
@@ -694,6 +1103,7 @@ fn main() {
     let mut buffer = vec![0u32; win_w * win_h];
     let mut mouse_was_down = false;
     while window.is_open() && !window.is_key_down(Key::Escape) && !app.exit_requested {
+        app.tick_clock();
         app.poll_ai();
         app.poll_hint();
         let (mut cur_w, mut cur_h) = window.get_size();
@@ -705,11 +1115,12 @@ fn main() {
         let mouse = window.get_mouse_pos(MouseMode::Discard);
         let mouse_down = window.get_mouse_down(MouseButton::Left);
         let pressed = mouse_down && !mouse_was_down;
+        let released = !mouse_down && mouse_was_down;
         mouse_was_down = mouse_down;
         if let Some((_, scroll_y)) = window.get_scroll_wheel() {
             app.handle_scroll(scroll_y);
         }
-        let view = app.view_state(mouse, pressed);
+        let view = app.view_state(mouse, pressed, mouse_down, released);
         let actions = renderer.render(&mut buffer, cur_w, cur_h, &view);
         for action in actions {
             app.handle_action(action);

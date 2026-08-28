@@ -1,127 +1,123 @@
 # RUST CHESS
 
-> 当前稳定版本：**v0.1.3** — 源码与 Release 均已发布到 `main`。
+[简体中文](README_ZH.md)
 
-一个用 Rust 编写的本地窗口国际象棋游戏。支持双人对战、人机对战、5 档 AI
-难度、走棋动画、AI 思考停顿、开局结束动画、设置记忆，以及多套仿 VSCode
-主题。v0.1.3 将棋盘相关偏好重构为三级设置，并加入拖拽、预走棋、着法确认与本地棋钟。
+> Current stable version: **v0.1.3** — source code and releases are available on `main`.
 
-## 功能
+A local window chess game written in Rust. Supports two-player, human vs AI, 5 AI difficulty levels, move animations, AI thinking pause, opening/ending animations, settings persistence, and multiple VSCode-inspired themes. v0.1.3 refactors board-related preferences into three-tier settings and adds drag-and-drop, premoves, move confirmation, and a local chess clock.
 
-- 双人对战 / 人机对战（人机执白或执黑）
-- AI 难度 5 档：入门 / 简单 / 中等 / 困难 / 大师
-- 合法走法提示、将军提示、升变选择、王车易位、吃过路兵
-- 悔棋、新对局、棋谱记录
-- 走棋滑动动画、AI 思考停顿、对局结束结算面板
-- 游戏设置记忆（保存到 exe 同目录的 `settings.cfg`）
-- 分辨率/刷新率选项自动读取系统显示模式
-- 10 套主题：Dark+ / Light+ / Monokai / Solarized / Nord / Abyss / Kimbie Dark / Quiet Light / Tomorrow Night Blue / Red
-- 11 种语言：简体中文、繁體中文、English、Français、Español、Latina、日本語、한국어、Deutsch、Italiano、Русский
-- 5 套棋子：CBurnett / Merida / Chessnut / RhosGFX / Fantasy
-- 6 套棋盘：Classic / Walnut / Ocean / Emerald / Marble / Graphite
-- 玩家执黑时可选择自动翻转棋盘
-- 对局中可请求基于 Pleco 搜索器的决策建议
-- 左侧纵向主菜单与动态旋转齿轮 Logo
-- 三级棋盘设置：界面设置 / 对局行为 / 棋钟
-- 棋子拖拽、拖动放大、圆形或方形落点标记
-- 预走棋、自动升后、着法确认和两种王车易位输入方式
-- 本地 10 分钟棋钟、临界时间提示、十分之一秒显示和给对方加时
+## Features
 
-## 直接运行
+- Two-player / Human vs AI (AI plays white or black)
+- 5 AI difficulty levels: Beginner / Easy / Medium / Hard / Master
+- Legal move hints, check alerts, promotion selection, castling, en passant
+- Undo, new game, move history
+- Smooth sliding move animations, AI thinking delay, game-end summary panel
+- Settings persistence (saved to `settings.cfg` in the same directory as the executable)
+- Resolution/refresh rate options automatically detected from system display modes
+- 10 themes: Dark+ / Light+ / Monokai / Solarized / Nord / Abyss / Kimbie Dark / Quiet Light / Tomorrow Night Blue / Red
+- 11 languages: 简体中文, 繁體中文, English, Français, Español, Latina, 日本語, 한국어, Deutsch, Italiano, Русский
+- 5 piece sets: CBurnett / Merida / Chessnut / RhosGFX / Fantasy
+- 6 board skins: Classic / Walnut / Ocean / Emerald / Marble / Graphite
+- Optional auto-flip board when playing black
+- In-game move suggestions based on the Pleco search engine
+- Left vertical main menu with animated rotating gear logo
+- Three-tier board settings: Interface / Game Behavior / Chess Clock
+- Piece drag-and-drop, enlarged dragging, circular or square landing markers
+- Premoves, auto-queen promotion, move confirmation, and two castling input methods
+- Local 10-minute chess clock, critical time alerts, tenth-second display, and time-add for opponent
 
-项目根目录的 `国际象棋.exe` 是完整可执行文件，棋子素材已嵌入 exe，
-双击即可运行，不需要额外安装任何东西。
+## Run Directly
 
-## 从源码编译
+The `国际象棋.exe` file in the project root is a fully self-contained executable – piece assets are embedded, so double-click to run without any additional installation.
 
-需要 [Rust 工具链](https://www.rust-lang.org/tools/install)（stable 即可）。
+## Build from Source
+
+You need the [Rust toolchain](https://www.rust-lang.org/tools/install) (stable is fine).
 
 ```powershell
 cargo build --release
 ```
 
-编译产物位于 `target/release/chess_rust.exe`，可以复制到任意位置直接运行。
+The build output is `target/release/chess_rust.exe`, you can copy it anywhere and run.
 
-## 发布打包
+## Packaging for Release
 
-- 本地手动打包：运行 `.\package.ps1`，产物在 `dist/` 目录
-- GitHub 自动发布：推送 `v*` 开头的 tag，Actions 会自动编译、打包并创建
-  Release，详见 [RELEASE.md](RELEASE.md)
+- Local manual packaging: run .\package.ps1, output goes to dist/
+- Automatic GitHub release: push a tag starting with v*, and Actions will automatically compile, package, and create a Release – see RELEASE.md
 
-## VSCode 开发
+## VSCode Development
 
-1. 用 VSCode 打开项目根目录。
-2. 安装推荐的 `rust-analyzer` 扩展。
-3. 按 `Ctrl+Shift+B` 编译 release 版，按 `F5` 启动游戏。
+1. Open the project root in VSCode.
+2. Install the recommended rust-analyzer extension.
+3. Press Ctrl+Shift+B to build the release version, or press F5 to run the game.
 
-也可以在终端运行：
+You can also run from the terminal:
 
 ```powershell
 cargo run --release
 ```
 
-## 操作说明
+## How to Play
 
-- 点击己方棋子选中，再点击目标格走棋
-- 点击选中的棋子或空白格取消选择
-- 兵到达底线时选择升变棋子（后/车/象/马）
-- 右侧栏提供新对局、悔棋、返回主菜单
-- 按 `Esc` 退出游戏
+- Click your own piece to select it, then click a target square to move.
+- Click the selected piece or an empty square to deselect.
+- When a pawn reaches the last rank, choose the promotion piece (Queen / Rook / Bishop / Knight).
+- The right panel provides New Game, Undo, and Return to Main Menu.
+- Press `Esc` to exit the game.
 
-## 游戏设置
+## Settings
 
-- 对战模式：双人 / 人机执白 / 人机执黑
-- AI 难度：入门 / 简单 / 中等 / 困难 / 大师
-- 窗口分辨率：自动读取系统支持的显示模式
-- 刷新率：自动读取系统支持的刷新率
-- 主题：10 套 VS Code 风格配色
-- 语言：简体中文、繁体中文、英语、法语、西班牙语、拉丁语、日语、韩语、德语、意大利语、俄语
-- 棋盘皮肤：Classic / Walnut / Ocean / Emerald / Marble / Graphite
-- 棋子皮肤：CBurnett / Merida / Chessnut / RhosGFX / Fantasy
-- 执黑时翻转棋盘：开启或关闭
+- Game mode: Two-player / AI plays white / AI plays black
+- AI difficulty: Beginner / Easy / Medium / Hard / Master
+- Window resolution: automatically reads supported display modes
+- Refresh rate: automatically reads supported refresh rates
+- Theme: 10 VSCode-style colour schemes
+- Language: 简体中文, 繁體中文, English, Français, Español, Latina, 日本語, 한국어, Deutsch, Italiano, Русский
+- Board skin: Classic / Walnut / Ocean / Emerald / Marble / Graphite
+- Piece set: CBurnett / Merida / Chessnut / RhosGFX / Fantasy
+- Flip board when playing black: On / Off
 
-设置会立即生效并保存到 `settings.cfg`，下次启动自动恢复。
+Settings take effect immediately and are saved to `settings.cfg`, they will be restored on next launch.
 
-## 技术栈
+## Technology Stack
 
-- `minifb`：本地窗口与输入
-- `shakmaty`：国际象棋规则引擎
-- `pleco`：人机对战的 AI 搜索器（Rust 重写的 Stockfish）
-- `png`：棋子 PNG 解码
-- `ab_glyph`：文字渲染（使用系统中文字体）
+- `minifb`: local window and input
+- `shakmaty`: chess rule engine
+- `pleco`: AI searcher for human vs AI (Rust port of Stockfish)
+- `png`: PNG decoding for piece images
+- `ab_glyph`: text rendering (uses system fonts, including Chinese)
 
-## 项目结构
+## Project Structure
 
 ```text
 src/
-  main.rs       程序入口与对局逻辑
-  render.rs     棋盘、菜单、设置、动画渲染
-  ai.rs         Pleco AI 难度映射与决策建议搜索
-  i18n.rs       十一语言界面文本
-  theme.rs      界面主题与棋盘配色
-  display.rs    读取系统分辨率/刷新率
-  settings.rs   设置保存与读取
-  font.rs       文字渲染
-  assets.rs     棋子图片解码
+  main.rs       entry point and game logic
+  render.rs     board, menu, settings, animation rendering
+  ai.rs         Pleco AI difficulty mapping and suggestion search
+  i18n.rs       interface texts for 11 languages
+  theme.rs      UI themes and board colours
+  display.rs    reads system resolution / refresh rate
+  settings.rs   settings save/load
+  font.rs       text rendering
+  assets.rs     piece image decoding
 assets/
-  piece-svg/    开源棋子 SVG 素材
-  pieces/       运行时使用的 PNG（由 SVG 渲染生成）
-  ATTRIBUTION.md 棋子素材版权说明
+  piece-svg/    open‑source SVG piece assets
+  pieces/       PNGs used at runtime (generated from SVGs)
+  ATTRIBUTION.md  piece asset licence notices
 ```
 
-## 开源协议
+## License
 
-本项目使用 **GPL-3.0-or-later** 协议，见 [LICENSE](LICENSE)。
+This project is licensed under GPL-3.0-or-later – see LICENSE.
 
-协议选择原因：项目依赖的规则引擎 `shakmaty` 使用 GPL-3.0+ 协议，因此整个
-项目以兼容的 GPL-3.0-or-later 发布。
+We chose this license because the rule engine shakmaty is GPL‑3.0+, so we release the entire project under the compatible GPL‑3.0‑or‑later.
 
-第三方依赖、素材和版权声明详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
-与 [assets/ATTRIBUTION.md](assets/ATTRIBUTION.md)。
+Third‑party dependencies, assets and copyright notices are detailed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [assets/ATTRIBUTION.md](assets/ATTRIBUTION.md).
 
-## 致谢
+## Acknowledgements
 
-- [shakmaty](https://github.com/niklasf/shakmaty)：国际象棋规则引擎
-- [Pleco](https://github.com/pleco-rs/Pleco)：Rust 重写的 Stockfish，提供 AI 搜索器
-- [Lichess](https://github.com/lichess-org/lila)：开源棋子素材与许可证清单
-- [Visual Studio Code](https://github.com/microsoft/vscode)：界面主题配色参考
+- [shakmaty](https://github.com/niklasf/shakmaty): chess rule engine
+- [Pleco](https://github.com/pleco-rs/Pleco): Rust port of Stockfish, provides AI search
+- [Lichess](https://github.com/lichess-org/lila)Lichess: open‑source piece assets and licence information
+- [Visual Studio Code](https://github.com/microsoft/vscode)Visual Studio Code: UI theme colour references

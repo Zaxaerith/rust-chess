@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "package": "pleco",
+  "version": "0.5.0",
+  "license": "MIT",
+  "crate_checksum_sha256": "28a8c8ab569c544644c468a63f4fe4b33c0706b1472bebb517fabb75ec0f688e",
+  "crate_vcs_commit": "7122ae552507abd3853c5ad6ed37cc36637a0831",
+  "source_url": "https://github.com/pleco-rs/Pleco/blob/d8db0d4e94c68334ec51c36dd99001efeda8640c/pleco/LICENSE",
+  "source_commit": "d8db0d4e94c68334ec51c36dd99001efeda8640c",
+  "published_source_url": "https://github.com/pleco-rs/Pleco/blob/7122ae552507abd3853c5ad6ed37cc36637a0831/pleco/LICENSE",
+  "manifest_source_url": "https://github.com/pleco-rs/Pleco/blob/7122ae552507abd3853c5ad6ed37cc36637a0831/pleco/Cargo.toml",
+  "git_blob_sha1": "6adc426716168a2d3066000613a9d61f023a6eeb",
+  "file": "pleco-0.5.0-LICENSE-MIT",
+  "file_sha256": "42679ebf22772f1a2901273259e9396a14c7866afd0a0b4564091cefee5a9962",
+  "copyright": "Copyright (c) 2017 Stephen Fleischman",
+  "verified_on": "2026-10-23",
+  "verification": "Read both pinned files via GitHub contents API with base64 encoding. Both return the same bytes and Git blob. The published crate's .cargo_vcs_info.json identifies the published-source commit; its manifest declares version 0.5.0, MIT, and Stephen Fleischman as author. Its include list excludes the license.",
+  "applicability": "The historical MIT original is also the exact library license at the published 0.5.0 source commit, not merely an inferred older license. Preserve the 2017 copyright and all terms verbatim; no 2022 author/year substitution. This override applies only to the locked registry pleco 0.5.0 checksum and VCS commit.",
+  "later_update": {
+    "commit": "dac34fadbf0eddca1608a65a80e3afb6e8ccddf4",
+    "url": "https://github.com/pleco-rs/Pleco/commit/dac34fadbf0eddca1608a65a80e3afb6e8ccddf4",
+    "git_blob_sha1": "166052b3ba98a068c47dacd87a7ca69b6bddd3b2",
+    "patch": "@@ -1,6 +1,6 @@\n MIT License\n \n-Copyright (c) 2017 Stephen Fleischman\n+Copyright (c) 2022 Pleco\n \n Permission is hereby granted, free of charge, to any person obtaining a copy\n of this software and associated documentation files (the \"Software\"), to deal",
+    "verification": "Fetched the full updated license separately and confirmed the sole byte change is the copyright line."
+  },
+  "scope": "The current upstream repository root LICENSE is GPL-3.0, whereas pleco/LICENSE at the pinned library release is MIT. The root LICENSE at the 0.5.0 source commit was itself MIT; do not apply the current root GPL retroactively to this library. RUST CHESS remains GPL-3.0-or-later."
+}

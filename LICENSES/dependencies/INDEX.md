@@ -2,8 +2,8 @@
 
 Includes runtime and build dependencies. SPDX alternatives are retained verbatim; all available upstream license/notice files are bundled, including Unicode license conjunctions.
 
-| Package | Version | License expression | Files |
-| --- | --- | --- | --- |
+| Package | Version | License expression | Files | Review / source |
+| --- | --- | --- | --- | --- |
 | ab_glyph | 0.2.32 | Apache-2.0 | [texts](ab_glyph-0.2.32/) |
 | ab_glyph_rasterizer | 0.1.10 | Apache-2.0 | [texts](ab_glyph_rasterizer-0.1.10/) |
 | adler2 | 2.0.1 | 0BSD OR MIT OR Apache-2.0 | [texts](adler2-2.0.1/) |
@@ -47,7 +47,7 @@ Includes runtime and build dependencies. SPDX alternatives are retained verbatim
 | num_cpus | 1.17.0 | MIT OR Apache-2.0 | [texts](num_cpus-1.17.0/) |
 | owned_ttf_parser | 0.25.1 | Apache-2.0 | [texts](owned_ttf_parser-0.25.1/) |
 | pgn-reader | 0.26.0 | GPL-3.0+ | [texts](pgn-reader-0.26.0/) |
-| pleco | 0.5.0 | MIT | [texts](pleco-0.5.0/) | Published crate explicitly declares MIT and README references LICENSE-MIT, but that file is excluded from the crate. Exact author/license declaration is preserved. Upstream standalone text could not be retrieved in this run; MANUAL LICENSE REVIEW REQUIRED before public distribution.
+| pleco | 0.5.0 | MIT | [texts](pleco-0.5.0/) | Verified historical MIT original (2017 Stephen Fleischman), byte-identical at the published 0.5.0 source commit. Full pinned URLs, commits and SHA-256 in [provenance](pleco-0.5.0/pleco-0.5.0-provenance.json). Current repository-root GPL is not substituted for the library MIT license.
 | png | 0.17.16 | MIT OR Apache-2.0 | [texts](png-0.17.16/) |
 | ppv-lite86 | 0.2.21 | MIT OR Apache-2.0 | [texts](ppv-lite86-0.2.21/) |
 | proc-macro2 | 1.0.107 | MIT OR Apache-2.0 | [texts](proc-macro2-1.0.107/) |

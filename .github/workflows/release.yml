@@ -16,8 +16,12 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Build release
-        run: cargo build --release
+        run: cargo build --release --locked -j 2
 
       - name: Package zip
         shell: pwsh

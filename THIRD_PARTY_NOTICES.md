@@ -44,4 +44,4 @@ v0.1.4 使用 CHA-Solver 判定超时后是否存在合作将死序列；它只�
 - `serde` / `serde_json`：MIT OR Apache-2.0；`sha2`：MIT OR Apache-2.0。实际锁定版本、作者许可全文及传递依赖见 [依赖索引](LICENSES/dependencies/INDEX.md) 和 `LICENSES/dependencies/manifest.json`。
 - 索引包含锁定的 Windows 构建/运行依赖；保留所有可用 LICENSE、NOTICE、COPYRIGHT 文件，Unicode 的 AND 许可条件亦随包保留。构建工具只在打包时使用，运行程序不依赖 Python。
 - 上游缺失文件的处理在索引逐项标记：failure_derive 使用同版本 failure 工作区许可；mucow 原发布包只带 MIT OR Apache-2.0 声明，本包选择 Apache-2.0 并附标准许可全文和原始声明，不冒称为上游独立文件。
-- **发行前人工核实项**：Pleco 0.5.0 的包声明和 README 指定 MIT，但排除了其引用的 LICENSE-MIT；本轮无法从锁定提交取得独立文件。已原样保留作者和声明，索引明确标为人工复核，不能将本地收集清单视为该项许可审核完成。原有 GPL 总许可证和历史第三方声明均保留。
+- **Pleco 0.5.0 已核实**：锁定发布包的源码提交为 `7122ae552507abd3853c5ad6ed37cc36637a0831`，该提交的 `pleco/LICENSE` 与 2017 年历史原件逐字节相同，版权为 `Copyright (c) 2017 Stephen Fleischman`。原件见 [MIT 全文](LICENSES/dependencies/pleco-0.5.0/LICENSE-MIT)，来源 URL、提交、Git blob、SHA-256 及适用性见 [核实记录](LICENSES/dependencies/pleco-0.5.0/pleco-0.5.0-provenance.json)。2022 年更新只改版权行，未用于替换此版本原件。当前上游仓库根目录 GPL 与此历史库版本的 MIT 分开核实，RUST CHESS 的 GPL-3.0-or-later 不变。

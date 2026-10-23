@@ -4,11 +4,15 @@ mod ai;
 mod assets;
 mod display;
 mod font;
+mod game;
 mod i18n;
 mod preferences;
 mod render;
 mod settings;
 mod theme;
+
+#[cfg(test)]
+mod reliability_tests;
 
 use std::sync::mpsc::{self, Receiver, TryRecvError};
 use std::thread;
@@ -19,6 +23,7 @@ use shakmaty::san::San;
 use shakmaty::{Chess, Color, File, Move, Position, Role, Square};
 
 use assets::PieceSet;
+use game::{ClockState, GameResult, position_key};
 use preferences::{
     AccessPolicy, AutoPromotion, AutoThreefold, CastlingMethod, ClockPosition, ClockTenths,
     DragTarget, PieceNotation, ZenMode,
@@ -75,16 +80,20 @@ struct App {
     history: Vec<Move>,
     history_sans: Vec<String>,
     position_keys: Vec<String>,
-    claimed_draw: bool,
+    result: Option<GameResult>,
+    clocks: ClockState,
+    clock_history: Vec<ClockState>,
+    generation: u64,
+    search_error: Option<ai::SearchError>,
     selected: Option<Square>,
     dragging_from: Option<Square>,
     premove_from: Option<Square>,
     premove: Option<(Square, Square)>,
     last_move: Option<(Square, Square)>,
     ai_mode: Option<Color>,
-    ai_rx: Option<Receiver<Move>>,
+    ai_rx: Option<Receiver<SearchReply>>,
     ai_thinking: bool,
-    hint_rx: Option<Receiver<Move>>,
+    hint_rx: Option<Receiver<SearchReply>>,
     hint_thinking: bool,
     suggestion: Option<(Square, Square, String)>,
     promotion: Option<(Square, Square)>,
@@ -104,10 +113,12 @@ struct App {
     settings_scroll: usize,
     game_over_at: Option<Instant>,
     started_at: Instant,
-    white_clock: f32,
-    black_clock: f32,
     clock_last_tick: Instant,
-    clock_warning_played: [bool; 2],
+}
+
+struct SearchReply {
+    generation: u64,
+    result: ai::SearchResult,
 }
 
 impl App {
@@ -132,7 +143,11 @@ impl App {
             history: Vec::new(),
             history_sans: Vec::new(),
             position_keys: vec![position_key(&Chess::default())],
-            claimed_draw: false,
+            result: None,
+            clocks: ClockState::default(),
+            clock_history: vec![ClockState::default()],
+            generation: 0,
+            search_error: None,
             selected: None,
             dragging_from: None,
             premove_from: None,
@@ -161,46 +176,100 @@ impl App {
             settings_scroll: 0,
             game_over_at: None,
             started_at: Instant::now(),
-            white_clock: 600.0,
-            black_clock: 600.0,
             clock_last_tick: Instant::now(),
-            clock_warning_played: [false; 2],
         }
     }
 
     fn game_over(&self) -> bool {
-        self.pos.outcome().is_some() || self.claimed_draw
+        self.result.is_some() || GameResult::from_position(&self.pos, 0).is_some()
     }
 
     fn tick_clock(&mut self) {
-        let now = Instant::now();
-        let elapsed = now.duration_since(self.clock_last_tick).as_secs_f32();
+        self.tick_clock_at(Instant::now());
+    }
+
+    fn tick_clock_at(&mut self, now: Instant) {
+        let elapsed = now.saturating_duration_since(self.clock_last_tick);
         self.clock_last_tick = now;
+        if self.result.is_none()
+            && let Some(result) = GameResult::from_position(&self.pos, 0)
+        {
+            self.finish_game(result, now);
+        }
         if self.screen != Screen::Game
             || !self.settings.board.chess_clock_enabled
             || self.game_over()
-            || self.promotion.is_some()
-            || self.pending_move.is_some()
         {
             return;
         }
-        let (clock, warning_index) = match self.pos.turn() {
-            Color::White => (&mut self.white_clock, 0),
-            Color::Black => (&mut self.black_clock, 1),
-        };
-        let before = *clock;
-        *clock = (*clock - elapsed).max(0.0);
-        if self.settings.board.clock_warning
-            && before > 30.0
-            && *clock <= 30.0
-            && !self.clock_warning_played[warning_index]
-        {
-            self.clock_warning_played[warning_index] = true;
+        let (expired, warning) = self.clocks.elapse(self.pos.turn(), elapsed);
+        if self.settings.board.clock_warning && warning {
             play_clock_warning();
+        }
+        if expired {
+            self.finish_game(GameResult::timeout(&self.pos), now);
         }
     }
 
+    fn clear_input(&mut self) {
+        self.selected = None;
+        self.dragging_from = None;
+        self.premove_from = None;
+        self.premove = None;
+        self.promotion = None;
+        self.pending_move = None;
+    }
+
+    fn invalidate_searches(&mut self) {
+        self.generation = self
+            .generation
+            .checked_add(1)
+            .expect("search generation overflow");
+        self.ai_rx = None;
+        self.ai_reply_at = None;
+        self.ai_thinking = false;
+        self.hint_rx = None;
+        self.hint_thinking = false;
+        self.suggestion = None;
+        self.search_error = None;
+    }
+
+    fn finish_game(&mut self, result: GameResult, now: Instant) {
+        if self.result.is_none() {
+            self.result = Some(result);
+            self.game_over_at = Some(now);
+            self.invalidate_searches();
+            self.clear_input();
+        }
+    }
+
+    fn accept_reply(&mut self, reply: SearchReply) -> Option<Move> {
+        if reply.generation != self.generation || self.screen != Screen::Game || self.game_over() {
+            return None;
+        }
+        match reply.result {
+            Ok(mv) if self.pos.is_legal(&mv) => Some(mv),
+            Ok(mv) => {
+                self.report_search_error(ai::SearchError::IllegalMove(format!("{mv:?}")));
+                None
+            }
+            Err(error) => {
+                self.report_search_error(error);
+                None
+            }
+        }
+    }
+
+    fn report_search_error(&mut self, error: ai::SearchError) {
+        eprintln!("AI/hint: {error}");
+        self.search_error = Some(error);
+    }
+
     fn poll_ai(&mut self) {
+        self.tick_clock();
+        if self.screen != Screen::Game || self.game_over() {
+            return;
+        }
         let now = Instant::now();
         self.animations.retain(|a| !a.done(now));
         let Some(reply_at) = self.ai_reply_at else {
@@ -215,98 +284,135 @@ impl App {
         }
         let rx = self.ai_rx.take().expect("ai_rx checked");
         match rx.try_recv() {
-            Ok(mv) => {
+            Ok(reply) => {
                 self.ai_thinking = false;
                 self.ai_reply_at = None;
-                self.apply_move(mv);
-                self.try_apply_premove();
-                self.maybe_spawn_ai();
+                if self.ai_mode == Some(self.pos.turn())
+                    && let Some(mv) = self.accept_reply(reply)
+                {
+                    self.apply_move(mv);
+                    self.try_apply_premove();
+                    self.maybe_spawn_ai();
+                }
             }
             Err(TryRecvError::Empty) => self.ai_rx = Some(rx),
             Err(TryRecvError::Disconnected) => {
                 self.ai_thinking = false;
                 self.ai_reply_at = None;
+                self.report_search_error(ai::SearchError::WorkerDisconnected);
             }
         }
     }
 
     fn poll_hint(&mut self) {
+        self.tick_clock();
         let Some(rx) = self.hint_rx.take() else {
             return;
         };
         match rx.try_recv() {
-            Ok(mv) => {
+            Ok(reply) => {
                 self.hint_thinking = false;
-                let san = San::from_move(&self.pos, &mv).to_string();
-                if let Some(from) = mv.from() {
-                    self.suggestion = Some((from, mv.to(), san));
+                if let Some(mv) = self.accept_reply(reply) {
+                    let san = San::from_move(&self.pos, &mv).to_string();
+                    if let Some(from) = mv.from() {
+                        self.suggestion = Some((from, mv.to(), san));
+                    }
                 }
             }
             Err(TryRecvError::Empty) => self.hint_rx = Some(rx),
-            Err(TryRecvError::Disconnected) => self.hint_thinking = false,
+            Err(TryRecvError::Disconnected) => {
+                self.hint_thinking = false;
+                self.report_search_error(ai::SearchError::WorkerDisconnected);
+            }
         }
     }
 
     fn request_hint(&mut self) {
-        if self.game_over() || self.ai_thinking || self.hint_thinking || self.promotion.is_some() {
+        self.tick_clock();
+        if self.screen != Screen::Game
+            || self.game_over()
+            || self.ai_thinking
+            || self.hint_thinking
+            || self.promotion.is_some()
+            || self.pending_move.is_some()
+        {
             return;
         }
         self.suggestion = None;
+        self.search_error = None;
+        let generation = self.generation;
         let pos = self.pos.clone();
         let depth = self.settings.ai_depth.max(3);
         let (tx, rx) = mpsc::channel();
         thread::spawn(move || {
-            let mv = ai::best_move(&pos, depth);
-            let _ = tx.send(mv);
+            let result = ai::best_move(&pos, depth);
+            // Receiver disappearance is expected when the user changes position.
+            let _ = tx.send(SearchReply { generation, result });
         });
         self.hint_rx = Some(rx);
         self.hint_thinking = true;
     }
 
     fn spawn_ai(&mut self) {
-        if self.game_over() || self.ai_rx.is_some() {
+        self.tick_clock();
+        if self.screen != Screen::Game
+            || self.game_over()
+            || self.ai_rx.is_some()
+            || self.ai_mode != Some(self.pos.turn())
+        {
             return;
         }
+        let generation = self.generation;
         let depth = self.settings.ai_depth;
         let pos = self.pos.clone();
         let (tx, rx) = mpsc::channel();
         thread::spawn(move || {
-            let mv = ai::best_move(&pos, depth);
-            let _ = tx.send(mv);
+            let result = ai::best_move(&pos, depth);
+            let _ = tx.send(SearchReply { generation, result });
         });
         self.ai_rx = Some(rx);
         self.ai_thinking = true;
     }
 
     fn maybe_spawn_ai(&mut self) {
-        if let Some(color) = self.ai_mode {
-            if !self.game_over() && self.pos.turn() == color {
-                let base = match self.settings.ai_depth {
-                    1 => 350,
-                    2 => 500,
-                    3 => 700,
-                    4 => 900,
-                    _ => 1200,
-                };
-                let jitter = SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .subsec_nanos()
-                    % 250;
-                self.ai_rx = None;
-                self.ai_thinking = true;
-                self.ai_reply_at =
-                    Some(Instant::now() + Duration::from_millis(base + jitter as u64));
-            }
+        if let Some(color) = self.ai_mode
+            && self.screen == Screen::Game
+            && !self.game_over()
+            && self.pos.turn() == color
+            && self.ai_reply_at.is_none()
+            && self.search_error.is_none()
+        {
+            let base = match self.settings.ai_depth {
+                1 => 350,
+                2 => 500,
+                3 => 700,
+                4 => 900,
+                _ => 1200,
+            };
+            let jitter = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .subsec_nanos()
+                % 250;
+            self.ai_rx = None;
+            self.ai_thinking = true;
+            self.ai_reply_at = Some(Instant::now() + Duration::from_millis(base + jitter as u64));
         }
     }
 
     fn apply_move(&mut self, mv: Move) {
-        self.hint_rx = None;
-        self.hint_thinking = false;
-        self.suggestion = None;
+        self.apply_move_at(mv, Instant::now());
+    }
+
+    fn apply_move_at(&mut self, mv: Move, now: Instant) {
+        // Event order: settle clock -> reject expired/illegal move -> commit ->
+        // settle board result. A move received exactly at zero loses on time.
+        self.tick_clock_at(now);
+        if self.screen != Screen::Game || self.game_over() || !self.pos.is_legal(&mv) {
+            return;
+        }
+        self.invalidate_searches();
         let san = San::from_move(&self.pos, &mv).to_string();
-        let now = Instant::now();
         let mut anims = Vec::new();
         match &mv {
             Move::Normal {
@@ -323,7 +429,7 @@ impl App {
             }
             Move::Castle { king, rook } => {
                 let king_to = Square::from_coords(
-                    if king.file() == File::E {
+                    if rook.file() > king.file() {
                         File::G
                     } else {
                         File::C
@@ -347,10 +453,16 @@ impl App {
             }
             Move::Put { .. } => {}
         }
-        if let Ok(new_pos) = self.pos.clone().play(&mv) {
+        {
+            let new_pos = self
+                .pos
+                .clone()
+                .play(&mv)
+                .expect("move legality checked before commit");
             self.last_move = Some((mv.from().expect("standard move has origin"), mv.to()));
             self.history.push(mv);
             self.history_sans.push(san);
+            self.clock_history.push(self.clocks);
             self.pos = new_pos;
             let key = position_key(&self.pos);
             self.position_keys.push(key.clone());
@@ -363,11 +475,15 @@ impl App {
                 AutoThreefold::Always => repetitions >= 3,
                 AutoThreefold::Never => false,
                 AutoThreefold::UnderThirtySeconds => {
-                    repetitions >= 3 && self.white_clock.min(self.black_clock) < 30.0
+                    repetitions >= 3
+                        && self.settings.board.chess_clock_enabled
+                        && self.clocks.remaining(self.pos.turn()) < Duration::from_secs(30)
                 }
             };
-            if should_claim {
-                self.claimed_draw = true;
+            let result = GameResult::from_position(&self.pos, repetitions)
+                .or(should_claim.then_some(GameResult::ThreefoldRepetition));
+            if let Some(result) = result {
+                self.finish_game(result, now);
             }
             self.selected = None;
             self.promotion = None;
@@ -376,13 +492,12 @@ impl App {
             } else {
                 self.animations.clear();
             }
-            if self.game_over() && self.game_over_at.is_none() {
-                self.game_over_at = Some(Instant::now());
-            }
         }
     }
 
     fn handle_action(&mut self, action: UiAction) {
+        // Account for time spent rendering or processing an earlier action.
+        self.tick_clock();
         match action {
             UiAction::StartGame => self.start_game(),
             UiAction::OpenSettings => self.open_settings(),
@@ -466,16 +581,7 @@ impl App {
                 if self.screen != Screen::Game {
                     return;
                 }
-                self.ai_rx = None;
-                self.ai_reply_at = None;
-                self.ai_thinking = false;
-                self.promotion = None;
-                self.selected = None;
-                self.hint_rx = None;
-                self.hint_thinking = false;
-                self.suggestion = None;
-                self.ai_mode = mode;
-                self.maybe_spawn_ai();
+                self.change_mode(mode);
             }
             UiAction::PointerDown(sq) => self.handle_pointer_down(sq),
             UiAction::PointerUp(sq) => self.handle_pointer_up(sq),
@@ -490,12 +596,7 @@ impl App {
                 self.selected = None;
             }
             UiAction::AddClockTime(color) => {
-                if self.settings.board.give_more_time != AccessPolicy::Never {
-                    match color {
-                        Color::White => self.white_clock += 15.0,
-                        Color::Black => self.black_clock += 15.0,
-                    }
-                }
+                self.add_clock_time(color);
             }
             UiAction::Promote(role) => self.handle_promotion(role),
         }
@@ -503,23 +604,43 @@ impl App {
 
     fn start_game(&mut self) {
         self.ai_mode = self.settings.mode;
-        self.new_game();
         self.screen = Screen::Game;
+        self.new_game();
+    }
+
+    fn add_clock_time(&mut self, color: Color) {
+        if self.screen == Screen::Game
+            && !self.game_over()
+            && self.settings.board.chess_clock_enabled
+            && self.settings.board.give_more_time != AccessPolicy::Never
+        {
+            self.clocks.add_time(color);
+            // Time gifts belong to this history position as well.
+            *self
+                .clock_history
+                .last_mut()
+                .expect("initial clock snapshot") = self.clocks;
+        }
+    }
+
+    fn change_mode(&mut self, mode: Option<Color>) {
+        self.invalidate_searches();
+        self.clear_input();
+        self.ai_mode = mode;
+        self.maybe_spawn_ai();
     }
 
     fn open_settings(&mut self) {
+        self.tick_clock();
+        self.invalidate_searches();
         self.settings_page = SettingsPage::Root;
         self.settings_scroll = 0;
         self.screen = Screen::Settings;
     }
 
     fn back_to_menu(&mut self) {
-        self.ai_rx = None;
-        self.ai_reply_at = None;
-        self.ai_thinking = false;
-        self.hint_rx = None;
-        self.hint_thinking = false;
-        self.suggestion = None;
+        self.tick_clock();
+        self.invalidate_searches();
         self.game_over_at = None;
         self.dragging_from = None;
         self.premove_from = None;
@@ -529,7 +650,12 @@ impl App {
     }
 
     fn handle_pointer_down(&mut self, sq: Square) {
-        if self.game_over() || self.promotion.is_some() {
+        if self.screen != Screen::Game
+            || self.game_over()
+            || self.promotion.is_some()
+            || self.pending_move.is_some()
+            || self.ai_mode == Some(self.pos.turn()) && !self.ai_thinking
+        {
             return;
         }
         if self.ai_thinking {
@@ -545,20 +671,32 @@ impl App {
                 self.selected = None;
                 return;
             }
-            if let Some(piece) = self.pos.board().piece_at(sq) {
-                if piece.color != self.pos.turn() {
-                    self.premove_from = Some(sq);
-                    self.selected = Some(sq);
-                }
+            if let Some(piece) = self.pos.board().piece_at(sq)
+                && piece.color != self.pos.turn()
+            {
+                self.premove_from = Some(sq);
+                self.selected = Some(sq);
             }
             return;
         }
-        if let Some(piece) = self.pos.board().piece_at(sq) {
-            if piece.color == self.pos.turn() {
-                self.selected = Some(sq);
-                self.dragging_from = Some(sq);
-                return;
-            }
+        // Clicking the friendly rook is a castle gesture, not a reselection.
+        if let Some(from) = self.selected
+            && self
+                .pos
+                .legal_moves()
+                .iter()
+                .any(|mv| matches!(mv, Move::Castle { .. }) && self.matches_input(mv, from, sq))
+        {
+            self.dragging_from = None;
+            self.handle_board_click(sq);
+            return;
+        }
+        if let Some(piece) = self.pos.board().piece_at(sq)
+            && piece.color == self.pos.turn()
+        {
+            self.selected = Some(sq);
+            self.dragging_from = Some(sq);
+            return;
         }
         self.dragging_from = None;
         self.handle_board_click(sq);
@@ -579,6 +717,12 @@ impl App {
     }
 
     fn try_apply_premove(&mut self) {
+        self.tick_clock();
+        if self.game_over() || !self.settings.board.premoves {
+            self.premove = None;
+            self.premove_from = None;
+            return;
+        }
         let Some((from, to)) = self.premove.take() else {
             return;
         };
@@ -587,7 +731,7 @@ impl App {
             .pos
             .legal_moves()
             .iter()
-            .filter(|mv| mv.from() == Some(from) && mv.to() == to)
+            .filter(|mv| self.matches_input(mv, from, to))
             .cloned()
             .collect();
         if moves.is_empty() {
@@ -610,10 +754,19 @@ impl App {
         } else {
             moves[0].clone()
         };
-        self.apply_move(mv);
+        self.submit_player_move(mv);
     }
 
     fn submit_player_move(&mut self, mv: Move) {
+        self.tick_clock();
+        if self.screen != Screen::Game
+            || self.game_over()
+            || self.pending_move.is_some()
+            || self.ai_mode == Some(self.pos.turn())
+            || !self.pos.is_legal(&mv)
+        {
+            return;
+        }
         if self.settings.board.move_confirmation {
             self.pending_move = Some(mv);
             self.selected = None;
@@ -625,7 +778,13 @@ impl App {
     }
 
     fn handle_board_click(&mut self, sq: Square) {
-        if self.ai_thinking || self.game_over() || self.promotion.is_some() {
+        if self.screen != Screen::Game
+            || self.ai_mode == Some(self.pos.turn())
+            || self.ai_thinking
+            || self.game_over()
+            || self.promotion.is_some()
+            || self.pending_move.is_some()
+        {
             return;
         }
         if let Some(sel) = self.selected {
@@ -633,26 +792,12 @@ impl App {
                 self.selected = None;
                 return;
             }
-            if self.settings.board.castling_method == CastlingMethod::KingOntoRook
-                && self.pos.board().role_at(sel) == Some(Role::King)
-                && self.pos.board().role_at(sq) == Some(Role::Rook)
-                && self.pos.board().color_at(sel) == self.pos.board().color_at(sq)
-            {
-                let castle = self.pos.legal_moves().iter().find_map(|mv| match mv {
-                    Move::Castle { king, rook } if *king == sel && *rook == sq => Some(mv.clone()),
-                    _ => None,
-                });
-                if let Some(mv) = castle {
-                    self.submit_player_move(mv);
-                    return;
-                }
-            }
             let moves: Vec<Move> = self
                 .pos
                 .legal_moves()
                 .iter()
+                .filter(|&m| self.matches_input(m, sel, sq))
                 .cloned()
-                .filter(|m| m.from() == Some(sel) && m.to() == sq)
                 .collect();
             if moves.is_empty() {
                 if let Some(piece) = self.pos.board().piece_at(sq) {
@@ -679,19 +824,25 @@ impl App {
             } else {
                 self.submit_player_move(moves[0].clone());
             }
-        } else if let Some(piece) = self.pos.board().piece_at(sq) {
-            if piece.color == self.pos.turn() {
-                self.selected = Some(sq);
-            }
+        } else if let Some(piece) = self.pos.board().piece_at(sq)
+            && piece.color == self.pos.turn()
+        {
+            self.selected = Some(sq);
         }
     }
 
     fn handle_promotion(&mut self, role: Role) {
+        self.tick_clock();
+        if self.game_over() {
+            return;
+        }
         if let Some((from, to)) = self.promotion {
-            let mv =
-                self.pos.legal_moves().iter().cloned().find(|m| {
-                    m.from() == Some(from) && m.to() == to && m.promotion() == Some(role)
-                });
+            let mv = self
+                .pos
+                .legal_moves()
+                .iter()
+                .find(|&m| m.from() == Some(from) && m.to() == to && m.promotion() == Some(role))
+                .cloned();
             if let Some(mv) = mv {
                 self.submit_player_move(mv);
             }
@@ -703,60 +854,49 @@ impl App {
         if self.settings.board.takebacks == AccessPolicy::Never {
             return;
         }
-        self.ai_rx = None;
-        self.ai_reply_at = None;
-        self.ai_thinking = false;
-        self.hint_rx = None;
-        self.hint_thinking = false;
-        self.suggestion = None;
-        self.promotion = None;
-        self.selected = None;
-        self.dragging_from = None;
-        self.premove_from = None;
-        self.premove = None;
-        self.pending_move = None;
         if self.history.is_empty() {
             return;
         }
-        self.history.pop();
-        self.history_sans.pop();
-        if let Some(ai_color) = self.ai_mode {
-            while !self.history.is_empty() {
-                let last_idx = self.history.len() - 1;
-                let mover = if last_idx % 2 == 0 {
-                    Color::White
-                } else {
-                    Color::Black
-                };
-                if mover != ai_color {
-                    break;
-                }
-                self.history.pop();
-                self.history_sans.pop();
-            }
+        self.invalidate_searches();
+        self.clear_input();
+        // Return to the most recent human decision: one ply while the AI is
+        // thinking, two after its reply (also valid when the AI plays white).
+        let plies = if self.ai_mode.is_some_and(|color| color != self.pos.turn()) {
+            2.min(self.history.len())
+        } else {
+            1
+        };
+        for _ in 0..plies {
+            self.history.pop();
+            self.history_sans.pop();
         }
+        self.clock_history.truncate(self.history.len() + 1);
+        self.clocks = *self.clock_history.last().expect("initial clock snapshot");
+        self.clock_last_tick = Instant::now();
+        self.animations.clear();
         self.rebuild();
         self.game_over_at = None;
         self.maybe_spawn_ai();
     }
 
     fn new_game(&mut self) {
+        self.invalidate_searches();
+        self.animations.clear();
         self.pos = Chess::default();
         self.history.clear();
         self.history_sans.clear();
         self.position_keys.clear();
         self.position_keys.push(position_key(&self.pos));
-        self.claimed_draw = false;
+        self.result = None;
         self.selected = None;
         self.dragging_from = None;
         self.premove_from = None;
         self.premove = None;
         self.pending_move = None;
         self.last_move = None;
-        self.white_clock = 600.0;
-        self.black_clock = 600.0;
+        self.clocks = ClockState::default();
+        self.clock_history = vec![self.clocks];
         self.clock_last_tick = Instant::now();
-        self.clock_warning_played = [false; 2];
         self.promotion = None;
         self.ai_rx = None;
         self.ai_reply_at = None;
@@ -777,7 +917,7 @@ impl App {
             self.position_keys.push(position_key(&pos));
         }
         self.pos = pos;
-        self.claimed_draw = false;
+        self.result = GameResult::from_position(&self.pos, 0);
         self.last_move = self
             .history
             .last()
@@ -813,7 +953,7 @@ impl App {
                 .legal_moves()
                 .iter()
                 .filter(|m| m.from() == Some(sel))
-                .map(|m| m.to())
+                .map(|m| self.input_target(m))
                 .collect()
         } else {
             Vec::new()
@@ -845,9 +985,10 @@ impl App {
             mouse_released,
             dragging_from: self.dragging_from,
             menu_time: now.duration_since(self.started_at).as_secs_f32(),
-            white_clock: self.white_clock,
-            black_clock: self.black_clock,
-            claimed_draw: self.claimed_draw,
+            white_clock: self.clocks.white,
+            black_clock: self.clocks.black,
+            result: self.result,
+            search_failed: self.search_error.is_some(),
         }
     }
 
@@ -866,6 +1007,7 @@ impl App {
     }
 
     fn set_preference(&mut self, item: PreferenceItem, value: usize) {
+        self.tick_clock();
         let board = &mut self.settings.board;
         match item {
             PreferenceItem::BoardStyle => {
@@ -975,14 +1117,26 @@ impl App {
     }
 }
 
-fn position_key(position: &Chess) -> String {
-    format!(
-        "{:?}|{:?}|{:?}|{:?}",
-        position.board(),
-        position.turn(),
-        position.castles(),
-        position.maybe_ep_square()
-    )
+impl App {
+    fn input_target(&self, mv: &Move) -> Square {
+        if let Move::Castle { king, rook } = mv
+            && self.settings.board.castling_method == CastlingMethod::KingTwoSquares
+        {
+            return Square::from_coords(
+                if rook.file() > king.file() {
+                    File::G
+                } else {
+                    File::C
+                },
+                king.rank(),
+            );
+        }
+        mv.to()
+    }
+
+    fn matches_input(&self, mv: &Move, from: Square, to: Square) -> bool {
+        mv.from() == Some(from) && self.input_target(mv) == to
+    }
 }
 
 #[cfg(target_os = "windows")]

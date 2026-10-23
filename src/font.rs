@@ -73,10 +73,10 @@ impl TextRenderer {
     }
 
     fn font_for_char(&self, ch: char) -> Option<&FontArc> {
-        if let Some(font) = &self.font {
-            if font.glyph_id(ch).0 != 0 {
-                return Some(font);
-            }
+        if let Some(font) = &self.font
+            && font.glyph_id(ch).0 != 0
+        {
+            return Some(font);
         }
         self.fallback_fonts
             .iter()
@@ -101,10 +101,8 @@ impl TextRenderer {
     pub fn draw_text(
         &self,
         buf: &mut [u32],
-        w: usize,
-        h: usize,
-        x: f32,
-        baseline_y: f32,
+        (w, h): (usize, usize),
+        (x, baseline_y): (f32, f32),
         text: &str,
         color: u32,
         size: f32,

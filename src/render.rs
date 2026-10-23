@@ -1,11 +1,13 @@
-use shakmaty::{Chess, Color, File, Outcome, Piece, Position, Rank, Role, Square};
+use shakmaty::{Chess, Color, File, Piece, Position, Rank, Role, Square};
+use std::time::Duration;
 
 use crate::assets::{
     PieceImages, PieceSet, draw_arrow_down, draw_arrow_up, draw_ring, draw_scaled,
     draw_scaled_rotated, draw_scaled_tinted, fill_circle, fill_rect, fill_rect_alpha,
 };
 use crate::font::TextRenderer;
-use crate::i18n::Language;
+use crate::game::GameResult;
+use crate::i18n::{Language, ReliabilityText};
 use crate::preferences::{
     AccessPolicy, AutoPromotion, AutoThreefold, BoardPreferences, CastlingMethod, ClockPosition,
     ClockTenths, DragTarget, PieceNotation, ZenMode,
@@ -39,9 +41,10 @@ pub struct ViewState {
     pub mouse_released: bool,
     pub dragging_from: Option<Square>,
     pub menu_time: f32,
-    pub white_clock: f32,
-    pub black_clock: f32,
-    pub claimed_draw: bool,
+    pub white_clock: Duration,
+    pub black_clock: Duration,
+    pub result: Option<GameResult>,
+    pub search_failed: bool,
 }
 
 #[derive(Clone, Copy)]
@@ -223,7 +226,7 @@ impl Layout {
         let margin = 24.0;
         let avail_w = (w as f32 - panel_w - margin * 2.0).max(320.0);
         let avail_h = (h as f32 - 80.0).max(320.0);
-        let board_size = avail_w.min(avail_h).min(1000.0).max(320.0);
+        let board_size = avail_w.min(avail_h).clamp(320.0, 1000.0);
         let board_left = (w as f32 - panel_w - margin * 2.0 - board_size) / 2.0 + margin;
         let board_top = (h as f32 - board_size) / 2.0;
         let panel_x = if focus_board {
@@ -263,8 +266,7 @@ impl<'a> Renderer<'a> {
         let mut actions = Vec::new();
         fill_rect(
             buf,
-            width,
-            height,
+            (width, height),
             0,
             0,
             width as i32,
@@ -302,11 +304,12 @@ impl<'a> Renderer<'a> {
                     self.draw_move_confirmation(buf, &layout, &pal, view, &mut actions);
                 } else if view.promotion.is_some() {
                     self.draw_promotion_dialog(buf, &layout, &pal, view, &mut actions);
-                } else if let Some((mx, my)) = view.mouse {
-                    if view.mouse_pressed && actions.is_empty() {
-                        if let Some(sq) = self.square_at(mx, my, &layout, board_flipped(view)) {
-                            actions.push(UiAction::PointerDown(sq));
-                        }
+                } else if let Some((mx, my)) = view.mouse.filter(|_| view.result.is_none()) {
+                    if view.mouse_pressed
+                        && actions.is_empty()
+                        && let Some(sq) = self.square_at(mx, my, &layout, board_flipped(view))
+                    {
+                        actions.push(UiAction::PointerDown(sq));
                     }
                     if view.mouse_released && actions.is_empty() {
                         actions.push(UiAction::PointerUp(self.square_at(
@@ -383,8 +386,7 @@ impl<'a> Renderer<'a> {
         );
         draw_scaled(
             buf,
-            layout.w,
-            layout.h,
+            (layout.w, layout.h),
             self.images.menu_knight(),
             horse_x,
             horse_y,
@@ -417,22 +419,19 @@ impl<'a> Renderer<'a> {
         let line_w = tw * 0.86;
         fill_rect(
             buf,
-            layout.w,
-            layout.h,
+            (layout.w, layout.h),
             (logo_cx - line_w / 2.0) as i32,
             (title_baseline + 9.0) as i32,
             line_w as i32,
             3,
-            0x0505_05,
+            0x0005_0505,
         );
         let sub = tr.subtitle;
         let sw = self.font.text_width(sub, 18.0);
         self.font.draw_text(
             buf,
-            layout.w,
-            layout.h,
-            logo_cx - sw / 2.0,
-            title_baseline + 37.0,
+            (layout.w, layout.h),
+            (logo_cx - sw / 2.0, title_baseline + 37.0),
             sub,
             pal.muted,
             18.0,
@@ -492,10 +491,8 @@ impl<'a> Renderer<'a> {
         let fw = self.font.text_width(footer, 14.0);
         self.font.draw_text(
             buf,
-            layout.w,
-            layout.h,
-            logo_cx - fw / 2.0,
-            layout.h as f32 - 24.0,
+            (layout.w, layout.h),
+            (logo_cx - fw / 2.0, layout.h as f32 - 24.0),
             footer,
             pal.muted,
             14.0,
@@ -554,10 +551,8 @@ impl<'a> Renderer<'a> {
         let tr = view.settings.language.text();
         self.font.draw_text(
             buf,
-            layout.w,
-            layout.h,
-            56.0,
-            66.0,
+            (layout.w, layout.h),
+            (56.0, 66.0),
             tr.settings,
             pal.text,
             36.0,
@@ -577,7 +572,7 @@ impl<'a> Renderer<'a> {
             (left_x, label_y(3), tr.board_view),
         ] {
             self.font
-                .draw_text(buf, layout.w, layout.h, x, y, label, pal.muted, 17.0);
+                .draw_text(buf, (layout.w, layout.h), (x, y), label, pal.muted, 17.0);
         }
 
         let mut any_base_clicked = false;
@@ -683,7 +678,7 @@ impl<'a> Renderer<'a> {
         let back_x = (layout.w as f32 - back_w) / 2.0;
         let back_y = settings_back_y(layout);
         let back_clicked = view.mouse_pressed
-            && view.mouse.map_or(false, |(mx, my)| {
+            && view.mouse.is_some_and(|(mx, my)| {
                 mx >= back_x && mx <= back_x + back_w && my >= back_y && my <= back_y + 50.0
             });
         self.button(
@@ -723,10 +718,10 @@ impl<'a> Renderer<'a> {
         if !back_clicked
             && !any_base_clicked
             && !list_handled
-            && view.open_dropdown.is_some()
+            && let Some(kind) = view.open_dropdown
             && view.mouse_pressed
         {
-            actions.push(UiAction::ToggleDropdown(view.open_dropdown.unwrap()));
+            actions.push(UiAction::ToggleDropdown(kind));
         }
     }
 
@@ -831,8 +826,7 @@ impl<'a> Renderer<'a> {
             });
             fill_rect(
                 buf,
-                layout.w,
-                layout.h,
+                (layout.w, layout.h),
                 x as i32,
                 y as i32,
                 width as i32,
@@ -847,8 +841,7 @@ impl<'a> Renderer<'a> {
             );
             fill_rect(
                 buf,
-                layout.w,
-                layout.h,
+                (layout.w, layout.h),
                 x as i32,
                 (y + row_h - 5.0) as i32,
                 width as i32,
@@ -857,10 +850,8 @@ impl<'a> Renderer<'a> {
             );
             self.font.draw_text(
                 buf,
-                layout.w,
-                layout.h,
-                x + 14.0,
-                y + 29.0,
+                (layout.w, layout.h),
+                (x + 14.0, y + 29.0),
                 preference_label(*item, language),
                 pal.text,
                 17.0,
@@ -869,20 +860,19 @@ impl<'a> Renderer<'a> {
             let value_width = self.font.text_width(&value, 16.0);
             self.font.draw_text(
                 buf,
-                layout.w,
-                layout.h,
-                (x + width - value_width - 34.0).max(x + width * 0.52),
-                y + 29.0,
+                (layout.w, layout.h),
+                (
+                    (x + width - value_width - 34.0).max(x + width * 0.52),
+                    y + 29.0,
+                ),
                 &value,
                 pal.accent,
                 16.0,
             );
             self.font.draw_text(
                 buf,
-                layout.w,
-                layout.h,
-                x + width - 20.0,
-                y + 29.0,
+                (layout.w, layout.h),
+                (x + width - 20.0, y + 29.0),
                 if open { "^" } else { "v" },
                 pal.muted,
                 16.0,
@@ -897,25 +887,25 @@ impl<'a> Renderer<'a> {
         }
 
         let mut list_handled = false;
-        if let Some(DropdownKind::Preference(item)) = view.open_dropdown {
-            if let Some(visible_index) = items[start..end].iter().position(|entry| *entry == item) {
-                let y = top + visible_index as f32 * row_h;
-                let choice_width = (width * 0.48).clamp(240.0, 420.0);
-                let choice_x = x + width - choice_width;
-                let options = preference_options(item, &view.settings, language);
-                list_handled = self.dropdown_list(
-                    buf,
-                    layout,
-                    pal,
-                    view,
-                    actions,
-                    choice_x,
-                    y,
-                    choice_width,
-                    &options,
-                    view.dropdown_scroll,
-                );
-            }
+        if let Some(DropdownKind::Preference(item)) = view.open_dropdown
+            && let Some(visible_index) = items[start..end].iter().position(|entry| *entry == item)
+        {
+            let y = top + visible_index as f32 * row_h;
+            let choice_width = (width * 0.48).clamp(240.0, 420.0);
+            let choice_x = x + width - choice_width;
+            let options = preference_options(item, &view.settings, language);
+            list_handled = self.dropdown_list(
+                buf,
+                layout,
+                pal,
+                view,
+                actions,
+                choice_x,
+                y,
+                choice_width,
+                &options,
+                view.dropdown_scroll,
+            );
         }
 
         if !base_handled
@@ -931,10 +921,8 @@ impl<'a> Renderer<'a> {
             let counter_w = self.font.text_width(&counter, 14.0);
             self.font.draw_text(
                 buf,
-                layout.w,
-                layout.h,
-                layout.w as f32 - counter_w - 28.0,
-                layout.h as f32 - 54.0,
+                (layout.w, layout.h),
+                (layout.w as f32 - counter_w - 28.0, layout.h as f32 - 54.0),
                 &counter,
                 pal.muted,
                 14.0,
@@ -951,10 +939,21 @@ impl<'a> Renderer<'a> {
         title: &str,
         subtitle: &str,
     ) {
-        self.font
-            .draw_text(buf, layout.w, layout.h, 42.0, 50.0, title, pal.text, 31.0);
         self.font.draw_text(
-            buf, layout.w, layout.h, 43.0, 78.0, subtitle, pal.muted, 15.0,
+            buf,
+            (layout.w, layout.h),
+            (42.0, 50.0),
+            title,
+            pal.text,
+            31.0,
+        );
+        self.font.draw_text(
+            buf,
+            (layout.w, layout.h),
+            (43.0, 78.0),
+            subtitle,
+            pal.muted,
+            15.0,
         );
     }
 
@@ -1003,8 +1002,7 @@ impl<'a> Renderer<'a> {
             .is_some_and(|(mx, my)| mx >= x && mx <= x + width && my >= y && my <= y + height);
         fill_rect(
             buf,
-            layout.w,
-            layout.h,
+            (layout.w, layout.h),
             x as i32,
             y as i32,
             width as i32,
@@ -1013,8 +1011,7 @@ impl<'a> Renderer<'a> {
         );
         fill_rect(
             buf,
-            layout.w,
-            layout.h,
+            (layout.w, layout.h),
             x as i32,
             (y + height - 2.0) as i32,
             width as i32,
@@ -1023,20 +1020,16 @@ impl<'a> Renderer<'a> {
         );
         self.font.draw_text(
             buf,
-            layout.w,
-            layout.h,
-            x + 14.0,
-            y + 31.0,
+            (layout.w, layout.h),
+            (x + 14.0, y + 31.0),
             label,
             pal.text,
             18.0,
         );
         self.font.draw_text(
             buf,
-            layout.w,
-            layout.h,
-            x + width - 20.0,
-            y + 31.0,
+            (layout.w, layout.h),
+            (x + width - 20.0, y + 31.0),
             ">",
             pal.accent,
             18.0,
@@ -1064,17 +1057,22 @@ impl<'a> Renderer<'a> {
         current: String,
     ) -> bool {
         let h = 40.0;
-        let hover = view.mouse.map_or(false, |(mx, my)| {
-            mx >= x && mx <= x + w && my >= y && my <= y + h
-        });
+        let hover = view
+            .mouse
+            .is_some_and(|(mx, my)| mx >= x && mx <= x + w && my >= y && my <= y + h);
         let color = if hover { pal.button_hover } else { pal.button };
         fill_rect(
-            buf, layout.w, layout.h, x as i32, y as i32, w as i32, h as i32, color,
+            buf,
+            (layout.w, layout.h),
+            x as i32,
+            y as i32,
+            w as i32,
+            h as i32,
+            color,
         );
         fill_rect(
             buf,
-            layout.w,
-            layout.h,
+            (layout.w, layout.h),
             x as i32,
             (y + h - 2.0) as i32,
             w as i32,
@@ -1083,10 +1081,8 @@ impl<'a> Renderer<'a> {
         );
         self.font.draw_text(
             buf,
-            layout.w,
-            layout.h,
-            x + 12.0,
-            y + h / 2.0 + 6.0,
+            (layout.w, layout.h),
+            (x + 12.0, y + h / 2.0 + 6.0),
             &current,
             pal.text,
             17.0,
@@ -1133,8 +1129,7 @@ impl<'a> Renderer<'a> {
         }
         fill_rect(
             buf,
-            layout.w,
-            layout.h,
+            (layout.w, layout.h),
             x as i32,
             list_y as i32,
             w as i32,
@@ -1143,8 +1138,7 @@ impl<'a> Renderer<'a> {
         );
         fill_rect(
             buf,
-            layout.w,
-            layout.h,
+            (layout.w, layout.h),
             x as i32,
             list_y as i32,
             w as i32,
@@ -1156,13 +1150,12 @@ impl<'a> Renderer<'a> {
             let idx = start + i;
             let (label, action) = &options[idx];
             let oy = list_y + i as f32 * option_h;
-            let row_hover = view.mouse.map_or(false, |(mx, my)| {
-                mx >= x && mx <= x + w && my >= oy && my <= oy + option_h
-            });
+            let row_hover = view
+                .mouse
+                .is_some_and(|(mx, my)| mx >= x && mx <= x + w && my >= oy && my <= oy + option_h);
             fill_rect(
                 buf,
-                layout.w,
-                layout.h,
+                (layout.w, layout.h),
                 x as i32,
                 oy as i32,
                 w as i32,
@@ -1175,10 +1168,8 @@ impl<'a> Renderer<'a> {
             );
             self.font.draw_text(
                 buf,
-                layout.w,
-                layout.h,
-                x + 12.0,
-                oy + option_h / 2.0 + 6.0,
+                (layout.w, layout.h),
+                (x + 12.0, oy + option_h / 2.0 + 6.0),
                 label,
                 pal.text,
                 16.0,
@@ -1225,10 +1216,8 @@ impl<'a> Renderer<'a> {
     ) {
         self.font.draw_text(
             buf,
-            layout.w,
-            layout.h,
-            56.0,
-            76.0,
+            (layout.w, layout.h),
+            (56.0, 76.0),
             "游戏设置",
             pal.text,
             40.0,
@@ -1236,20 +1225,16 @@ impl<'a> Renderer<'a> {
 
         self.font.draw_text(
             buf,
-            layout.w,
-            layout.h,
-            56.0,
-            140.0,
+            (layout.w, layout.h),
+            (56.0, 140.0),
             "对战模式",
             pal.muted,
             18.0,
         );
         self.font.draw_text(
             buf,
-            layout.w,
-            layout.h,
-            56.0,
-            330.0,
+            (layout.w, layout.h),
+            (56.0, 330.0),
             "AI 难度",
             pal.muted,
             18.0,
@@ -1257,26 +1242,27 @@ impl<'a> Renderer<'a> {
         let right_x = 520.0;
         self.font.draw_text(
             buf,
-            layout.w,
-            layout.h,
-            right_x,
-            140.0,
+            (layout.w, layout.h),
+            (right_x, 140.0),
             "窗口分辨率",
             pal.muted,
             18.0,
         );
         self.font.draw_text(
             buf,
-            layout.w,
-            layout.h,
-            right_x,
-            330.0,
+            (layout.w, layout.h),
+            (right_x, 330.0),
             "刷新率",
             pal.muted,
             18.0,
         );
         self.font.draw_text(
-            buf, layout.w, layout.h, 56.0, 520.0, "主题", pal.muted, 18.0,
+            buf,
+            (layout.w, layout.h),
+            (56.0, 520.0),
+            "主题",
+            pal.muted,
+            18.0,
         );
 
         let dropdown_w = 420.0;
@@ -1386,8 +1372,11 @@ impl<'a> Renderer<'a> {
             &theme_options,
         );
 
-        if !click_handled && view.open_dropdown.is_some() && view.mouse_pressed {
-            actions.push(UiAction::ToggleDropdown(view.open_dropdown.unwrap()));
+        if !click_handled
+            && let Some(kind) = view.open_dropdown
+            && view.mouse_pressed
+        {
+            actions.push(UiAction::ToggleDropdown(kind));
         }
 
         let back_w = 260.0;
@@ -1426,17 +1415,22 @@ impl<'a> Renderer<'a> {
     ) -> bool {
         let h = 40.0;
         let open = view.open_dropdown == Some(kind);
-        let hover = view.mouse.map_or(false, |(mx, my)| {
-            mx >= x && mx <= x + w && my >= y && my <= y + h
-        });
+        let hover = view
+            .mouse
+            .is_some_and(|(mx, my)| mx >= x && mx <= x + w && my >= y && my <= y + h);
         let base_color = if hover { pal.button_hover } else { pal.button };
         fill_rect(
-            buf, layout.w, layout.h, x as i32, y as i32, w as i32, h as i32, base_color,
+            buf,
+            (layout.w, layout.h),
+            x as i32,
+            y as i32,
+            w as i32,
+            h as i32,
+            base_color,
         );
         fill_rect(
             buf,
-            layout.w,
-            layout.h,
+            (layout.w, layout.h),
             x as i32,
             (y + h - 2.0) as i32,
             w as i32,
@@ -1445,20 +1439,16 @@ impl<'a> Renderer<'a> {
         );
         self.font.draw_text(
             buf,
-            layout.w,
-            layout.h,
-            x + 12.0,
-            y + h / 2.0 + 6.0,
+            (layout.w, layout.h),
+            (x + 12.0, y + h / 2.0 + 6.0),
             &current,
             pal.text,
             17.0,
         );
         self.font.draw_text(
             buf,
-            layout.w,
-            layout.h,
-            x + w - 24.0,
-            y + h / 2.0 + 6.0,
+            (layout.w, layout.h),
+            (x + w - 24.0, y + h / 2.0 + 6.0),
             "▾",
             pal.accent,
             17.0,
@@ -1481,8 +1471,7 @@ impl<'a> Renderer<'a> {
         }
         fill_rect(
             buf,
-            layout.w,
-            layout.h,
+            (layout.w, layout.h),
             x as i32,
             list_y as i32,
             w as i32,
@@ -1491,8 +1480,7 @@ impl<'a> Renderer<'a> {
         );
         fill_rect(
             buf,
-            layout.w,
-            layout.h,
+            (layout.w, layout.h),
             x as i32,
             list_y as i32,
             w as i32,
@@ -1502,13 +1490,12 @@ impl<'a> Renderer<'a> {
 
         for (i, (label, action)) in options.iter().take(visible).enumerate() {
             let oy = list_y + i as f32 * option_h;
-            let row_hover = view.mouse.map_or(false, |(mx, my)| {
-                mx >= x && mx <= x + w && my >= oy && my <= oy + option_h
-            });
+            let row_hover = view
+                .mouse
+                .is_some_and(|(mx, my)| mx >= x && mx <= x + w && my >= oy && my <= oy + option_h);
             fill_rect(
                 buf,
-                layout.w,
-                layout.h,
+                (layout.w, layout.h),
                 x as i32,
                 oy as i32,
                 w as i32,
@@ -1521,10 +1508,8 @@ impl<'a> Renderer<'a> {
             );
             self.font.draw_text(
                 buf,
-                layout.w,
-                layout.h,
-                x + 12.0,
-                oy + option_h / 2.0 + 6.0,
+                (layout.w, layout.h),
+                (x + 12.0, oy + option_h / 2.0 + 6.0),
                 label,
                 pal.text,
                 16.0,
@@ -1537,10 +1522,8 @@ impl<'a> Renderer<'a> {
         if options.len() > visible {
             self.font.draw_text(
                 buf,
-                layout.w,
-                layout.h,
-                x + 12.0,
-                list_y + list_h - option_h / 2.0 + 6.0,
+                (layout.w, layout.h),
+                (x + 12.0, list_y + list_h - option_h / 2.0 + 6.0),
                 "…",
                 pal.muted,
                 16.0,
@@ -1567,13 +1550,11 @@ impl<'a> Renderer<'a> {
             (Color::Black, view.black_clock, clock_top),
             (Color::White, view.white_clock, clock_top + 40.0),
         ] {
-            let active = view.pos.turn() == color;
+            let active = view.pos.turn() == color && view.result.is_none();
             fill_rect_alpha(
                 buf,
-                layout.w,
-                layout.h,
-                x as i32,
-                y as i32,
+                (layout.w, layout.h),
+                (x as i32, y as i32),
                 width as i32,
                 34,
                 if active { pal.button_active } else { pal.panel },
@@ -1586,27 +1567,24 @@ impl<'a> Renderer<'a> {
             );
             self.font.draw_text(
                 buf,
-                layout.w,
-                layout.h,
-                x + 9.0,
-                y + 23.0,
+                (layout.w, layout.h),
+                (x + 9.0, y + 23.0),
                 &label,
-                if seconds <= 30.0 {
+                if seconds <= Duration::from_secs(30) {
                     pal.accent
                 } else {
                     pal.text
                 },
                 16.0,
             );
-            if view.settings.board.give_more_time != AccessPolicy::Never {
+            if view.settings.board.give_more_time != AccessPolicy::Never && view.result.is_none() {
                 let add_x = x + width - 42.0;
                 let hover = view.mouse.is_some_and(|(mx, my)| {
                     mx >= add_x && mx <= add_x + 38.0 && my >= y + 3.0 && my <= y + 31.0
                 });
                 fill_rect(
                     buf,
-                    layout.w,
-                    layout.h,
+                    (layout.w, layout.h),
                     add_x as i32,
                     (y + 3.0) as i32,
                     38,
@@ -1615,10 +1593,8 @@ impl<'a> Renderer<'a> {
                 );
                 self.font.draw_text(
                     buf,
-                    layout.w,
-                    layout.h,
-                    add_x + 5.0,
-                    y + 22.0,
+                    (layout.w, layout.h),
+                    (add_x + 5.0, y + 22.0),
                     "+15",
                     pal.accent,
                     14.0,
@@ -1635,8 +1611,7 @@ impl<'a> Renderer<'a> {
         let (light_square, dark_square) = view.settings.board_style.squares(pal);
         fill_rect(
             buf,
-            layout.w,
-            layout.h,
+            (layout.w, layout.h),
             layout.board_left as i32 - 7,
             layout.board_top as i32 - 7,
             layout.board_size as i32 + 14,
@@ -1655,8 +1630,7 @@ impl<'a> Renderer<'a> {
                 };
                 fill_rect(
                     buf,
-                    layout.w,
-                    layout.h,
+                    (layout.w, layout.h),
                     x as i32,
                     y as i32,
                     layout.sq as i32,
@@ -1666,11 +1640,11 @@ impl<'a> Renderer<'a> {
             }
         }
 
-        if view.settings.board.board_highlights {
-            if let Some((from, to)) = view.last_move {
-                self.highlight_square(buf, layout, pal.last_move, 95, from, flipped);
-                self.highlight_square(buf, layout, pal.last_move, 95, to, flipped);
-            }
+        if view.settings.board.board_highlights
+            && let Some((from, to)) = view.last_move
+        {
+            self.highlight_square(buf, layout, pal.last_move, 95, from, flipped);
+            self.highlight_square(buf, layout, pal.last_move, 95, to, flipped);
         }
         if let Some(sq) = view.selected {
             self.highlight_square(buf, layout, pal.selected, 120, sq, flipped);
@@ -1689,10 +1663,8 @@ impl<'a> Renderer<'a> {
                     DragTarget::None => {}
                     DragTarget::Square => fill_rect_alpha(
                         buf,
-                        layout.w,
-                        layout.h,
-                        (x + 7.0) as i32,
-                        (y + 7.0) as i32,
+                        (layout.w, layout.h),
+                        ((x + 7.0) as i32, (y + 7.0) as i32),
                         (layout.sq - 14.0) as i32,
                         (layout.sq - 14.0) as i32,
                         pal.move_dot,
@@ -1702,8 +1674,7 @@ impl<'a> Renderer<'a> {
                         if view.pos.board().piece_at(sq).is_some() {
                             draw_ring(
                                 buf,
-                                layout.w,
-                                layout.h,
+                                (layout.w, layout.h),
                                 cx,
                                 cy,
                                 layout.sq / 2.0 - 8.0,
@@ -1711,27 +1682,27 @@ impl<'a> Renderer<'a> {
                                 230,
                             );
                         } else {
-                            fill_circle(buf, layout.w, layout.h, cx, cy, 12.0, pal.move_dot, 210);
+                            fill_circle(buf, (layout.w, layout.h), cx, cy, 12.0, pal.move_dot, 210);
                         }
                     }
                 }
             }
         }
 
-        if view.settings.board.board_highlights && view.pos.is_check() {
-            if let Some(ksq) = king_square(&view.pos, view.pos.turn()) {
-                let (x, y) = square_rect(ksq, layout, flipped);
-                draw_ring(
-                    buf,
-                    layout.w,
-                    layout.h,
-                    x + layout.sq / 2.0,
-                    y + layout.sq / 2.0,
-                    layout.sq / 2.0 - 5.0,
-                    pal.check_ring,
-                    255,
-                );
-            }
+        if view.settings.board.board_highlights
+            && view.pos.is_check()
+            && let Some(ksq) = king_square(&view.pos, view.pos.turn())
+        {
+            let (x, y) = square_rect(ksq, layout, flipped);
+            draw_ring(
+                buf,
+                (layout.w, layout.h),
+                x + layout.sq / 2.0,
+                y + layout.sq / 2.0,
+                layout.sq / 2.0 - 5.0,
+                pal.check_ring,
+                255,
+            );
         }
 
         for i in 0..64u32 {
@@ -1749,8 +1720,7 @@ impl<'a> Renderer<'a> {
                 let (x, y) = square_rect(sq, layout, flipped);
                 draw_scaled(
                     buf,
-                    layout.w,
-                    layout.h,
+                    (layout.w, layout.h),
                     tex,
                     x + 4.0,
                     y + 4.0,
@@ -1770,8 +1740,7 @@ impl<'a> Renderer<'a> {
             let y = fy + (ty - fy) * anim.progress;
             draw_scaled(
                 buf,
-                layout.w,
-                layout.h,
+                (layout.w, layout.h),
                 tex,
                 x + 4.0,
                 y + 4.0,
@@ -1780,30 +1749,28 @@ impl<'a> Renderer<'a> {
             );
         }
 
-        if view.mouse_down {
-            if let (Some(from), Some((mx, my))) = (view.dragging_from, view.mouse) {
-                if let Some(piece) = view.pos.board().piece_at(from) {
-                    let scale = if view.settings.board.magnify_dragged_piece {
-                        1.28
-                    } else {
-                        1.0
-                    };
-                    let size = (layout.sq - 8.0) * scale;
-                    let texture = self
-                        .images
-                        .get(view.settings.piece_set, piece.color, piece.role);
-                    draw_scaled(
-                        buf,
-                        layout.w,
-                        layout.h,
-                        texture,
-                        mx - size / 2.0,
-                        my - size / 2.0,
-                        size,
-                        size,
-                    );
-                }
-            }
+        if view.mouse_down
+            && let (Some(from), Some((mx, my))) = (view.dragging_from, view.mouse)
+            && let Some(piece) = view.pos.board().piece_at(from)
+        {
+            let scale = if view.settings.board.magnify_dragged_piece {
+                1.28
+            } else {
+                1.0
+            };
+            let size = (layout.sq - 8.0) * scale;
+            let texture = self
+                .images
+                .get(view.settings.piece_set, piece.color, piece.role);
+            draw_scaled(
+                buf,
+                (layout.w, layout.h),
+                texture,
+                mx - size / 2.0,
+                my - size / 2.0,
+                size,
+                size,
+            );
         }
 
         if view.settings.board.coordinates {
@@ -1818,10 +1785,8 @@ impl<'a> Renderer<'a> {
                 let y = layout.board_top + layout.board_size + 8.0;
                 self.font.draw_text(
                     buf,
-                    layout.w,
-                    layout.h,
-                    x,
-                    y + 12.0,
+                    (layout.w, layout.h),
+                    (x, y + 12.0),
                     &letter.to_string(),
                     pal.muted,
                     14.0,
@@ -1837,10 +1802,8 @@ impl<'a> Renderer<'a> {
                 let x = layout.board_left - 20.0;
                 self.font.draw_text(
                     buf,
-                    layout.w,
-                    layout.h,
-                    x,
-                    y + 12.0,
+                    (layout.w, layout.h),
+                    (x, y + 12.0),
                     &(rank + 1).to_string(),
                     pal.muted,
                     14.0,
@@ -1861,10 +1824,8 @@ impl<'a> Renderer<'a> {
         let (x, y) = square_rect(sq, layout, flipped);
         fill_rect_alpha(
             buf,
-            layout.w,
-            layout.h,
-            x as i32,
-            y as i32,
+            (layout.w, layout.h),
+            (x as i32, y as i32),
             layout.sq as i32,
             layout.sq as i32,
             color,
@@ -1883,8 +1844,7 @@ impl<'a> Renderer<'a> {
         let tr = view.settings.language.text();
         fill_rect(
             buf,
-            layout.w,
-            layout.h,
+            (layout.w, layout.h),
             layout.panel_x as i32,
             0,
             layout.panel_w as i32,
@@ -1893,8 +1853,7 @@ impl<'a> Renderer<'a> {
         );
         fill_rect(
             buf,
-            layout.w,
-            layout.h,
+            (layout.w, layout.h),
             layout.panel_x as i32 - 2,
             0,
             2,
@@ -1903,14 +1862,18 @@ impl<'a> Renderer<'a> {
         );
 
         let x = layout.panel_x + 16.0;
-        self.font
-            .draw_text(buf, layout.w, layout.h, x, 34.0, tr.title, pal.text, 30.0);
         self.font.draw_text(
             buf,
-            layout.w,
-            layout.h,
-            x,
-            58.0,
+            (layout.w, layout.h),
+            (x, 34.0),
+            tr.title,
+            pal.text,
+            30.0,
+        );
+        self.font.draw_text(
+            buf,
+            (layout.w, layout.h),
+            (x, 58.0),
             tr.subtitle,
             pal.muted,
             14.0,
@@ -1988,34 +1951,34 @@ impl<'a> Renderer<'a> {
         );
 
         if !(view.settings.board.chess_clock_enabled && layout.h < 600) {
-            self.font
-                .draw_text(buf, layout.w, layout.h, x, 282.0, tr.mode, pal.muted, 16.0);
             self.font.draw_text(
                 buf,
-                layout.w,
-                layout.h,
-                x,
-                306.0,
+                (layout.w, layout.h),
+                (x, 282.0),
+                tr.mode,
+                pal.muted,
+                16.0,
+            );
+            self.font.draw_text(
+                buf,
+                (layout.w, layout.h),
+                (x, 306.0),
                 mode_name(view.settings.mode, view.settings.language),
                 pal.accent,
                 18.0,
             );
             self.font.draw_text(
                 buf,
-                layout.w,
-                layout.h,
-                x,
-                340.0,
+                (layout.w, layout.h),
+                (x, 340.0),
                 tr.difficulty,
                 pal.muted,
                 16.0,
             );
             self.font.draw_text(
                 buf,
-                layout.w,
-                layout.h,
-                x,
-                364.0,
+                (layout.w, layout.h),
+                (x, 364.0),
                 depth_name(view.settings.ai_depth, view.settings.language),
                 pal.accent,
                 18.0,
@@ -2023,6 +1986,8 @@ impl<'a> Renderer<'a> {
         }
 
         let status = status_text(view);
+        let status_size = 18.0
+            * ((layout.panel_w - 20.0) / self.font.text_width(&status, 18.0).max(1.0)).min(1.0);
         let status_color = if view.pos.is_check() && !view.ai_thinking {
             pal.accent
         } else {
@@ -2038,24 +2003,33 @@ impl<'a> Renderer<'a> {
             };
         self.font.draw_text(
             buf,
-            layout.w,
-            layout.h,
-            x,
-            status_y,
+            (layout.w, layout.h),
+            (x, status_y),
             &status,
             status_color,
-            18.0,
+            status_size,
         );
 
         if let Some((_, _, san)) = &view.suggestion {
             let hint = format!("{}: {}", tr.suggested, san);
-            self.font
-                .draw_text(buf, layout.w, layout.h, x, hint_y, &hint, pal.accent, 17.0);
+            self.font.draw_text(
+                buf,
+                (layout.w, layout.h),
+                (x, hint_y),
+                &hint,
+                pal.accent,
+                17.0,
+            );
         }
 
         if view.settings.board.show_move_list {
             self.font.draw_text(
-                buf, layout.w, layout.h, x, moves_y, tr.moves, pal.muted, 16.0,
+                buf,
+                (layout.w, layout.h),
+                (x, moves_y),
+                tr.moves,
+                pal.muted,
+                16.0,
             );
             let start = view.history_sans.len().saturating_sub(history_count);
             for (i, san) in view.history_sans.iter().enumerate().skip(start) {
@@ -2063,8 +2037,14 @@ impl<'a> Renderer<'a> {
                 let line = format!("{}. {}", i + 1, notation);
                 let y = history_y + (i - start) as f32 * 18.0;
                 if y < layout.h as f32 - 12.0 {
-                    self.font
-                        .draw_text(buf, layout.w, layout.h, x, y, &line, pal.history, 15.0);
+                    self.font.draw_text(
+                        buf,
+                        (layout.w, layout.h),
+                        (x, y),
+                        &line,
+                        pal.history,
+                        15.0,
+                    );
                 }
             }
         }
@@ -2087,9 +2067,9 @@ impl<'a> Renderer<'a> {
         actions: &mut Vec<UiAction>,
         action: UiAction,
     ) {
-        let hover = view.mouse.map_or(false, |(mx, my)| {
-            mx >= x && mx <= x + w && my >= y && my <= y + h
-        });
+        let hover = view
+            .mouse
+            .is_some_and(|(mx, my)| mx >= x && mx <= x + w && my >= y && my <= y + h);
         let color = if hover {
             if base_color == pal.button_active {
                 pal.button_active_hover
@@ -2100,12 +2080,17 @@ impl<'a> Renderer<'a> {
             base_color
         };
         fill_rect(
-            buf, layout.w, layout.h, x as i32, y as i32, w as i32, h as i32, color,
+            buf,
+            (layout.w, layout.h),
+            x as i32,
+            y as i32,
+            w as i32,
+            h as i32,
+            color,
         );
         fill_rect(
             buf,
-            layout.w,
-            layout.h,
+            (layout.w, layout.h),
             x as i32,
             (y + h - 2.0) as i32,
             w as i32,
@@ -2115,10 +2100,8 @@ impl<'a> Renderer<'a> {
         let tw = self.font.text_width(label, font_size);
         self.font.draw_text(
             buf,
-            layout.w,
-            layout.h,
-            x + (w - tw) / 2.0,
-            y + h / 2.0 + 6.0,
+            (layout.w, layout.h),
+            (x + (w - tw) / 2.0, y + h / 2.0 + 6.0),
             label,
             pal.text,
             font_size,
@@ -2145,17 +2128,22 @@ impl<'a> Renderer<'a> {
         actions: &mut Vec<UiAction>,
         action: UiAction,
     ) {
-        let hover = view.mouse.map_or(false, |(mx, my)| {
-            mx >= x && mx <= x + w && my >= y && my <= y + h
-        });
+        let hover = view
+            .mouse
+            .is_some_and(|(mx, my)| mx >= x && mx <= x + w && my >= y && my <= y + h);
         let color = if hover { pal.button_hover } else { base_color };
         fill_rect(
-            buf, layout.w, layout.h, x as i32, y as i32, w as i32, h as i32, color,
+            buf,
+            (layout.w, layout.h),
+            x as i32,
+            y as i32,
+            w as i32,
+            h as i32,
+            color,
         );
         fill_rect(
             buf,
-            layout.w,
-            layout.h,
+            (layout.w, layout.h),
             x as i32,
             (y + h - 2.0) as i32,
             w as i32,
@@ -2165,10 +2153,8 @@ impl<'a> Renderer<'a> {
         let tw = self.font.text_width(label, font_size);
         self.font.draw_text(
             buf,
-            layout.w,
-            layout.h,
-            x + (w - tw) / 2.0,
-            y + h / 2.0 + 6.0,
+            (layout.w, layout.h),
+            (x + (w - tw) / 2.0, y + h / 2.0 + 6.0),
             label,
             pal.text,
             font_size,
@@ -2192,19 +2178,16 @@ impl<'a> Renderer<'a> {
         let y = (layout.h as f32 - height) / 2.0;
         fill_rect_alpha(
             buf,
-            layout.w,
-            layout.h,
-            0,
-            0,
+            (layout.w, layout.h),
+            (0, 0),
             layout.w as i32,
             layout.h as i32,
-            0x0000_00,
+            0x0000_0000,
             125,
         );
         fill_rect(
             buf,
-            layout.w,
-            layout.h,
+            (layout.w, layout.h),
             x as i32,
             y as i32,
             width as i32,
@@ -2213,10 +2196,8 @@ impl<'a> Renderer<'a> {
         );
         self.font.draw_text(
             buf,
-            layout.w,
-            layout.h,
-            x + 24.0,
-            y + 40.0,
+            (layout.w, layout.h),
+            (x + 24.0, y + 40.0),
             board_text(view.settings.language, BoardText::ConfirmMove),
             pal.text,
             23.0,
@@ -2265,25 +2246,23 @@ impl<'a> Renderer<'a> {
         let p = view.game_over_progress;
         fill_rect_alpha(
             buf,
-            layout.w,
-            layout.h,
-            0,
-            0,
+            (layout.w, layout.h),
+            (0, 0),
             layout.w as i32,
             layout.h as i32,
-            0x0000_00,
+            0x0000_0000,
             (p * 170.0) as u32,
         );
         let box_w = 560.0;
-        let box_h = 240.0;
+        let can_undo =
+            !view.history_sans.is_empty() && view.settings.board.takebacks != AccessPolicy::Never;
+        let box_h = if can_undo { 292.0 } else { 240.0 };
         let bx = (layout.w as f32 - box_w) / 2.0;
         let by = (layout.h as f32 - box_h) / 2.0 - 20.0 + (1.0 - p) * 24.0;
         fill_rect_alpha(
             buf,
-            layout.w,
-            layout.h,
-            bx as i32,
-            by as i32,
+            (layout.w, layout.h),
+            (bx as i32, by as i32),
             box_w as i32,
             box_h as i32,
             pal.panel,
@@ -2291,8 +2270,7 @@ impl<'a> Renderer<'a> {
         );
         fill_rect(
             buf,
-            layout.w,
-            layout.h,
+            (layout.w, layout.h),
             bx as i32,
             (by + box_h - 3.0) as i32,
             box_w as i32,
@@ -2301,25 +2279,23 @@ impl<'a> Renderer<'a> {
         );
 
         let title = status_text(view);
-        let tw = self.font.text_width(&title, 34.0);
+        let title_size =
+            34.0 * ((box_w - 32.0) / self.font.text_width(&title, 34.0).max(1.0)).min(1.0);
+        let tw = self.font.text_width(&title, title_size);
         self.font.draw_text(
             buf,
-            layout.w,
-            layout.h,
-            bx + (box_w - tw) / 2.0,
-            by + 64.0,
+            (layout.w, layout.h),
+            (bx + (box_w - tw) / 2.0, by + 64.0),
             &title,
             pal.text,
-            34.0,
+            title_size,
         );
         let sub = tr.game_over;
         let sw = self.font.text_width(sub, 20.0);
         self.font.draw_text(
             buf,
-            layout.w,
-            layout.h,
-            bx + (box_w - sw) / 2.0,
-            by + 106.0,
+            (layout.w, layout.h),
+            (bx + (box_w - sw) / 2.0, by + 106.0),
             sub,
             pal.muted,
             20.0,
@@ -2360,6 +2336,23 @@ impl<'a> Renderer<'a> {
             actions,
             UiAction::BackToMenu,
         );
+        if can_undo {
+            self.overlay_button(
+                buf,
+                layout,
+                pal,
+                view,
+                bx + (box_w - btn_w) / 2.0,
+                by + 208.0,
+                btn_w,
+                btn_h,
+                tr.undo,
+                pal.button,
+                18.0,
+                actions,
+                UiAction::Undo,
+            );
+        }
     }
 
     fn draw_promotion_dialog(
@@ -2373,13 +2366,11 @@ impl<'a> Renderer<'a> {
         let tr = view.settings.language.text();
         fill_rect_alpha(
             buf,
-            layout.w,
-            layout.h,
-            0,
-            0,
+            (layout.w, layout.h),
+            (0, 0),
             layout.w as i32,
             layout.h as i32,
-            0x0000_00,
+            0x0000_0000,
             140,
         );
 
@@ -2389,8 +2380,7 @@ impl<'a> Renderer<'a> {
         let by = (layout.h as f32 - box_h) / 2.0;
         fill_rect(
             buf,
-            layout.w,
-            layout.h,
+            (layout.w, layout.h),
             bx as i32,
             by as i32,
             box_w as i32,
@@ -2399,8 +2389,7 @@ impl<'a> Renderer<'a> {
         );
         fill_rect(
             buf,
-            layout.w,
-            layout.h,
+            (layout.w, layout.h),
             bx as i32,
             (by + box_h - 3.0) as i32,
             box_w as i32,
@@ -2409,10 +2398,8 @@ impl<'a> Renderer<'a> {
         );
         self.font.draw_text(
             buf,
-            layout.w,
-            layout.h,
-            bx + 30.0,
-            by + 44.0,
+            (layout.w, layout.h),
+            (bx + 30.0, by + 44.0),
             tr.promotion,
             pal.text,
             26.0,
@@ -2430,13 +2417,12 @@ impl<'a> Renderer<'a> {
         for (i, role) in roles.iter().enumerate() {
             let x = sx + i as f32 * (bw + gap);
             let y = by + 68.0;
-            let hover = view.mouse.map_or(false, |(mx, my)| {
-                mx >= x && mx <= x + bw && my >= y && my <= y + bh
-            });
+            let hover = view
+                .mouse
+                .is_some_and(|(mx, my)| mx >= x && mx <= x + bw && my >= y && my <= y + bh);
             fill_rect(
                 buf,
-                layout.w,
-                layout.h,
+                (layout.w, layout.h),
                 x as i32,
                 y as i32,
                 bw as i32,
@@ -2446,8 +2432,7 @@ impl<'a> Renderer<'a> {
             let tex = self.images.get(view.settings.piece_set, color, *role);
             draw_scaled(
                 buf,
-                layout.w,
-                layout.h,
+                (layout.w, layout.h),
                 tex,
                 x + 14.0,
                 y + 8.0,
@@ -2457,10 +2442,8 @@ impl<'a> Renderer<'a> {
             let tw = self.font.text_width(names[i], 18.0);
             self.font.draw_text(
                 buf,
-                layout.w,
-                layout.h,
-                x + (bw - tw) / 2.0,
-                y + bh - 12.0,
+                (layout.w, layout.h),
+                (x + (bw - tw) / 2.0, y + bh - 12.0),
                 names[i],
                 pal.text,
                 18.0,
@@ -3045,18 +3028,23 @@ fn move_notation(san: &str, notation: PieceNotation) -> String {
         .collect()
 }
 
-fn format_clock(seconds: f32, tenths: ClockTenths) -> String {
+fn format_clock(remaining: Duration, tenths: ClockTenths) -> String {
     let show_tenths = match tenths {
         ClockTenths::Never => false,
-        ClockTenths::UnderTenSeconds => seconds < 10.0,
+        ClockTenths::UnderTenSeconds => remaining < Duration::from_secs(10),
         ClockTenths::Always => true,
     };
-    let seconds = seconds.max(0.0);
-    let minutes = (seconds / 60.0).floor() as u32;
+    // Integer units avoid rounding 59.99 to the invalid display 0:60.0.
+    let seconds = remaining.as_secs();
+    let minutes = seconds / 60;
     if show_tenths {
-        format!("{minutes}:{:04.1}", seconds % 60.0)
+        format!(
+            "{minutes}:{:02}.{}",
+            seconds % 60,
+            remaining.subsec_millis() / 100
+        )
     } else {
-        format!("{minutes}:{:02}", (seconds % 60.0).floor() as u32)
+        format!("{minutes}:{:02}", seconds % 60)
     }
 }
 
@@ -3108,24 +3096,61 @@ fn dropdown_current(view: &ViewState, kind: DropdownKind) -> String {
 
 fn status_text(view: &ViewState) -> String {
     let tr = view.settings.language.text();
-    if view.claimed_draw {
-        return tr.draw.to_string();
+    if let Some(result) = view.result {
+        let winner_name = |color| {
+            if color == Color::White {
+                tr.white
+            } else {
+                tr.black
+            }
+        };
+        let reason = |text| view.settings.language.reliability(text);
+        return match result {
+            GameResult::Checkmate { winner } => {
+                format!("{} {} {}", tr.checkmate, winner_name(winner), tr.wins)
+            }
+            GameResult::Stalemate => {
+                format!("{} · {}", tr.draw, reason(ReliabilityText::Stalemate))
+            }
+            GameResult::InsufficientMaterial => format!(
+                "{} · {}",
+                tr.draw,
+                reason(ReliabilityText::InsufficientMaterial)
+            ),
+            GameResult::ThreefoldRepetition => {
+                format!("{} · {}", tr.draw, reason(ReliabilityText::Threefold))
+            }
+            GameResult::FivefoldRepetition => {
+                format!("{} · {}", tr.draw, reason(ReliabilityText::Fivefold))
+            }
+            GameResult::SeventyFiveMoves => format!(
+                "{} · {}",
+                tr.draw,
+                reason(ReliabilityText::SeventyFiveMoves)
+            ),
+            GameResult::Timeout { loser, draw: false } => format!(
+                "{} {} · {}",
+                winner_name(!loser),
+                tr.wins,
+                reason(ReliabilityText::Timeout)
+            ),
+            GameResult::Timeout { draw: true, .. } => {
+                format!("{} · {}", tr.draw, reason(ReliabilityText::TimeoutDraw))
+            }
+            GameResult::TimeoutUnresolved { .. } => {
+                reason(ReliabilityText::TimeoutUnresolved).to_string()
+            }
+        };
+    }
+    if view.search_failed {
+        return view
+            .settings
+            .language
+            .reliability(ReliabilityText::SearchFailed)
+            .to_string();
     }
     if view.ai_thinking {
         return tr.ai_thinking.to_string();
-    }
-    if let Some(outcome) = view.pos.outcome() {
-        return match outcome {
-            Outcome::Decisive { winner } => {
-                let name = if winner == Color::White {
-                    tr.white
-                } else {
-                    tr.black
-                };
-                format!("{}{name}{}", tr.checkmate, tr.wins)
-            }
-            Outcome::Draw => tr.draw.to_string(),
-        };
     }
     let turn = if view.pos.turn() == Color::White {
         tr.white
@@ -3213,9 +3238,10 @@ mod tests {
                     mouse_released: false,
                     dragging_from: None,
                     menu_time: 1.0,
-                    white_clock: 600.0,
-                    black_clock: 600.0,
-                    claimed_draw: false,
+                    white_clock: std::time::Duration::from_secs(600),
+                    black_clock: std::time::Duration::from_secs(600),
+                    result: None,
+                    search_failed: false,
                 };
                 let actions = renderer.render(&mut buffer, 1280, 720, &view);
                 assert!(actions.is_empty());
@@ -3264,9 +3290,10 @@ mod tests {
                 mouse_released: false,
                 dragging_from: None,
                 menu_time: 0.0,
-                white_clock: 600.0,
-                black_clock: 600.0,
-                claimed_draw: false,
+                white_clock: std::time::Duration::from_secs(600),
+                black_clock: std::time::Duration::from_secs(600),
+                result: None,
+                search_failed: false,
             };
             assert!(renderer.render(&mut buffer, 1280, 720, &view).is_empty());
             assert!(buffer.iter().any(|&pixel| pixel != buffer[0]));
@@ -3295,5 +3322,125 @@ mod tests {
                 "{item:?} should mark exactly one current choice"
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod reliability_render_tests {
+    use super::*;
+    use crate::{App, assets::PieceImages, font::TextRenderer};
+
+    #[test]
+    fn integer_clock_format_never_rounds_to_sixty_seconds() {
+        assert_eq!(
+            format_clock(Duration::from_millis(59999), ClockTenths::Always),
+            "0:59.9"
+        );
+        assert_eq!(
+            format_clock(Duration::from_secs(60), ClockTenths::Always),
+            "1:00.0"
+        );
+        assert_eq!(
+            format_clock(Duration::from_secs(10), ClockTenths::UnderTenSeconds),
+            "0:10"
+        );
+        assert_eq!(
+            format_clock(Duration::from_millis(9999), ClockTenths::UnderTenSeconds),
+            "0:09.9"
+        );
+        assert_eq!(
+            format_clock(Duration::from_millis(9999), ClockTenths::Never),
+            "0:09"
+        );
+        assert_eq!(format_clock(Duration::ZERO, ClockTenths::Always), "0:00.0");
+    }
+
+    #[test]
+    fn every_language_renders_distinct_results_and_search_errors() {
+        let images = PieceImages::load();
+        let font = TextRenderer::load();
+        let renderer = Renderer::new(&images, &font);
+        let mut app = App::new();
+        app.screen = Screen::Game;
+        app.settings.board.chess_clock_enabled = true;
+        let mut view = app.view_state(None, false, false, false);
+        view.game_over_progress = 1.0;
+        view.history_sans = vec!["e4".into()];
+        let results = [
+            GameResult::Checkmate {
+                winner: Color::White,
+            },
+            GameResult::Stalemate,
+            GameResult::InsufficientMaterial,
+            GameResult::ThreefoldRepetition,
+            GameResult::FivefoldRepetition,
+            GameResult::SeventyFiveMoves,
+            GameResult::Timeout {
+                loser: Color::White,
+                draw: false,
+            },
+            GameResult::Timeout {
+                loser: Color::Black,
+                draw: false,
+            },
+            GameResult::Timeout {
+                loser: Color::White,
+                draw: true,
+            },
+            GameResult::TimeoutUnresolved {
+                loser: Color::White,
+            },
+        ];
+        for language in Language::ALL {
+            view.settings.language = language;
+            let mut messages = std::collections::HashSet::new();
+            for result in results {
+                view.result = Some(result);
+                view.ai_thinking = true; // Terminal result must take precedence.
+                assert!(
+                    messages.insert(status_text(&view)),
+                    "duplicate result in {language:?}"
+                );
+                let mut buffer = vec![0; 1024 * 640];
+                assert!(renderer.render(&mut buffer, 1024, 640, &view).is_empty());
+            }
+            view.result = None;
+            view.ai_thinking = false;
+            view.search_failed = true;
+            assert_eq!(
+                status_text(&view),
+                language.reliability(ReliabilityText::SearchFailed)
+            );
+        }
+    }
+
+    #[test]
+    fn finished_game_exposes_undo_when_policy_allows_it() {
+        let images = PieceImages::load();
+        let font = TextRenderer::load();
+        let renderer = Renderer::new(&images, &font);
+        let mut app = App::new();
+        app.screen = Screen::Game;
+        let mut view = app.view_state(Some((640.0, 426.0)), true, true, false);
+        view.result = Some(GameResult::Timeout {
+            loser: Color::White,
+            draw: false,
+        });
+        view.history_sans = vec!["e4".into()];
+        view.game_over_progress = 1.0;
+        let mut buffer = vec![0; 1280 * 720];
+        let actions = renderer.render(&mut buffer, 1280, 720, &view);
+        assert!(
+            actions
+                .iter()
+                .any(|action| matches!(action, UiAction::Undo))
+        );
+        view.settings.board.takebacks = AccessPolicy::Never;
+        let actions = renderer.render(&mut buffer, 1280, 720, &view);
+        assert!(
+            !actions
+                .iter()
+                .any(|action| matches!(action, UiAction::Undo))
+        );
     }
 }

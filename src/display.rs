@@ -40,10 +40,7 @@ pub fn desktop_resolution() -> Option<(u32, u32)> {
 }
 
 pub fn unique_resolutions(modes: &[DisplayMode]) -> Vec<(u32, u32)> {
-    let mut list: Vec<(u32, u32)> = modes
-        .iter()
-        .map(|m| (m.width, m.height))
-        .collect();
+    let mut list: Vec<(u32, u32)> = modes.iter().map(|m| (m.width, m.height)).collect();
     list.sort_unstable();
     list.dedup();
     if list.is_empty() {
@@ -59,10 +56,10 @@ pub fn unique_resolutions(modes: &[DisplayMode]) -> Vec<(u32, u32)> {
             (3840, 2160),
         ];
     }
-    if let Some(desktop) = desktop_resolution() {
-        if !list.contains(&desktop) {
-            list.insert(0, desktop);
-        }
+    if let Some(desktop) = desktop_resolution()
+        && !list.contains(&desktop)
+    {
+        list.insert(0, desktop);
     }
     list
 }

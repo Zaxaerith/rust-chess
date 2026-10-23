@@ -7,6 +7,8 @@
 | --- | --- | --- | --- |
 | shakmaty | 0.27 | GPL-3.0+ | https://github.com/niklasf/shakmaty |
 | pleco | 0.5 | MIT | https://github.com/pleco-rs/Pleco |
+| chasolver | 3.0.0 | MIT | https://github.com/miguel-ambrona/chasolver |
+| chess | 3.2.0 | MIT | https://github.com/jordanbray/chess |
 | minifb | 0.27 | MIT OR Apache-2.0 | https://github.com/emoon/minifb |
 | png | 0.17 | MIT OR Apache-2.0 | https://github.com/image-rs/image-png |
 | ab_glyph | 0.2 | Apache-2.0 | https://github.com/alexheretic/ab-glyph |
@@ -31,3 +33,6 @@
 - v0.1.2 的新增界面主题参考 Microsoft Visual Studio Code 官方内置主题；VS Code 源码采用 MIT 许可证。
 - 六套棋盘皮肤为本项目自行定义的纯色调色板，未复制 Lichess 的 AGPL 棋盘纹理。
 - 运行时使用 Windows 系统字体渲染拉丁、西里尔及中日韩文字，字体不随项目分发。
+
+
+v0.1.4 使用 CHA-Solver 判定超时后是否存在合作将死序列；它只参与规则结算，AI 对弈仍由 Pleco 提供。新增组件版权及 MIT 许可全文见 [CHA-Solver](LICENSES/chasolver-MIT.txt) 与 [chess](LICENSES/chess-MIT.txt)。

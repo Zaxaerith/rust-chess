@@ -27,7 +27,7 @@ impl PieceTexture {
 
         match info.color_type {
             ColorType::Rgba => {
-                for px in bytes.chunks_exact(4) {
+                for px in bytes.as_chunks::<4>().0 {
                     pixels.push(
                         ((px[3] as u32) << 24)
                             | ((px[0] as u32) << 16)
@@ -37,14 +37,14 @@ impl PieceTexture {
                 }
             }
             ColorType::Rgb => {
-                for px in bytes.chunks_exact(3) {
+                for px in bytes.as_chunks::<3>().0 {
                     pixels.push(
                         0xff00_0000 | ((px[0] as u32) << 16) | ((px[1] as u32) << 8) | px[2] as u32,
                     );
                 }
             }
             ColorType::GrayscaleAlpha => {
-                for px in bytes.chunks_exact(2) {
+                for px in bytes.as_chunks::<2>().0 {
                     let g = px[0] as u32;
                     pixels.push(((px[1] as u32) << 24) | (g << 16) | (g << 8) | g);
                 }
@@ -238,8 +238,7 @@ impl PieceImages {
 
 pub fn fill_rect(
     buf: &mut [u32],
-    w: usize,
-    h: usize,
+    (w, h): (usize, usize),
     x: i32,
     y: i32,
     rw: i32,
@@ -261,10 +260,8 @@ pub fn fill_rect(
 
 pub fn fill_rect_alpha(
     buf: &mut [u32],
-    w: usize,
-    h: usize,
-    x: i32,
-    y: i32,
+    (w, h): (usize, usize),
+    (x, y): (i32, i32),
     rw: i32,
     rh: i32,
     color: u32,
@@ -285,8 +282,7 @@ pub fn fill_rect_alpha(
 
 pub fn fill_circle(
     buf: &mut [u32],
-    w: usize,
-    h: usize,
+    (w, h): (usize, usize),
     cx: f32,
     cy: f32,
     r: f32,
@@ -311,8 +307,7 @@ pub fn fill_circle(
 
 pub fn draw_ring(
     buf: &mut [u32],
-    w: usize,
-    h: usize,
+    (w, h): (usize, usize),
     cx: f32,
     cy: f32,
     r: f32,
@@ -416,8 +411,7 @@ fn lerp_pixel(c00: u32, c01: u32, c10: u32, c11: u32, fx: f32, fy: f32) -> u32 {
 
 pub fn draw_scaled(
     buf: &mut [u32],
-    w: usize,
-    h: usize,
+    (w, h): (usize, usize),
     tex: &PieceTexture,
     x: f32,
     y: f32,

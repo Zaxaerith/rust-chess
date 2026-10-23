@@ -70,6 +70,10 @@ pub fn save(settings: &Settings) {
 
 pub fn load() -> Option<Settings> {
     let text = fs::read_to_string(settings_path()).ok()?;
+    Some(parse_settings(&text))
+}
+
+fn parse_settings(text: &str) -> Settings {
     let mut settings = Settings::default();
     for line in text.lines() {
         let Some((key, value)) = line.split_once('=') else {
@@ -205,7 +209,7 @@ pub fn load() -> Option<Settings> {
             _ => {}
         }
     }
-    Some(settings)
+    settings
 }
 
 fn mode_key(mode: Option<Color>) -> &'static str {
@@ -233,5 +237,53 @@ fn parse_resolution(value: &str) -> Option<(u32, u32)> {
         Some((w, h))
     } else {
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn old_settings_keep_board_defaults() {
+        let settings = parse_settings(
+            "mode=ai_black\nai_depth=4\nresolution=1920x1080\nfps=144\ntheme=nord\nlanguage=en\nflip_for_black=false\n",
+        );
+        assert_eq!(settings.mode, Some(Color::Black));
+        assert_eq!(settings.ai_depth, 4);
+        assert_eq!(settings.resolution, (1920, 1080));
+        assert_eq!(settings.fps, 144);
+        assert_eq!(settings.language, Language::English);
+        assert!(!settings.flip_for_black);
+        assert_eq!(settings.board, Settings::default().board);
+        assert_eq!(parse_settings(""), Settings::default());
+    }
+
+    #[test]
+    fn behavior_keys_remain_compatible() {
+        let settings = parse_settings(
+            "chess_clock_enabled=true\nclock_tenths=always\nauto_threefold=under_30\nauto_promotion=never\npremoves=false\ntakebacks=never\nmove_confirmation=true\ncastling_method=king_two_squares\ngive_more_time=always\n",
+        );
+        let board = settings.board;
+        assert!(board.chess_clock_enabled);
+        assert_eq!(board.clock_tenths, ClockTenths::Always);
+        assert_eq!(board.auto_threefold, AutoThreefold::UnderThirtySeconds);
+        assert_eq!(board.auto_promotion, AutoPromotion::Never);
+        assert!(!board.premoves);
+        assert_eq!(board.takebacks, AccessPolicy::Never);
+        assert!(board.move_confirmation);
+        assert_eq!(board.castling_method, CastlingMethod::KingTwoSquares);
+        assert_eq!(board.give_more_time, AccessPolicy::Always);
+    }
+
+    #[test]
+    fn invalid_settings_preserve_defaults_or_clamp() {
+        let settings = parse_settings(
+            "auto_promotion=garbage\nchess_clock_enabled=garbage\nresolution=1x1\nai_depth=999\nfps=0\nunknown=anything\nmalformed",
+        );
+        assert_eq!(settings.board, Settings::default().board);
+        assert_eq!(settings.resolution, Settings::default().resolution);
+        assert_eq!(settings.ai_depth, 5);
+        assert_eq!(settings.fps, 30);
     }
 }

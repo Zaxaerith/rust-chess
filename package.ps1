@@ -20,6 +20,8 @@ New-Item -ItemType Directory -Force -Path $dist | Out-Null
 Copy-Item "target/release/chess_rust.exe" "$dist/rust-chess.exe"
 Copy-Item "README.md" "$dist/README.md" -ErrorAction SilentlyContinue
 Copy-Item "LICENSE" "$dist/LICENSE" -ErrorAction SilentlyContinue
+Copy-Item "THIRD_PARTY_NOTICES.md" "$dist/THIRD_PARTY_NOTICES.md"
+Copy-Item "LICENSES" "$dist/LICENSES" -Recurse
 
 Compress-Archive -Path "$dist/*" -DestinationPath $zip -Force
 

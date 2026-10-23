@@ -1,11 +1,13 @@
 [package]
 name = "chess_rust"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2024"
 build = "build.rs"
 
 [dependencies]
 ab_glyph = "0.2"
+chasolver = "=3.0.0"
+chess = "3.2"
 minifb = "0.27"
 pleco = "0.5"
 png = "0.17"

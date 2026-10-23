@@ -720,3 +720,160 @@ mod tests {
         }
     }
 }
+
+#[derive(Clone, Copy)]
+pub enum ReliabilityText {
+    Stalemate,
+    InsufficientMaterial,
+    Threefold,
+    Fivefold,
+    SeventyFiveMoves,
+    Timeout,
+    TimeoutDraw,
+    SearchFailed,
+    TimeoutUnresolved,
+}
+
+impl Language {
+    pub fn reliability(self, message: ReliabilityText) -> &'static str {
+        use ReliabilityText::*;
+        if matches!(message, TimeoutUnresolved) {
+            return match self {
+                Self::Chinese => "超时：胜负判定失败",
+                Self::TraditionalChinese => "超時：勝負判定失敗",
+                Self::English => "Timeout: adjudication failed",
+                Self::French => "Temps : verdict indisponible",
+                Self::Spanish => "Tiempo: fallo de adjudicación",
+                Self::Latin => "Tempus: iudicium defecit",
+                Self::Japanese => "時間切れ：勝敗判定失敗",
+                Self::Korean => "시간 초과: 결과 판정 실패",
+                Self::German => "Zeit: Ergebnisermittlung fehlgeschlagen",
+                Self::Italian => "Tempo: verdetto non disponibile",
+                Self::Russian => "Время: ошибка определения результата",
+            };
+        }
+        let texts = match self {
+            Self::Chinese => [
+                "逼和",
+                "子力不足",
+                "三次重复局面",
+                "五次重复局面",
+                "75 回合规则",
+                "超时",
+                "超时：对方无法将死",
+                "AI 搜索失败",
+            ],
+            Self::TraditionalChinese => [
+                "逼和",
+                "子力不足",
+                "三次重複局面",
+                "五次重複局面",
+                "75 回合規則",
+                "超時",
+                "超時：對方無法將死",
+                "AI 搜尋失敗",
+            ],
+            Self::English => [
+                "Stalemate",
+                "Insufficient material",
+                "Threefold repetition",
+                "Fivefold repetition",
+                "75-move rule",
+                "Time expired",
+                "Timeout: mate impossible",
+                "AI search failed",
+            ],
+            Self::French => [
+                "Pat",
+                "Matériel insuffisant",
+                "Triple répétition",
+                "Quintuple répétition",
+                "Règle des 75 coups",
+                "Temps écoulé",
+                "Temps : mat impossible",
+                "Échec de recherche IA",
+            ],
+            Self::Spanish => [
+                "Ahogado",
+                "Material insuficiente",
+                "Triple repetición",
+                "Quíntuple repetición",
+                "Regla de 75 jugadas",
+                "Tiempo agotado",
+                "Tiempo: mate imposible",
+                "Error de búsqueda IA",
+            ],
+            Self::Latin => [
+                "Rex immotus",
+                "Copiae insufficientes",
+                "Triplex repetitio",
+                "Quintuplex repetitio",
+                "Regula 75 motuum",
+                "Tempus exhaustum",
+                "Tempus: mattum impossibile",
+                "Error quaerendi",
+            ],
+            Self::Japanese => [
+                "ステイルメイト",
+                "戦力不足",
+                "同一局面3回",
+                "同一局面5回",
+                "75手ルール",
+                "時間切れ",
+                "時間切れ：相手は詰ませられない",
+                "AI探索失敗",
+            ],
+            Self::Korean => [
+                "스테일메이트",
+                "기물 부족",
+                "동일 국면 3회",
+                "동일 국면 5회",
+                "75수 규칙",
+                "시간 초과",
+                "시간 초과: 상대 체크메이트 불가",
+                "AI 검색 실패",
+            ],
+            Self::German => [
+                "Patt",
+                "Unzureichendes Material",
+                "Dreifache Wiederholung",
+                "Fünffache Wiederholung",
+                "75-Züge-Regel",
+                "Zeit abgelaufen",
+                "Zeit: Matt unmöglich",
+                "KI-Suche fehlgeschlagen",
+            ],
+            Self::Italian => [
+                "Stallo",
+                "Materiale insufficiente",
+                "Triplice ripetizione",
+                "Quintupla ripetizione",
+                "Regola delle 75 mosse",
+                "Tempo scaduto",
+                "Tempo: matto impossibile",
+                "Errore ricerca IA",
+            ],
+            Self::Russian => [
+                "Пат",
+                "Недостаточно материала",
+                "Троекратное повторение",
+                "Пятикратное повторение",
+                "Правило 75 ходов",
+                "Время истекло",
+                "Время: мат невозможен",
+                "Ошибка поиска ИИ",
+            ],
+        };
+        texts[match message {
+            Stalemate => 0,
+            InsufficientMaterial => 1,
+            Threefold => 2,
+            Fivefold => 3,
+            SeventyFiveMoves => 4,
+            Timeout => 5,
+            TimeoutDraw => 6,
+            SearchFailed => 7,
+            TimeoutUnresolved => unreachable!("handled above"),
+        }]
+    }
+}

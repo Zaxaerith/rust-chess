@@ -2,9 +2,9 @@
 
 [简体中文](README_ZH.md)
 
-> Current stable version: **v0.1.3** — source code and releases are available on `main`.
+> Development candidate: **v0.1.4 Reliability & Bug Fixes** (local, unpublished). Previous stable release: v0.1.3. See [validation and limitations](RELIABILITY_v0.1.4.md).
 
-A local window chess game written in Rust. Supports two-player, human vs AI, 5 AI difficulty levels, move animations, AI thinking pause, opening/ending animations, settings persistence, and multiple VSCode-inspired themes. v0.1.3 refactors board-related preferences into three-tier settings and adds drag-and-drop, premoves, move confirmation, and a local chess clock.
+A local window chess game written in Rust. Supports two-player, human vs AI, 5 AI difficulty levels, move animations, AI thinking pause, opening/ending animations, settings persistence, and multiple VSCode-inspired themes. v0.1.4 adds clock-based game results, clock-aware undo, explicit AI search errors, and regression tests.
 
 ## Features
 
@@ -26,6 +26,8 @@ A local window chess game written in Rust. Supports two-player, human vs AI, 5 A
 - Piece drag-and-drop, enlarged dragging, circular or square landing markers
 - Premoves, auto-queen promotion, move confirmation, and two castling input methods
 - Local 10-minute chess clock, critical time alerts, tenth-second display, and time-add for opponent
+
+Clock time continues during move confirmation and promotion selection. Opening menus/settings pauses it. Undo restores the saved clocks for the previous position (two plies after an AI reply). Time gifts cannot reopen a finished game. All current local games are casual, so Casual and Always access policies both permit the action. The root executable is a historical build; use the newly built target/release/chess_rust.exe for this candidate.
 
 ## Run Directly
 
@@ -84,6 +86,7 @@ Settings take effect immediately and are saved to `settings.cfg`, they will be r
 
 - `minifb`: local window and input
 - `shakmaty`: chess rule engine
+- `chasolver` / `chess`: timeout mating-possibility adjudication (MIT); no change to the playing engine
 - `pleco`: AI searcher for human vs AI (Rust port of Stockfish)
 - `png`: PNG decoding for piece images
 - `ab_glyph`: text rendering (uses system fonts, including Chinese)
@@ -93,6 +96,7 @@ Settings take effect immediately and are saved to `settings.cfg`, they will be r
 ```text
 src/
   main.rs       entry point and game logic
+  game.rs       game results, timeout adjudication and clock snapshots
   render.rs     board, menu, settings, animation rendering
   ai.rs         Pleco AI difficulty mapping and suggestion search
   i18n.rs       interface texts for 11 languages

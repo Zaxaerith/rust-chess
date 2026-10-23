@@ -1,0 +1,2131 @@
+[
+  {
+    "name": "ab_glyph",
+    "version": "0.2.32",
+    "license": "Apache-2.0",
+    "repository": "https://github.com/alexheretic/ab-glyph",
+    "authors": [
+      "Alex Butler <alexheretic@gmail.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/ab_glyph-0.2.32/LICENSE",
+        "sha256": "a6cba85bc92e0cff7a450b1d873c0eaa2e9fc96bf472df0247a26bec77bf3ff9"
+      },
+      {
+        "path": "LICENSES/dependencies/ab_glyph-0.2.32/Cargo.toml",
+        "sha256": "57c5cd0f50fb3a5db53511c26a2c47b35597a059643057929430b12994e9f8d0"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "ab_glyph_rasterizer",
+    "version": "0.1.10",
+    "license": "Apache-2.0",
+    "repository": "https://github.com/alexheretic/ab-glyph",
+    "authors": [
+      "Alex Butler <alexheretic@gmail.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/ab_glyph_rasterizer-0.1.10/LICENSE",
+        "sha256": "a6cba85bc92e0cff7a450b1d873c0eaa2e9fc96bf472df0247a26bec77bf3ff9"
+      },
+      {
+        "path": "LICENSES/dependencies/ab_glyph_rasterizer-0.1.10/Cargo.toml",
+        "sha256": "054c566cef83c7c0611c8b5ef89ccde66e37455ea160a0c6a633c8a62ecf7ea5"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "adler2",
+    "version": "2.0.1",
+    "license": "0BSD OR MIT OR Apache-2.0",
+    "repository": "https://github.com/oyvindln/adler2",
+    "authors": [
+      "Jonas Schievink <jonasschievink@gmail.com>",
+      "oyvindln <oyvindln@users.noreply.github.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/adler2-2.0.1/LICENSE-0BSD",
+        "sha256": "861399f8c21c042b110517e76dc6b63a2b334276c8cf17412fc3c8908ca8dc17"
+      },
+      {
+        "path": "LICENSES/dependencies/adler2-2.0.1/LICENSE-APACHE",
+        "sha256": "8ada45cd9f843acf64e4722ae262c622a2b3b3007c7310ef36ac1061a30f6adb"
+      },
+      {
+        "path": "LICENSES/dependencies/adler2-2.0.1/LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+      },
+      {
+        "path": "LICENSES/dependencies/adler2-2.0.1/Cargo.toml",
+        "sha256": "8f30dbd092f3acc475b9d339736cd7b64c6489bc47cd234a7f2232fc52e2d490"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "arrayvec",
+    "version": "0.5.2",
+    "license": "MIT/Apache-2.0",
+    "repository": "https://github.com/bluss/arrayvec",
+    "authors": [
+      "bluss"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/arrayvec-0.5.2/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/arrayvec-0.5.2/LICENSE-MIT",
+        "sha256": "0245ee104228a100ce5fceecf43e25faae450494d9173f43fd94c27d69fdac13"
+      },
+      {
+        "path": "LICENSES/dependencies/arrayvec-0.5.2/Cargo.toml",
+        "sha256": "c736151a4747b2c041404d730e17dec631393c5feea287edc8a3e482f83a8927"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "arrayvec",
+    "version": "0.7.8",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/bluss/arrayvec",
+    "authors": [
+      "bluss"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/arrayvec-0.7.8/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/arrayvec-0.7.8/LICENSE-MIT",
+        "sha256": "4da95ec4ecb65b738d470b7d762894ad9c97da93e6cbfb18b570fc2c96f4b871"
+      },
+      {
+        "path": "LICENSES/dependencies/arrayvec-0.7.8/Cargo.toml",
+        "sha256": "20e9a4f27b17531ac0c3ab9f403e52c9d567eea254703df3b3b18ca36d5f7927"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "autocfg",
+    "version": "0.1.8",
+    "license": "Apache-2.0 OR MIT",
+    "repository": "https://github.com/cuviper/autocfg",
+    "authors": [
+      "Josh Stone <cuviper@gmail.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/autocfg-0.1.8/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/autocfg-0.1.8/LICENSE-MIT",
+        "sha256": "27995d58ad5c1145c1a8cd86244ce844886958a35eb2b78c6b772748669999ac"
+      },
+      {
+        "path": "LICENSES/dependencies/autocfg-0.1.8/Cargo.toml",
+        "sha256": "4953f554c55611965cee146371c0a47acf26595692608f5d06f0e285425ed803"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "autocfg",
+    "version": "1.5.1",
+    "license": "Apache-2.0 OR MIT",
+    "repository": "https://github.com/cuviper/autocfg",
+    "authors": [
+      "Josh Stone <cuviper@gmail.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/autocfg-1.5.1/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/autocfg-1.5.1/LICENSE-MIT",
+        "sha256": "27995d58ad5c1145c1a8cd86244ce844886958a35eb2b78c6b772748669999ac"
+      },
+      {
+        "path": "LICENSES/dependencies/autocfg-1.5.1/Cargo.toml",
+        "sha256": "ed7c832b4250c3be736e040d68688c2b83a5b164a93ef533e61532cbe0d44e99"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "backtrace",
+    "version": "0.3.76",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/rust-lang/backtrace-rs",
+    "authors": [
+      "The Rust Project Developers"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/backtrace-0.3.76/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/backtrace-0.3.76/LICENSE-MIT",
+        "sha256": "378f5840b258e2779c39418f3f2d7b2ba96f1c7917dd6be0713f88305dbda397"
+      },
+      {
+        "path": "LICENSES/dependencies/backtrace-0.3.76/Cargo.toml",
+        "sha256": "cf97b237546e047f7de052801c81707ff083951d697e1781b31c4356ff7ae0bf"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "bitflags",
+    "version": "1.3.2",
+    "license": "MIT/Apache-2.0",
+    "repository": "https://github.com/bitflags/bitflags",
+    "authors": [
+      "The Rust Project Developers"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/bitflags-1.3.2/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/bitflags-1.3.2/LICENSE-MIT",
+        "sha256": "6485b8ed310d3f0340bf1ad1f47645069ce4069dcc6bb46c7d5c6faf41de1fdb"
+      },
+      {
+        "path": "LICENSES/dependencies/bitflags-1.3.2/Cargo.toml",
+        "sha256": "87aced7532a7974eb37ab5fe6037f0abafc36d6b2d74891ecd2bf2f14f50d11e"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "bitflags",
+    "version": "2.13.1",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/bitflags/bitflags",
+    "authors": [
+      "The Rust Project Developers"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/bitflags-2.13.1/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/bitflags-2.13.1/LICENSE-MIT",
+        "sha256": "6485b8ed310d3f0340bf1ad1f47645069ce4069dcc6bb46c7d5c6faf41de1fdb"
+      },
+      {
+        "path": "LICENSES/dependencies/bitflags-2.13.1/Cargo.toml",
+        "sha256": "b13b9b7edbbb039205f57f107acdba1840b7c8452c6fdf4e04bc58124f7b5e0c"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "block-buffer",
+    "version": "0.10.4",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/RustCrypto/utils",
+    "authors": [
+      "RustCrypto Developers"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/block-buffer-0.10.4/LICENSE-APACHE",
+        "sha256": "a9040321c3712d8fd0b09cf52b17445de04a23a10165049ae187cd39e5c86be5"
+      },
+      {
+        "path": "LICENSES/dependencies/block-buffer-0.10.4/LICENSE-MIT",
+        "sha256": "d5c22aa3118d240e877ad41c5d9fa232f9c77d757d4aac0c2f943afc0a95e0ef"
+      },
+      {
+        "path": "LICENSES/dependencies/block-buffer-0.10.4/Cargo.toml",
+        "sha256": "c76e4bd298cd6223882238449e31939d75613e82757ca87e249df843decf5f9a"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "btoi",
+    "version": "0.4.3",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/niklasf/rust-btoi",
+    "authors": [
+      "Niklas Fiekas <niklas.fiekas@backscattering.de>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/btoi-0.4.3/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/btoi-0.4.3/LICENSE-MIT",
+        "sha256": "c189dcc7339b95c2731e2bdfb5dcda6afe8b48ff5c983cdbb38825eacdec9f1b"
+      },
+      {
+        "path": "LICENSES/dependencies/btoi-0.4.3/Cargo.toml",
+        "sha256": "503aae9fe0d1f42c76d4c23078488540bc81d3903242b28a617cc966ee202a9a"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "cc",
+    "version": "1.4.2",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/rust-lang/cc-rs",
+    "authors": [],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/cc-1.4.2/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/cc-1.4.2/LICENSE-MIT",
+        "sha256": "378f5840b258e2779c39418f3f2d7b2ba96f1c7917dd6be0713f88305dbda397"
+      },
+      {
+        "path": "LICENSES/dependencies/cc-1.4.2/Cargo.toml",
+        "sha256": "c83f257d917efb5068ad7b2bd68c1e5d8dc50e2f1065a87c3407bdbef34605ef"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "cfg-if",
+    "version": "1.0.4",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/rust-lang/cfg-if",
+    "authors": [
+      "Alex Crichton <alex@alexcrichton.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/cfg-if-1.0.4/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/cfg-if-1.0.4/LICENSE-MIT",
+        "sha256": "378f5840b258e2779c39418f3f2d7b2ba96f1c7917dd6be0713f88305dbda397"
+      },
+      {
+        "path": "LICENSES/dependencies/cfg-if-1.0.4/Cargo.toml",
+        "sha256": "281d508beb1fe3927cf03d3f2f8c9a5117b1e4fe97ae21b9026cf318e8c35273"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "chasolver",
+    "version": "3.0.0",
+    "license": "MIT",
+    "repository": "https://github.com/miguel-ambrona/chasolver",
+    "authors": [],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/chasolver-3.0.0/LICENSE",
+        "sha256": "8a3738ae39a6870fe3d9e01593a694aa75fd5a80e1d2d6a13d92d1df80384933"
+      },
+      {
+        "path": "LICENSES/dependencies/chasolver-3.0.0/Cargo.toml",
+        "sha256": "a3c4349c8cab2637c65f3c024889a6a4dc99c8a7ebb2593783d65e75a2b7ce9a"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "chess",
+    "version": "3.2.0",
+    "license": "MIT",
+    "repository": "https://github.com/jordanbray/chess",
+    "authors": [
+      "Jordan Bray <jordanbray@gmail.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/chess-3.2.0/LICENSE",
+        "sha256": "259551e4c3bd1cbc524ad05e0a829079134932a5c69ec3546dbbe272e336715a"
+      },
+      {
+        "path": "LICENSES/dependencies/chess-3.2.0/Cargo.toml",
+        "sha256": "4479966cbb8298493cd8d0deed2ce58dd1f84c65c2730c882ba2933e808340c3"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "circular",
+    "version": "0.3.0",
+    "license": "MIT",
+    "repository": "https://github.com/sozu-proxy/circular",
+    "authors": [
+      "Geoffroy Couprie <geo.couprie@gmail.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/circular-0.3.0/LICENSE",
+        "sha256": "cef6497a64266f9c392ee9134aceb82739dadd176422fead980102109bf46d10"
+      },
+      {
+        "path": "LICENSES/dependencies/circular-0.3.0/Cargo.toml",
+        "sha256": "8b979e7165afbae65030082527ef11775cbf311e8406018260f60289695f2164"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "cpufeatures",
+    "version": "0.2.17",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/RustCrypto/utils",
+    "authors": [
+      "RustCrypto Developers"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/cpufeatures-0.2.17/LICENSE-APACHE",
+        "sha256": "a9040321c3712d8fd0b09cf52b17445de04a23a10165049ae187cd39e5c86be5"
+      },
+      {
+        "path": "LICENSES/dependencies/cpufeatures-0.2.17/LICENSE-MIT",
+        "sha256": "ae9baa7beea910273c2f384c2a6b721fb7bd02bda3436074a1072e4ee689f985"
+      },
+      {
+        "path": "LICENSES/dependencies/cpufeatures-0.2.17/Cargo.toml",
+        "sha256": "25160ea4dfa195721d352d42827b882a41f18f4c55fff58e5c3878ecae84ca44"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "crc32fast",
+    "version": "1.5.0",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/srijs/rust-crc32fast",
+    "authors": [
+      "Sam Rijs <srijs@airpost.net>",
+      "Alex Crichton <alex@alexcrichton.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/crc32fast-1.5.0/LICENSE-APACHE",
+        "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08"
+      },
+      {
+        "path": "LICENSES/dependencies/crc32fast-1.5.0/LICENSE-MIT",
+        "sha256": "61d383b05b87d78f94d2937e2580cce47226d17823c0430fbcad09596537efcf"
+      },
+      {
+        "path": "LICENSES/dependencies/crc32fast-1.5.0/Cargo.toml",
+        "sha256": "e082839aef8c8eebb5a5fca2be48c7dcd27a65e55e05d46a46107e19efe80b30"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "crossbeam-deque",
+    "version": "0.8.7",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/crossbeam-rs/crossbeam",
+    "authors": [],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/crossbeam-deque-0.8.7/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/crossbeam-deque-0.8.7/LICENSE-MIT",
+        "sha256": "5734ed989dfca1f625b40281ee9f4530f91b2411ec01cb748223e7eb87e201ab"
+      },
+      {
+        "path": "LICENSES/dependencies/crossbeam-deque-0.8.7/Cargo.toml",
+        "sha256": "c9632c8308c019ec51fe44db580bb727dbd50e53bd970daa7a48fe4e776ab8a9"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "crossbeam-epoch",
+    "version": "0.9.20",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/crossbeam-rs/crossbeam",
+    "authors": [],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/crossbeam-epoch-0.9.20/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/crossbeam-epoch-0.9.20/LICENSE-MIT",
+        "sha256": "5734ed989dfca1f625b40281ee9f4530f91b2411ec01cb748223e7eb87e201ab"
+      },
+      {
+        "path": "LICENSES/dependencies/crossbeam-epoch-0.9.20/Cargo.toml",
+        "sha256": "aa33b807f5f74c0336045aecd27e90f9f4c8e0fceceb3967fdc154237b76c3a6"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "crossbeam-utils",
+    "version": "0.8.22",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/crossbeam-rs/crossbeam",
+    "authors": [],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/crossbeam-utils-0.8.22/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/crossbeam-utils-0.8.22/LICENSE-MIT",
+        "sha256": "5734ed989dfca1f625b40281ee9f4530f91b2411ec01cb748223e7eb87e201ab"
+      },
+      {
+        "path": "LICENSES/dependencies/crossbeam-utils-0.8.22/Cargo.toml",
+        "sha256": "c72b40382ceeea681815419eefa47b02c00afeb97ff27fb365d6c14af1b14ab4"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "crypto-common",
+    "version": "0.1.7",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/RustCrypto/traits",
+    "authors": [
+      "RustCrypto Developers"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/crypto-common-0.1.7/LICENSE-APACHE",
+        "sha256": "a9040321c3712d8fd0b09cf52b17445de04a23a10165049ae187cd39e5c86be5"
+      },
+      {
+        "path": "LICENSES/dependencies/crypto-common-0.1.7/LICENSE-MIT",
+        "sha256": "3521672491a3479422d5fe1aca6645dd2984090f85da6e5205abfb18fb7a6897"
+      },
+      {
+        "path": "LICENSES/dependencies/crypto-common-0.1.7/Cargo.toml",
+        "sha256": "303682a6a66fdc98de8a011ac275e18c523f1535ed8de2a291a4fcad91de8348"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "digest",
+    "version": "0.10.7",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/RustCrypto/traits",
+    "authors": [
+      "RustCrypto Developers"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/digest-0.10.7/LICENSE-APACHE",
+        "sha256": "a9040321c3712d8fd0b09cf52b17445de04a23a10165049ae187cd39e5c86be5"
+      },
+      {
+        "path": "LICENSES/dependencies/digest-0.10.7/LICENSE-MIT",
+        "sha256": "9e0dfd2dd4173a530e238cb6adb37aa78c34c6bc7444e0e10c1ab5d8881f63ba"
+      },
+      {
+        "path": "LICENSES/dependencies/digest-0.10.7/Cargo.toml",
+        "sha256": "f0cc2fc18c6e7f3533658b9e59d71b55e641e7d8226e5d1b915a5e7c0a1d3f36"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "either",
+    "version": "1.17.0",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/rayon-rs/either",
+    "authors": [],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/either-1.17.0/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/either-1.17.0/LICENSE-MIT",
+        "sha256": "7576269ea71f767b99297934c0b2367532690f8c4badc695edf8e04ab6a1e545"
+      },
+      {
+        "path": "LICENSES/dependencies/either-1.17.0/Cargo.toml",
+        "sha256": "ece83a8afa697f4be29d0953ab8df176711a789bb337bb6c2a7c473c9795326b"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "failure",
+    "version": "0.1.8",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/rust-lang-nursery/failure",
+    "authors": [
+      "Without Boats <boats@mozilla.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/failure-0.1.8/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/failure-0.1.8/LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+      },
+      {
+        "path": "LICENSES/dependencies/failure-0.1.8/Cargo.toml",
+        "sha256": "669a2057fa1375ba260ab3fe243a2df65db097e50d051048b66aa7ee54ce9b34"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "failure_derive",
+    "version": "0.1.8",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/rust-lang-nursery/failure",
+    "authors": [
+      "Without Boats <woboats@gmail.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/failure_derive-0.1.8/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/failure_derive-0.1.8/LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+      },
+      {
+        "path": "LICENSES/dependencies/failure_derive-0.1.8/Cargo.toml",
+        "sha256": "eeb6a787dbbcffd4ffb2a145346f3a40e126f4e61b8d266d60e57e7c904b5aa8"
+      }
+    ],
+    "note": "Shared failure workspace license texts."
+  },
+  {
+    "name": "fdeflate",
+    "version": "0.3.7",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/image-rs/fdeflate",
+    "authors": [
+      "The image-rs Developers"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/fdeflate-0.3.7/LICENSE-APACHE",
+        "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
+      },
+      {
+        "path": "LICENSES/dependencies/fdeflate-0.3.7/LICENSE-MIT",
+        "sha256": "c77a4cf9da729987d0fe7ccd811e3bd27393914ddf3d23467c18cc22954513b3"
+      },
+      {
+        "path": "LICENSES/dependencies/fdeflate-0.3.7/Cargo.toml",
+        "sha256": "d5f832103c61c132a406b738c55d0fbc31de926186ded715816bc56ee04e3c53"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "find-msvc-tools",
+    "version": "0.1.10",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/rust-lang/cc-rs",
+    "authors": [],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/find-msvc-tools-0.1.10/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/find-msvc-tools-0.1.10/LICENSE-MIT",
+        "sha256": "378f5840b258e2779c39418f3f2d7b2ba96f1c7917dd6be0713f88305dbda397"
+      },
+      {
+        "path": "LICENSES/dependencies/find-msvc-tools-0.1.10/Cargo.toml",
+        "sha256": "eb34d67cf9399420e42952e6f9d8b5ded44c2c00a18539e4e3a97ecebb48040b"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "flate2",
+    "version": "1.1.9",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/rust-lang/flate2-rs",
+    "authors": [
+      "Alex Crichton <alex@alexcrichton.com>",
+      "Josh Triplett <josh@joshtriplett.org>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/flate2-1.1.9/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/flate2-1.1.9/LICENSE-MIT",
+        "sha256": "025436edff4cfcdde17a5811fdea78892d8482efd1abdec5a17872d07a4f2112"
+      },
+      {
+        "path": "LICENSES/dependencies/flate2-1.1.9/Cargo.toml",
+        "sha256": "06464242e6674c339ff6c564551fddc9288a57c2bc1b78f363a643d7c566f007"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "generic-array",
+    "version": "0.14.7",
+    "license": "MIT",
+    "repository": "https://github.com/fizyk20/generic-array.git",
+    "authors": [
+      "Bartłomiej Kamiński <fizyk20@gmail.com>",
+      "Aaron Trent <novacrazy@gmail.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/generic-array-0.14.7/LICENSE",
+        "sha256": "c09aae9d3c77b531f56351a9947bc7446511d6b025b3255312d3e3442a9a7583"
+      },
+      {
+        "path": "LICENSES/dependencies/generic-array-0.14.7/Cargo.toml",
+        "sha256": "4b5daed75505275d11f4854dd9172f910da61d9856ca2936d95e2e6e0c9040e4"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "itoa",
+    "version": "1.0.18",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/dtolnay/itoa",
+    "authors": [
+      "David Tolnay <dtolnay@gmail.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/itoa-1.0.18/LICENSE-APACHE",
+        "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+      },
+      {
+        "path": "LICENSES/dependencies/itoa-1.0.18/LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+      },
+      {
+        "path": "LICENSES/dependencies/itoa-1.0.18/Cargo.toml",
+        "sha256": "894c215e4e7e973b556b0e9627bf9b6a719a043fac9b5af9838660816392a09f"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "lazy_static",
+    "version": "1.5.0",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/rust-lang-nursery/lazy-static.rs",
+    "authors": [
+      "Marvin Löbel <loebel.marvin@gmail.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/lazy_static-1.5.0/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/lazy_static-1.5.0/LICENSE-MIT",
+        "sha256": "0621878e61f0d0fda054bcbe02df75192c28bde1ecc8289cbd86aeba2dd72720"
+      },
+      {
+        "path": "LICENSES/dependencies/lazy_static-1.5.0/Cargo.toml",
+        "sha256": "7556429fefb497526c5abdaa2c36d8ce4eb86c23d72763eb396652b9eaffc210"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "memchr",
+    "version": "2.8.3",
+    "license": "Unlicense OR MIT",
+    "repository": "https://github.com/BurntSushi/memchr",
+    "authors": [
+      "Andrew Gallant <jamslam@gmail.com>",
+      "bluss"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/memchr-2.8.3/COPYING",
+        "sha256": "01c266bced4a434da0051174d6bee16a4c82cf634e2679b6155d40d75012390f"
+      },
+      {
+        "path": "LICENSES/dependencies/memchr-2.8.3/LICENSE-MIT",
+        "sha256": "0f96a83840e146e43c0ec96a22ec1f392e0680e6c1226e6f3ba87e0740af850f"
+      },
+      {
+        "path": "LICENSES/dependencies/memchr-2.8.3/Cargo.toml",
+        "sha256": "a14f68b8fa55f15fd03b15dced37bcf66a0a628f568eedc82817cdb7f9281951"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "minifb",
+    "version": "0.27.0",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/emoon/rust_minifb",
+    "authors": [
+      "Daniel Collin <daniel@collin.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/minifb-0.27.0/LICENSE",
+        "sha256": "2fefb02c47f56d200e55eebe89ceab3c4749dc08867c400d0561d6570dac473e"
+      },
+      {
+        "path": "LICENSES/dependencies/minifb-0.27.0/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/minifb-0.27.0/LICENSE-MIT",
+        "sha256": "ad6d10e27d4b204bcba750fc1e9cc4e720cd22fccaef70b2ff7aeed32e279f2c"
+      },
+      {
+        "path": "LICENSES/dependencies/minifb-0.27.0/Cargo.toml",
+        "sha256": "fcf1cfd879e0a71f213f8960b9e762c5e37da99735279fe00b937672136ba8a9"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "miniz_oxide",
+    "version": "0.8.9",
+    "license": "MIT OR Zlib OR Apache-2.0",
+    "repository": "https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide",
+    "authors": [
+      "Frommi <daniil.liferenko@gmail.com>",
+      "oyvindln <oyvindln@users.noreply.github.com>",
+      "Rich Geldreich richgel99@gmail.com"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/miniz_oxide-0.8.9/LICENSE",
+        "sha256": "4108245a1f2df9d4e94df8abed5b4ba0759bb2f9b40a6b939f1be141077ae50b"
+      },
+      {
+        "path": "LICENSES/dependencies/miniz_oxide-0.8.9/LICENSE-APACHE.md",
+        "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
+      },
+      {
+        "path": "LICENSES/dependencies/miniz_oxide-0.8.9/LICENSE-MIT.md",
+        "sha256": "799e9ca9d179295ef372f25d3769cdda7d25bb2668add6a6a1e22d1e4c678b8d"
+      },
+      {
+        "path": "LICENSES/dependencies/miniz_oxide-0.8.9/LICENSE-ZLIB.md",
+        "sha256": "0a54e647fe54104658b5e563c04c6f9edf251710e47bce692e0bd990a4ddaa39"
+      },
+      {
+        "path": "LICENSES/dependencies/miniz_oxide-0.8.9/Cargo.toml",
+        "sha256": "f0d2683434f1c0d3cd9b8080031e82aa5089c9be1779cc5101e065883258d77d"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "mucow",
+    "version": "0.1.0",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/Diggsey/mucow",
+    "authors": [
+      "Diggory Blake <diggsey@googlemail.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/mucow-0.1.0/Cargo.toml",
+        "sha256": "7b14b2e88f0d328224f665c439ebf5d1c0d268b3842901512e466826bbb8c6d8"
+      },
+      {
+        "path": "LICENSES/dependencies/mucow-0.1.0/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      }
+    ],
+    "note": "Upstream manifest offers MIT OR Apache-2.0 but has no license file. Apache-2.0 option selected; canonical Apache text supplied from failure, not represented as a mucow-authored file. Exact author/license declaration is in Cargo.toml."
+  },
+  {
+    "name": "nodrop",
+    "version": "0.1.14",
+    "license": "MIT/Apache-2.0",
+    "repository": "https://github.com/bluss/arrayvec",
+    "authors": [
+      "bluss"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/nodrop-0.1.14/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/nodrop-0.1.14/LICENSE-MIT",
+        "sha256": "0245ee104228a100ce5fceecf43e25faae450494d9173f43fd94c27d69fdac13"
+      },
+      {
+        "path": "LICENSES/dependencies/nodrop-0.1.14/Cargo.toml",
+        "sha256": "e43d9892df1d8d932b5f5d27f303f1a302b550b5a37b9b8fb1b107aa5273b8af"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "nohash-hasher",
+    "version": "0.2.0",
+    "license": "Apache-2.0 OR MIT",
+    "repository": "https://github.com/paritytech/nohash-hasher",
+    "authors": [
+      "Parity Technologies <admin@parity.io>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/nohash-hasher-0.2.0/LICENSE-APACHE",
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      {
+        "path": "LICENSES/dependencies/nohash-hasher-0.2.0/LICENSE-MIT",
+        "sha256": "ec353d4fecf7963b4c054384557e5dbc3c7a717997eb4a3815b315721a6aa75a"
+      },
+      {
+        "path": "LICENSES/dependencies/nohash-hasher-0.2.0/Cargo.toml",
+        "sha256": "cc6743a78a5e9dca05dc2db923c8d1b3f1dfb81510d9731e4357d88f024db790"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "num-traits",
+    "version": "0.2.19",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/rust-num/num-traits",
+    "authors": [
+      "The Rust Project Developers"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/num-traits-0.2.19/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/num-traits-0.2.19/LICENSE-MIT",
+        "sha256": "6485b8ed310d3f0340bf1ad1f47645069ce4069dcc6bb46c7d5c6faf41de1fdb"
+      },
+      {
+        "path": "LICENSES/dependencies/num-traits-0.2.19/Cargo.toml",
+        "sha256": "dd701a0da6cce7e6e047cc944b2330f3c5e48cd64329e10942ea7d9299d435be"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "num_cpus",
+    "version": "1.17.0",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/seanmonstar/num_cpus",
+    "authors": [
+      "Sean McArthur <sean@seanmonstar.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/num_cpus-1.17.0/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/num_cpus-1.17.0/LICENSE-MIT",
+        "sha256": "391a5396cec6230bfabd4ef4eb2350eb895bc5efce377a2218f5702ed020d3e3"
+      },
+      {
+        "path": "LICENSES/dependencies/num_cpus-1.17.0/Cargo.toml",
+        "sha256": "c9b91e8556fe8b2b4c06ff359f3f9ce9c2b8191fb90a57b982e08f9b05f1a657"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "owned_ttf_parser",
+    "version": "0.25.1",
+    "license": "Apache-2.0",
+    "repository": "https://github.com/alexheretic/owned-ttf-parser",
+    "authors": [
+      "Alex Butler <alexheretic@gmail.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/owned_ttf_parser-0.25.1/LICENSE",
+        "sha256": "a6cba85bc92e0cff7a450b1d873c0eaa2e9fc96bf472df0247a26bec77bf3ff9"
+      },
+      {
+        "path": "LICENSES/dependencies/owned_ttf_parser-0.25.1/Cargo.toml",
+        "sha256": "8a71904f2a8c2508188c496a687d9cbf08e1fa9c84a95ef0114d1512eacf8a0d"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "pgn-reader",
+    "version": "0.26.0",
+    "license": "GPL-3.0+",
+    "repository": "https://github.com/niklasf/rust-pgn-reader.git",
+    "authors": [
+      "Niklas Fiekas <niklas.fiekas@backscattering.de>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/pgn-reader-0.26.0/COPYING",
+        "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+      },
+      {
+        "path": "LICENSES/dependencies/pgn-reader-0.26.0/Cargo.toml",
+        "sha256": "1840405dbe88b9f1fb4b449d9e6d38fd0009c88021f72f86274e2442b1a01451"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "pleco",
+    "version": "0.5.0",
+    "license": "MIT",
+    "repository": "https://github.com/sfleischman105/Pleco",
+    "authors": [
+      "Stephen Fleischman <stephenf@cs.washington.edu>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/pleco-0.5.0/Cargo.toml",
+        "sha256": "0702626beacea5f8531c6187fb247c39d7cdd3658d209a8599186beb17503cb4"
+      },
+      {
+        "path": "LICENSES/dependencies/pleco-0.5.0/README.md",
+        "sha256": "e364c10ec019ac9d1d4a18912d4e086bea11cb2361c7e64d17b28b4624cd3365"
+      }
+    ],
+    "note": "Published crate explicitly declares MIT and README references LICENSE-MIT, but that file is excluded from the crate. Exact author/license declaration is preserved. Upstream standalone text could not be retrieved in this run; MANUAL LICENSE REVIEW REQUIRED before public distribution."
+  },
+  {
+    "name": "png",
+    "version": "0.17.16",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/image-rs/image-png",
+    "authors": [
+      "The image-rs Developers"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/png-0.17.16/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/png-0.17.16/LICENSE-MIT",
+        "sha256": "eaf40297c75da471f7cda1f3458e8d91b4b2ec866e609527a13acfa93b638652"
+      },
+      {
+        "path": "LICENSES/dependencies/png-0.17.16/Cargo.toml",
+        "sha256": "4005257603189350db6db75e67238a990f31ccbf0d2f54f24fc4877aea8b4b56"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "ppv-lite86",
+    "version": "0.2.21",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/cryptocorrosion/cryptocorrosion",
+    "authors": [
+      "The CryptoCorrosion Contributors"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/ppv-lite86-0.2.21/LICENSE-APACHE",
+        "sha256": "0218327e7a480793ffdd4eb792379a9709e5c135c7ba267f709d6f6d4d70af0a"
+      },
+      {
+        "path": "LICENSES/dependencies/ppv-lite86-0.2.21/LICENSE-MIT",
+        "sha256": "4cada0bd02ea3692eee6f16400d86c6508bbd3bafb2b65fed0419f36d4f83e8f"
+      },
+      {
+        "path": "LICENSES/dependencies/ppv-lite86-0.2.21/Cargo.toml",
+        "sha256": "aa9337145bd03a6e76fd42c2ee5f07c5c23ff6b2eb73cfc35c3070d76c5bacb8"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "proc-macro2",
+    "version": "1.0.107",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/dtolnay/proc-macro2",
+    "authors": [
+      "David Tolnay <dtolnay@gmail.com>",
+      "Alex Crichton <alex@alexcrichton.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/proc-macro2-1.0.107/LICENSE-APACHE",
+        "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+      },
+      {
+        "path": "LICENSES/dependencies/proc-macro2-1.0.107/LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+      },
+      {
+        "path": "LICENSES/dependencies/proc-macro2-1.0.107/Cargo.toml",
+        "sha256": "6bdbe54a7f052e552dcfca90351764476e2767237ec3f954df8bd9f602861056"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "quote",
+    "version": "1.0.47",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/dtolnay/quote",
+    "authors": [
+      "David Tolnay <dtolnay@gmail.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/quote-1.0.47/LICENSE-APACHE",
+        "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+      },
+      {
+        "path": "LICENSES/dependencies/quote-1.0.47/LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+      },
+      {
+        "path": "LICENSES/dependencies/quote-1.0.47/Cargo.toml",
+        "sha256": "13d8c50837f14aff48cd622349f98fb2c46350b7a0c08fd574cf7de4def27d06"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "rand",
+    "version": "0.6.5",
+    "license": "MIT/Apache-2.0",
+    "repository": "https://github.com/rust-random/rand",
+    "authors": [
+      "The Rand Project Developers",
+      "The Rust Project Developers"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/rand-0.6.5/COPYRIGHT",
+        "sha256": "90eb64f0279b0d9432accfa6023ff803bc4965212383697eee27a0f426d5f8d5"
+      },
+      {
+        "path": "LICENSES/dependencies/rand-0.6.5/LICENSE-APACHE",
+        "sha256": "aaff376532ea30a0cd5330b9502ad4a4c8bf769c539c87ffe78819d188a18ebf"
+      },
+      {
+        "path": "LICENSES/dependencies/rand-0.6.5/LICENSE-MIT",
+        "sha256": "209fbbe0ad52d9235e37badf9cadfe4dbdc87203179c0899e738b39ade42177b"
+      },
+      {
+        "path": "LICENSES/dependencies/rand-0.6.5/Cargo.toml",
+        "sha256": "54c97aa3fc80f7482358b32df3fb96dbd63a4b52fb7f2eb06f1707cda7d15f09"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "rand",
+    "version": "0.7.3",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/rust-random/rand",
+    "authors": [
+      "The Rand Project Developers",
+      "The Rust Project Developers"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/rand-0.7.3/COPYRIGHT",
+        "sha256": "90eb64f0279b0d9432accfa6023ff803bc4965212383697eee27a0f426d5f8d5"
+      },
+      {
+        "path": "LICENSES/dependencies/rand-0.7.3/LICENSE-APACHE",
+        "sha256": "aaff376532ea30a0cd5330b9502ad4a4c8bf769c539c87ffe78819d188a18ebf"
+      },
+      {
+        "path": "LICENSES/dependencies/rand-0.7.3/LICENSE-MIT",
+        "sha256": "209fbbe0ad52d9235e37badf9cadfe4dbdc87203179c0899e738b39ade42177b"
+      },
+      {
+        "path": "LICENSES/dependencies/rand-0.7.3/Cargo.toml",
+        "sha256": "4bc436e4b01131f4809c2d3dbdd3ede6987135d3fb53f718cd4a85cafa240224"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "rand_chacha",
+    "version": "0.1.1",
+    "license": "MIT/Apache-2.0",
+    "repository": "https://github.com/rust-random/rand",
+    "authors": [
+      "The Rand Project Developers",
+      "The Rust Project Developers"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/rand_chacha-0.1.1/COPYRIGHT",
+        "sha256": "90eb64f0279b0d9432accfa6023ff803bc4965212383697eee27a0f426d5f8d5"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_chacha-0.1.1/LICENSE-APACHE",
+        "sha256": "aaff376532ea30a0cd5330b9502ad4a4c8bf769c539c87ffe78819d188a18ebf"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_chacha-0.1.1/LICENSE-MIT",
+        "sha256": "209fbbe0ad52d9235e37badf9cadfe4dbdc87203179c0899e738b39ade42177b"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_chacha-0.1.1/Cargo.toml",
+        "sha256": "020a747006ee14a2faae021077d5f2d1b41c90a79f97a79bd33a6fc2b256206f"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "rand_chacha",
+    "version": "0.2.2",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/rust-random/rand",
+    "authors": [
+      "The Rand Project Developers",
+      "The Rust Project Developers",
+      "The CryptoCorrosion Contributors"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/rand_chacha-0.2.2/COPYRIGHT",
+        "sha256": "90eb64f0279b0d9432accfa6023ff803bc4965212383697eee27a0f426d5f8d5"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_chacha-0.2.2/LICENSE-APACHE",
+        "sha256": "aaff376532ea30a0cd5330b9502ad4a4c8bf769c539c87ffe78819d188a18ebf"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_chacha-0.2.2/LICENSE-MIT",
+        "sha256": "209fbbe0ad52d9235e37badf9cadfe4dbdc87203179c0899e738b39ade42177b"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_chacha-0.2.2/Cargo.toml",
+        "sha256": "254d87eb2174bd4375fba1b2818d7295d558721582af12f600241da250250310"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "rand_core",
+    "version": "0.3.1",
+    "license": "MIT/Apache-2.0",
+    "repository": "https://github.com/rust-random/rand",
+    "authors": [
+      "The Rand Project Developers",
+      "The Rust Project Developers"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/rand_core-0.3.1/COPYRIGHT",
+        "sha256": "90eb64f0279b0d9432accfa6023ff803bc4965212383697eee27a0f426d5f8d5"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_core-0.3.1/LICENSE-APACHE",
+        "sha256": "aaff376532ea30a0cd5330b9502ad4a4c8bf769c539c87ffe78819d188a18ebf"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_core-0.3.1/LICENSE-MIT",
+        "sha256": "209fbbe0ad52d9235e37badf9cadfe4dbdc87203179c0899e738b39ade42177b"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_core-0.3.1/Cargo.toml",
+        "sha256": "38f22c1be27541f74b322a721c95aaacd622cddfa02cfa22f7976d613453dc78"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "rand_core",
+    "version": "0.4.2",
+    "license": "MIT/Apache-2.0",
+    "repository": "https://github.com/rust-random/rand",
+    "authors": [
+      "The Rand Project Developers",
+      "The Rust Project Developers"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/rand_core-0.4.2/COPYRIGHT",
+        "sha256": "90eb64f0279b0d9432accfa6023ff803bc4965212383697eee27a0f426d5f8d5"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_core-0.4.2/LICENSE-APACHE",
+        "sha256": "aaff376532ea30a0cd5330b9502ad4a4c8bf769c539c87ffe78819d188a18ebf"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_core-0.4.2/LICENSE-MIT",
+        "sha256": "209fbbe0ad52d9235e37badf9cadfe4dbdc87203179c0899e738b39ade42177b"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_core-0.4.2/Cargo.toml",
+        "sha256": "9b2e5c9dd0041a4ab2f887a7054c7fe0e03715899cc55a8250a9fd296aa4fb5b"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "rand_core",
+    "version": "0.5.1",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/rust-random/rand",
+    "authors": [
+      "The Rand Project Developers",
+      "The Rust Project Developers"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/rand_core-0.5.1/COPYRIGHT",
+        "sha256": "90eb64f0279b0d9432accfa6023ff803bc4965212383697eee27a0f426d5f8d5"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_core-0.5.1/LICENSE-APACHE",
+        "sha256": "aaff376532ea30a0cd5330b9502ad4a4c8bf769c539c87ffe78819d188a18ebf"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_core-0.5.1/LICENSE-MIT",
+        "sha256": "209fbbe0ad52d9235e37badf9cadfe4dbdc87203179c0899e738b39ade42177b"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_core-0.5.1/Cargo.toml",
+        "sha256": "8f401d04ac2812f3861364f3eccc7a325a64e27beada85bf6f0beb0bad97534c"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "rand_hc",
+    "version": "0.1.0",
+    "license": "MIT/Apache-2.0",
+    "repository": "https://github.com/rust-random/rand",
+    "authors": [
+      "The Rand Project Developers"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/rand_hc-0.1.0/COPYRIGHT",
+        "sha256": "90eb64f0279b0d9432accfa6023ff803bc4965212383697eee27a0f426d5f8d5"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_hc-0.1.0/LICENSE-APACHE",
+        "sha256": "aaff376532ea30a0cd5330b9502ad4a4c8bf769c539c87ffe78819d188a18ebf"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_hc-0.1.0/LICENSE-MIT",
+        "sha256": "a771e4354f6b3ad4c92da1a5c9a239b6c291527db869632ecea4f20e24ca1135"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_hc-0.1.0/Cargo.toml",
+        "sha256": "467a2ecd73f7b32471fe00fe8042ef4dff756c05e6e4e6dd3a2e48d25867ef07"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "rand_isaac",
+    "version": "0.1.1",
+    "license": "MIT/Apache-2.0",
+    "repository": "https://github.com/rust-random/rand",
+    "authors": [
+      "The Rand Project Developers",
+      "The Rust Project Developers"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/rand_isaac-0.1.1/COPYRIGHT",
+        "sha256": "90eb64f0279b0d9432accfa6023ff803bc4965212383697eee27a0f426d5f8d5"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_isaac-0.1.1/LICENSE-APACHE",
+        "sha256": "aaff376532ea30a0cd5330b9502ad4a4c8bf769c539c87ffe78819d188a18ebf"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_isaac-0.1.1/LICENSE-MIT",
+        "sha256": "209fbbe0ad52d9235e37badf9cadfe4dbdc87203179c0899e738b39ade42177b"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_isaac-0.1.1/Cargo.toml",
+        "sha256": "c3fb66104a60aa0dd91b83645be897023e7eb001aa6be108a1948999e86d2512"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "rand_jitter",
+    "version": "0.1.4",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/rust-random/rand",
+    "authors": [
+      "The Rand Project Developers"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/rand_jitter-0.1.4/COPYRIGHT",
+        "sha256": "90eb64f0279b0d9432accfa6023ff803bc4965212383697eee27a0f426d5f8d5"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_jitter-0.1.4/LICENSE-APACHE",
+        "sha256": "aaff376532ea30a0cd5330b9502ad4a4c8bf769c539c87ffe78819d188a18ebf"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_jitter-0.1.4/LICENSE-MIT",
+        "sha256": "209fbbe0ad52d9235e37badf9cadfe4dbdc87203179c0899e738b39ade42177b"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_jitter-0.1.4/Cargo.toml",
+        "sha256": "d524ddfe62a9ca58ff86d9ad37532081bae35bfcca2a1e68ca0ffaf0e981d477"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "rand_os",
+    "version": "0.1.3",
+    "license": "MIT/Apache-2.0",
+    "repository": "https://github.com/rust-random/rand",
+    "authors": [
+      "The Rand Project Developers"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/rand_os-0.1.3/COPYRIGHT",
+        "sha256": "90eb64f0279b0d9432accfa6023ff803bc4965212383697eee27a0f426d5f8d5"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_os-0.1.3/LICENSE-APACHE",
+        "sha256": "aaff376532ea30a0cd5330b9502ad4a4c8bf769c539c87ffe78819d188a18ebf"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_os-0.1.3/LICENSE-MIT",
+        "sha256": "209fbbe0ad52d9235e37badf9cadfe4dbdc87203179c0899e738b39ade42177b"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_os-0.1.3/Cargo.toml",
+        "sha256": "cb81ac6d2ae3ccec84cb897d1c2c4fe53986065424b46fea3ca4e15bca47db05"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "rand_pcg",
+    "version": "0.1.2",
+    "license": "MIT/Apache-2.0",
+    "repository": "https://github.com/rust-random/rand",
+    "authors": [
+      "The Rand Project Developers"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/rand_pcg-0.1.2/COPYRIGHT",
+        "sha256": "90eb64f0279b0d9432accfa6023ff803bc4965212383697eee27a0f426d5f8d5"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_pcg-0.1.2/LICENSE-APACHE",
+        "sha256": "aaff376532ea30a0cd5330b9502ad4a4c8bf769c539c87ffe78819d188a18ebf"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_pcg-0.1.2/LICENSE-MIT",
+        "sha256": "2234e3cefee876aeb686ad89e978bdb07bf118a1186ab1cf161bcdf69d4b4f57"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_pcg-0.1.2/Cargo.toml",
+        "sha256": "82101af38b08afd05d0b09aae70b578f3d08d7fdc98ed643498e52175d85c09c"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "rand_pcg",
+    "version": "0.2.1",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/rust-random/rand",
+    "authors": [
+      "The Rand Project Developers"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/rand_pcg-0.2.1/COPYRIGHT",
+        "sha256": "90eb64f0279b0d9432accfa6023ff803bc4965212383697eee27a0f426d5f8d5"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_pcg-0.2.1/LICENSE-APACHE",
+        "sha256": "aaff376532ea30a0cd5330b9502ad4a4c8bf769c539c87ffe78819d188a18ebf"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_pcg-0.2.1/LICENSE-MIT",
+        "sha256": "2234e3cefee876aeb686ad89e978bdb07bf118a1186ab1cf161bcdf69d4b4f57"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_pcg-0.2.1/Cargo.toml",
+        "sha256": "e101de22750ddff758fc9a4115997b577f3670b2838ac65c4947cced09951ea1"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "rand_xorshift",
+    "version": "0.1.1",
+    "license": "MIT/Apache-2.0",
+    "repository": "https://github.com/rust-random/rand",
+    "authors": [
+      "The Rand Project Developers",
+      "The Rust Project Developers"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/rand_xorshift-0.1.1/COPYRIGHT",
+        "sha256": "90eb64f0279b0d9432accfa6023ff803bc4965212383697eee27a0f426d5f8d5"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_xorshift-0.1.1/LICENSE-APACHE",
+        "sha256": "aaff376532ea30a0cd5330b9502ad4a4c8bf769c539c87ffe78819d188a18ebf"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_xorshift-0.1.1/LICENSE-MIT",
+        "sha256": "209fbbe0ad52d9235e37badf9cadfe4dbdc87203179c0899e738b39ade42177b"
+      },
+      {
+        "path": "LICENSES/dependencies/rand_xorshift-0.1.1/Cargo.toml",
+        "sha256": "3fdcb1949fd24244fb3e608a0bb950f3466799207f6f93759addc26fa89cea68"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "raw-window-handle",
+    "version": "0.6.2",
+    "license": "MIT OR Apache-2.0 OR Zlib",
+    "repository": "https://github.com/rust-windowing/raw-window-handle",
+    "authors": [
+      "Osspial <osspial@gmail.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/raw-window-handle-0.6.2/LICENSE-APACHE.md",
+        "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
+      },
+      {
+        "path": "LICENSES/dependencies/raw-window-handle-0.6.2/LICENSE-MIT.md",
+        "sha256": "9c5a80639a57c1c945570e7ebbca0706305849ce3c098021325cca9db2f7acc4"
+      },
+      {
+        "path": "LICENSES/dependencies/raw-window-handle-0.6.2/LICENSE-ZLIB.md",
+        "sha256": "ae895c8576e682f310fb70d93d9f99b1dd82872094c54a8f6cdfe2ca5c2d6ecb"
+      },
+      {
+        "path": "LICENSES/dependencies/raw-window-handle-0.6.2/Cargo.toml",
+        "sha256": "16454e56cca25a5d66d5cfb070db6e3741138334e4f2546e9c5010e5221889f5"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "rayon",
+    "version": "1.12.0",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/rayon-rs/rayon",
+    "authors": [],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/rayon-1.12.0/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/rayon-1.12.0/LICENSE-MIT",
+        "sha256": "0621878e61f0d0fda054bcbe02df75192c28bde1ecc8289cbd86aeba2dd72720"
+      },
+      {
+        "path": "LICENSES/dependencies/rayon-1.12.0/Cargo.toml",
+        "sha256": "bcc6eda50025991d8db6ccaaad2e26477072a359762451a4e55a7e700ad0e42d"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "rayon-core",
+    "version": "1.13.0",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/rayon-rs/rayon",
+    "authors": [],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/rayon-core-1.13.0/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/rayon-core-1.13.0/LICENSE-MIT",
+        "sha256": "0621878e61f0d0fda054bcbe02df75192c28bde1ecc8289cbd86aeba2dd72720"
+      },
+      {
+        "path": "LICENSES/dependencies/rayon-core-1.13.0/Cargo.toml",
+        "sha256": "ab50ad4709436f6bda04e5345444f1197b1eda2bd3b49f9412c0cb318111b5a2"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "rustc-demangle",
+    "version": "0.1.28",
+    "license": "MIT/Apache-2.0",
+    "repository": "https://github.com/rust-lang/rustc-demangle",
+    "authors": [
+      "Alex Crichton <alex@alexcrichton.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/rustc-demangle-0.1.28/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/rustc-demangle-0.1.28/LICENSE-MIT",
+        "sha256": "378f5840b258e2779c39418f3f2d7b2ba96f1c7917dd6be0713f88305dbda397"
+      },
+      {
+        "path": "LICENSES/dependencies/rustc-demangle-0.1.28/Cargo.toml",
+        "sha256": "7ec9986ac171ec3eed0c2ae12b655b390bd7533f9e505005cc378b02be43a3e0"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "rustc-hash",
+    "version": "2.1.3",
+    "license": "Apache-2.0 OR MIT",
+    "repository": "https://github.com/rust-lang/rustc-hash",
+    "authors": [
+      "The Rust Project Developers"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/rustc-hash-2.1.3/LICENSE-APACHE",
+        "sha256": "95bd3988beee069fa2848f648dab43cc6e0b2add2ad6bcb17360caf749802bcc"
+      },
+      {
+        "path": "LICENSES/dependencies/rustc-hash-2.1.3/LICENSE-MIT",
+        "sha256": "30fefc3a7d6a0041541858293bcbea2dde4caa4c0a5802f996a7f7e8c0085652"
+      },
+      {
+        "path": "LICENSES/dependencies/rustc-hash-2.1.3/Cargo.toml",
+        "sha256": "7e6727beb038213a2aa02f90cbbfb1d6651a9fda56f241dd95110a0cb287efc9"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "serde",
+    "version": "1.0.229",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/serde-rs/serde",
+    "authors": [
+      "Erick Tryzelaar <erick.tryzelaar@gmail.com>",
+      "David Tolnay <dtolnay@gmail.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/serde-1.0.229/LICENSE-APACHE",
+        "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+      },
+      {
+        "path": "LICENSES/dependencies/serde-1.0.229/LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+      },
+      {
+        "path": "LICENSES/dependencies/serde-1.0.229/Cargo.toml",
+        "sha256": "6883caefd46e86eb15d22d3a6d274ad304c5e7934ab70eb58d81b7c4a29ef9db"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "serde_core",
+    "version": "1.0.229",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/serde-rs/serde",
+    "authors": [
+      "Erick Tryzelaar <erick.tryzelaar@gmail.com>",
+      "David Tolnay <dtolnay@gmail.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/serde_core-1.0.229/LICENSE-APACHE",
+        "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+      },
+      {
+        "path": "LICENSES/dependencies/serde_core-1.0.229/LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+      },
+      {
+        "path": "LICENSES/dependencies/serde_core-1.0.229/Cargo.toml",
+        "sha256": "c6049e170e4f7c2b48749fefab59db583bfac4e466cde6d0c53e4f49bc5044f7"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "serde_derive",
+    "version": "1.0.229",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/serde-rs/serde",
+    "authors": [
+      "Erick Tryzelaar <erick.tryzelaar@gmail.com>",
+      "David Tolnay <dtolnay@gmail.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/serde_derive-1.0.229/LICENSE-APACHE",
+        "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+      },
+      {
+        "path": "LICENSES/dependencies/serde_derive-1.0.229/LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+      },
+      {
+        "path": "LICENSES/dependencies/serde_derive-1.0.229/Cargo.toml",
+        "sha256": "d2581160ffa61baa386f882e08b0db20051dc3c782a82268d6473998b61c926e"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "serde_json",
+    "version": "1.0.154",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/serde-rs/json",
+    "authors": [],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/serde_json-1.0.154/LICENSE-APACHE",
+        "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+      },
+      {
+        "path": "LICENSES/dependencies/serde_json-1.0.154/LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+      },
+      {
+        "path": "LICENSES/dependencies/serde_json-1.0.154/Cargo.toml",
+        "sha256": "548aafeb7c702b69b9de950033f10b59f70baf38592d275d8ca8cff19f7750c3"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "sha2",
+    "version": "0.10.9",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/RustCrypto/hashes",
+    "authors": [
+      "RustCrypto Developers"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/sha2-0.10.9/LICENSE-APACHE",
+        "sha256": "a9040321c3712d8fd0b09cf52b17445de04a23a10165049ae187cd39e5c86be5"
+      },
+      {
+        "path": "LICENSES/dependencies/sha2-0.10.9/LICENSE-MIT",
+        "sha256": "b4eb00df6e2a4d22518fcaa6a2b4646f249b3a3c9814509b22bd2091f1392ff1"
+      },
+      {
+        "path": "LICENSES/dependencies/sha2-0.10.9/Cargo.toml",
+        "sha256": "f5b86209df69360114aaee67a66c3fcd31d8c840b8f34b9ad383aacd63cd15da"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "shakmaty",
+    "version": "0.27.3",
+    "license": "GPL-3.0+",
+    "repository": "https://github.com/niklasf/shakmaty",
+    "authors": [
+      "Niklas Fiekas <niklas.fiekas@backscattering.de>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/shakmaty-0.27.3/COPYING",
+        "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+      },
+      {
+        "path": "LICENSES/dependencies/shakmaty-0.27.3/Cargo.toml",
+        "sha256": "9c9532951dc2fe7e40e4cf8fd9863dd698ee508bba9b602a803025ca31b2cbd1"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "shlex",
+    "version": "2.0.1",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/comex/rust-shlex",
+    "authors": [
+      "comex <comexk@gmail.com>",
+      "Fenhl <fenhl@fenhl.net>",
+      "Adrian Taylor <adetaylor@chromium.org>",
+      "Alex Touchet <alextouchet@outlook.com>",
+      "Daniel Parks <dp+git@oxidized.org>",
+      "Garrett Berg <googberg@gmail.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/shlex-2.0.1/LICENSE-APACHE",
+        "sha256": "553fffcd9b1cb158bc3e9edc35da85ca5c3b3d7d2e61c883ebcfa8a65814b583"
+      },
+      {
+        "path": "LICENSES/dependencies/shlex-2.0.1/LICENSE-MIT",
+        "sha256": "4455bf75a91154108304cb283e0fea9948c14f13e20d60887cf2552449dea3b1"
+      },
+      {
+        "path": "LICENSES/dependencies/shlex-2.0.1/Cargo.toml",
+        "sha256": "b6ead6cf404555ced33f7574c6c11413e29e7bcd5eb0ceeb59452830a46675ed"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "simd-adler32",
+    "version": "0.3.10",
+    "license": "MIT",
+    "repository": "https://github.com/mcountryman/simd-adler32",
+    "authors": [
+      "Marvin Countryman <me@maar.vin>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/simd-adler32-0.3.10/LICENSE.md",
+        "sha256": "42a35170233e83e18856792e748de4c1ce4a63b2afce9a370c89ef3fe23f9f2d"
+      },
+      {
+        "path": "LICENSES/dependencies/simd-adler32-0.3.10/Cargo.toml",
+        "sha256": "6981052c018f374476e9dd4186c0df3f4f5f0108a6c6b627409a2644b06e925b"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "syn",
+    "version": "1.0.109",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/dtolnay/syn",
+    "authors": [
+      "David Tolnay <dtolnay@gmail.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/syn-1.0.109/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/syn-1.0.109/LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+      },
+      {
+        "path": "LICENSES/dependencies/syn-1.0.109/Cargo.toml",
+        "sha256": "139a7e42e4c95f9730d4dfe05dd5e09ee59f713eacc310921a61d9fdfc0bdce0"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "syn",
+    "version": "3.0.3",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/dtolnay/syn",
+    "authors": [
+      "David Tolnay <dtolnay@gmail.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/syn-3.0.3/LICENSE-APACHE",
+        "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+      },
+      {
+        "path": "LICENSES/dependencies/syn-3.0.3/LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+      },
+      {
+        "path": "LICENSES/dependencies/syn-3.0.3/Cargo.toml",
+        "sha256": "9c4333cfb04f5573864b24a9108e5dcbf3dc24051d13256753ccfb4f5baca7f2"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "synstructure",
+    "version": "0.12.6",
+    "license": "MIT",
+    "repository": "https://github.com/mystor/synstructure",
+    "authors": [
+      "Nika Layzell <nika@thelayzells.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/synstructure-0.12.6/LICENSE",
+        "sha256": "219920e865eee70b7dcfc948a86b099e7f4fe2de01bcca2ca9a20c0a033f2b59"
+      },
+      {
+        "path": "LICENSES/dependencies/synstructure-0.12.6/Cargo.toml",
+        "sha256": "b9f3ce31a9ac80dc24f4afac7108b7cff44399f8d7503dc4addea4d256431a73"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "ttf-parser",
+    "version": "0.25.1",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/harfbuzz/ttf-parser",
+    "authors": [
+      "Caleb Maclennan <caleb@alerque.com>",
+      "Laurenz Stampfl <laurenz.stampfl@gmail.com>",
+      "Yevhenii Reizner <razrfalcon@gmail.com>",
+      "خالد حسني (Khaled Hosny) <khaled@aliftype.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/ttf-parser-0.25.1/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/ttf-parser-0.25.1/LICENSE-MIT",
+        "sha256": "f3c9fe731c701ed77fd5fbaac573872af04dc5869385eb9bd5e3c73c42713814"
+      },
+      {
+        "path": "LICENSES/dependencies/ttf-parser-0.25.1/Cargo.toml",
+        "sha256": "6f2984ea56c0ccc30a5432cce5189d4e4a615a9c1527f82c66d517a5e56c25df"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "typenum",
+    "version": "1.20.1",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/paholg/typenum",
+    "authors": [],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/typenum-1.20.1/LICENSE",
+        "sha256": "db11fec9946737df39ca3898d9cd8c10ec6f6c3a884a6802b0ad0b81b4e8f23a"
+      },
+      {
+        "path": "LICENSES/dependencies/typenum-1.20.1/LICENSE-APACHE",
+        "sha256": "516b24e051bf5630880ebbd55c40a25ce9552ebaf8970a53e8976eb70e522406"
+      },
+      {
+        "path": "LICENSES/dependencies/typenum-1.20.1/LICENSE-MIT",
+        "sha256": "a825bd853ab71619a4923d7b4311221427848070ff44d990da39b0b274c1683f"
+      },
+      {
+        "path": "LICENSES/dependencies/typenum-1.20.1/Cargo.toml",
+        "sha256": "00785a81eae34b3298dfdde78a6bd96fe3ec000de46edd509bd13b7cab7a9870"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "unicode-ident",
+    "version": "1.0.24",
+    "license": "(MIT OR Apache-2.0) AND Unicode-3.0",
+    "repository": "https://github.com/dtolnay/unicode-ident",
+    "authors": [
+      "David Tolnay <dtolnay@gmail.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/unicode-ident-1.0.24/LICENSE-APACHE",
+        "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+      },
+      {
+        "path": "LICENSES/dependencies/unicode-ident-1.0.24/LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+      },
+      {
+        "path": "LICENSES/dependencies/unicode-ident-1.0.24/LICENSE-UNICODE",
+        "sha256": "f7db81051789b729fea528a63ec4c938fdcb93d9d61d97dc8cc2e9df6d47f2a1"
+      },
+      {
+        "path": "LICENSES/dependencies/unicode-ident-1.0.24/Cargo.toml",
+        "sha256": "0bb9c0e006a21355cb85c7df72e78dd8ba6fffbb7dc3f1e7a4c19af53cd354da"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "unicode-xid",
+    "version": "0.2.6",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/unicode-rs/unicode-xid",
+    "authors": [
+      "erick.tryzelaar <erick.tryzelaar@gmail.com>",
+      "kwantam <kwantam@gmail.com>",
+      "Manish Goregaokar <manishsmail@gmail.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/unicode-xid-0.2.6/COPYRIGHT",
+        "sha256": "23860c2a7b5d96b21569afedf033469bab9fe14a1b24a35068b8641c578ce24d"
+      },
+      {
+        "path": "LICENSES/dependencies/unicode-xid-0.2.6/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/unicode-xid-0.2.6/LICENSE-MIT",
+        "sha256": "7b63ecd5f1902af1b63729947373683c32745c16a10e8e6292e2e2dcd7e90ae0"
+      },
+      {
+        "path": "LICENSES/dependencies/unicode-xid-0.2.6/Cargo.toml",
+        "sha256": "030ed8e60fcd73b831f174ab2df10e0f913d5d1476909c92aee26849323370f3"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "version_check",
+    "version": "0.9.5",
+    "license": "MIT/Apache-2.0",
+    "repository": "https://github.com/SergioBenitez/version_check",
+    "authors": [
+      "Sergio Benitez <sb@sergio.bz>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/version_check-0.9.5/LICENSE-APACHE",
+        "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
+      },
+      {
+        "path": "LICENSES/dependencies/version_check-0.9.5/LICENSE-MIT",
+        "sha256": "b7e650f3fce5c53249d1cdc608b54df156a97edd636cf9d23498d0cfe7aec63e"
+      },
+      {
+        "path": "LICENSES/dependencies/version_check-0.9.5/Cargo.toml",
+        "sha256": "399ea74400a173c02eabe91cb9487d0cf351117857a5d2ebc6231f0efde67681"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "winapi",
+    "version": "0.3.9",
+    "license": "MIT/Apache-2.0",
+    "repository": "https://github.com/retep998/winapi-rs",
+    "authors": [
+      "Peter Atashian <retep998@gmail.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/winapi-0.3.9/LICENSE-APACHE",
+        "sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1"
+      },
+      {
+        "path": "LICENSES/dependencies/winapi-0.3.9/LICENSE-MIT",
+        "sha256": "ce7bc3499fee93d5022ef430d5e4201e79a6d9154f3974e42f41349f0569e09b"
+      },
+      {
+        "path": "LICENSES/dependencies/winapi-0.3.9/Cargo.toml",
+        "sha256": "d25b7c71c515a1869c75b3ff957bf845386bec03bcb407532e3726919f0b36c7"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "windows-link",
+    "version": "0.2.1",
+    "license": "MIT OR Apache-2.0",
+    "repository": "https://github.com/microsoft/windows-rs",
+    "authors": [],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/windows-link-0.2.1/license-apache-2.0",
+        "sha256": "c16f8dcf1a368b83be78d826ea23de4079fe1b4469a0ab9ee20563f37ff3d44b"
+      },
+      {
+        "path": "LICENSES/dependencies/windows-link-0.2.1/license-mit",
+        "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+      },
+      {
+        "path": "LICENSES/dependencies/windows-link-0.2.1/Cargo.toml",
+        "sha256": "abf0b74b168ec7d7c600f44eb90502c47e44480a199b9adc9ec74ea990605707"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "zerocopy",
+    "version": "0.8.63",
+    "license": "BSD-2-Clause OR Apache-2.0 OR MIT",
+    "repository": "https://github.com/google/zerocopy",
+    "authors": [],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/zerocopy-0.8.63/LICENSE-APACHE",
+        "sha256": "9d185ac6703c4b0453974c0d85e9eee43e6941009296bb1f5eb0b54e2329e9f3"
+      },
+      {
+        "path": "LICENSES/dependencies/zerocopy-0.8.63/LICENSE-BSD",
+        "sha256": "83c1763356e822adde0a2cae748d938a73fdc263849ccff6b27776dff213bd32"
+      },
+      {
+        "path": "LICENSES/dependencies/zerocopy-0.8.63/LICENSE-MIT",
+        "sha256": "1a2f5c12ddc934d58956aa5dbdd3255fe55fd957633ab7d0d39e4f0daa73f7df"
+      },
+      {
+        "path": "LICENSES/dependencies/zerocopy-0.8.63/Cargo.toml",
+        "sha256": "73182670f07c89a4b463e6369da7a6b8f87bf5a838627103bb606bd7b4e0a88d"
+      }
+    ],
+    "note": ""
+  },
+  {
+    "name": "zmij",
+    "version": "1.0.23",
+    "license": "MIT",
+    "repository": "https://github.com/dtolnay/zmij",
+    "authors": [
+      "David Tolnay <dtolnay@gmail.com>"
+    ],
+    "files": [
+      {
+        "path": "LICENSES/dependencies/zmij-1.0.23/LICENSE-MIT",
+        "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+      },
+      {
+        "path": "LICENSES/dependencies/zmij-1.0.23/Cargo.toml",
+        "sha256": "b31420c7a806fae5b9ea2438dd4cbb99dcb3a22da67697fdf2776cc44a69527e"
+      }
+    ],
+    "note": ""
+  }
+]

@@ -36,3 +36,12 @@
 
 
 v0.1.4 使用 CHA-Solver 判定超时后是否存在合作将死序列；它只参与规则结算，AI 对弈仍由 Pleco 提供。新增组件版权及 MIT 许可全文见 [CHA-Solver](LICENSES/chasolver-MIT.txt) 与 [chess](LICENSES/chess-MIT.txt)。
+
+
+## v0.2.0 棋谱与存档依赖
+
+- `pgn-reader 0.26.0`：GPL-3.0-or-later；直接依赖既有 `shakmaty 0.27`，未引入第二套 shakmaty。
+- `serde` / `serde_json`：MIT OR Apache-2.0；`sha2`：MIT OR Apache-2.0。实际锁定版本、作者许可全文及传递依赖见 [依赖索引](LICENSES/dependencies/INDEX.md) 和 `LICENSES/dependencies/manifest.json`。
+- 索引包含锁定的 Windows 构建/运行依赖；保留所有可用 LICENSE、NOTICE、COPYRIGHT 文件，Unicode 的 AND 许可条件亦随包保留。构建工具只在打包时使用，运行程序不依赖 Python。
+- 上游缺失文件的处理在索引逐项标记：failure_derive 使用同版本 failure 工作区许可；mucow 原发布包只带 MIT OR Apache-2.0 声明，本包选择 Apache-2.0 并附标准许可全文和原始声明，不冒称为上游独立文件。
+- **发行前人工核实项**：Pleco 0.5.0 的包声明和 README 指定 MIT，但排除了其引用的 LICENSE-MIT；本轮无法从锁定提交取得独立文件。已原样保留作者和声明，索引明确标为人工复核，不能将本地收集清单视为该项许可审核完成。原有 GPL 总许可证和历史第三方声明均保留。

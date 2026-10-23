@@ -1,0 +1,9 @@
+[package]
+name = "mucow"
+version = "0.1.0"
+authors = ["Diggory Blake <diggsey@googlemail.com>"]
+description = "Equivalent to Cow for mootable data. The semantics are copy-on-consume, so a copy is only needed if you want to take ownership. Unlike Cow, the contents can be mutated without making a copy."
+repository = "https://github.com/Diggsey/mucow"
+license = "MIT OR Apache-2.0"
+
+[dependencies]

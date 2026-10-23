@@ -3,14 +3,24 @@
 mod ai;
 mod assets;
 mod display;
+mod fen;
 mod font;
 mod game;
+mod game_record;
 mod i18n;
+mod native_files;
+mod persistence;
+mod pgn;
 mod preferences;
+mod records_app;
+mod records_ui;
 mod render;
+mod replay;
 mod settings;
 mod theme;
 
+#[cfg(test)]
+mod records_tests;
 #[cfg(test)]
 mod reliability_tests;
 
@@ -76,6 +86,7 @@ impl PieceAnim {
 }
 
 struct App {
+    records: records_app::RecordsState,
     pos: Chess,
     history: Vec<Move>,
     history_sans: Vec<String>,
@@ -139,6 +150,7 @@ impl App {
             loaded.fps = 60;
         }
         Self {
+            records: records_app::RecordsState::default(),
             pos: Chess::default(),
             history: Vec::new(),
             history_sans: Vec::new(),
@@ -199,6 +211,7 @@ impl App {
         if self.screen != Screen::Game
             || !self.settings.board.chess_clock_enabled
             || self.game_over()
+            || self.records.fen_input.is_some()
         {
             return;
         }
@@ -240,6 +253,7 @@ impl App {
             self.game_over_at = Some(now);
             self.invalidate_searches();
             self.clear_input();
+            self.save_session();
         }
     }
 
@@ -267,6 +281,9 @@ impl App {
 
     fn poll_ai(&mut self) {
         self.tick_clock();
+        if self.records.fen_input.is_some() {
+            return;
+        }
         if self.screen != Screen::Game || self.game_over() {
             return;
         }
@@ -306,6 +323,12 @@ impl App {
 
     fn poll_hint(&mut self) {
         self.tick_clock();
+        if self.records.fen_input.is_some() {
+            return;
+        }
+        if self.screen != Screen::Game {
+            return;
+        }
         let Some(rx) = self.hint_rx.take() else {
             return;
         };
@@ -487,6 +510,7 @@ impl App {
             }
             self.selected = None;
             self.promotion = None;
+            self.save_session();
             if self.settings.board.piece_animation {
                 self.animations.extend(anims);
             } else {
@@ -498,12 +522,18 @@ impl App {
     fn handle_action(&mut self, action: UiAction) {
         // Account for time spent rendering or processing an earlier action.
         self.tick_clock();
+        if let Some(action) = records_ui::record_action(action) {
+            self.handle_record_action(action);
+            return;
+        }
         match action {
+            UiAction::Record(_) => unreachable!("handled above"),
             UiAction::StartGame => self.start_game(),
             UiAction::OpenSettings => self.open_settings(),
             UiAction::BackToMenu => self.back_to_menu(),
             UiAction::ExitGame => {
                 settings::save(&self.settings);
+                self.save_session();
                 self.exit_requested = true;
             }
             UiAction::SetDifficulty(depth) => {
@@ -620,6 +650,7 @@ impl App {
                 .clock_history
                 .last_mut()
                 .expect("initial clock snapshot") = self.clocks;
+            self.save_session();
         }
     }
 
@@ -628,6 +659,7 @@ impl App {
         self.clear_input();
         self.ai_mode = mode;
         self.maybe_spawn_ai();
+        self.save_session();
     }
 
     fn open_settings(&mut self) {
@@ -640,6 +672,7 @@ impl App {
 
     fn back_to_menu(&mut self) {
         self.tick_clock();
+        self.save_session();
         self.invalidate_searches();
         self.game_over_at = None;
         self.dragging_from = None;
@@ -877,9 +910,11 @@ impl App {
         self.rebuild();
         self.game_over_at = None;
         self.maybe_spawn_ai();
+        self.save_session();
     }
 
     fn new_game(&mut self) {
+        self.reset_record();
         self.invalidate_searches();
         self.animations.clear();
         self.pos = Chess::default();
@@ -906,10 +941,11 @@ impl App {
         self.suggestion = None;
         self.game_over_at = None;
         self.maybe_spawn_ai();
+        self.save_session();
     }
 
     fn rebuild(&mut self) {
-        let mut pos = Chess::default();
+        let mut pos = self.records.initial.clone();
         self.position_keys.clear();
         self.position_keys.push(position_key(&pos));
         for mv in &self.history {
@@ -993,6 +1029,15 @@ impl App {
     }
 
     fn handle_scroll(&mut self, y: f32) {
+        if self.screen == Screen::Replay {
+            if let Some(r) = &mut self.records.replay {
+                r.scroll = r
+                    .scroll
+                    .saturating_add_signed(-(y.round() as isize))
+                    .min(r.game.moves.len().saturating_sub(1));
+            }
+            return;
+        }
         let delta = (y / 3.0).round() as i32;
         if delta == 0 {
             return;
@@ -1229,6 +1274,7 @@ fn main() {
     let text = font::TextRenderer::load();
     let renderer = Renderer::new(&images, &text);
     let mut app = App::new();
+    app.init_persistence();
 
     let (win_w, win_h) = (
         app.settings.resolution.0 as usize,
@@ -1253,13 +1299,25 @@ fn main() {
         ((screen_h as isize - win_h as isize) / 2).max(0),
     );
     set_native_window_icons(&window);
+    app.records.owner = window.get_window_handle() as usize;
+    let characters = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    window.set_input_callback(Box::new(records_ui::CharacterInput(characters.clone())));
 
     let mut buffer = vec![0u32; win_w * win_h];
     let mut mouse_was_down = false;
-    while window.is_open() && !window.is_key_down(Key::Escape) && !app.exit_requested {
+    while window.is_open() && !app.exit_requested {
+        let keys = window.get_keys_pressed(minifb::KeyRepeat::Yes);
+        let chars = std::mem::take(&mut *characters.lock().expect("text event queue"));
+        app.record_keys(
+            &keys,
+            &chars,
+            window.is_key_down(Key::LeftCtrl) || window.is_key_down(Key::RightCtrl),
+        );
+
         app.tick_clock();
         app.poll_ai();
         app.poll_hint();
+        app.periodic_save();
         let (mut cur_w, mut cur_h) = window.get_size();
         cur_w = cur_w.max(1);
         cur_h = cur_h.max(1);
@@ -1274,8 +1332,22 @@ fn main() {
         if let Some((_, scroll_y)) = window.get_scroll_wheel() {
             app.handle_scroll(scroll_y);
         }
-        let view = app.view_state(mouse, pressed, mouse_down, released);
-        let actions = renderer.render(&mut buffer, cur_w, cur_h, &view);
+        let mut view = app.view_state(mouse, pressed, mouse_down, released);
+        app.replay_view(&mut view);
+        let overlay = app.records.fen_input.is_some()
+            || app.records.message.is_some()
+            || app.records.resume_prompt;
+        if overlay {
+            view.mouse_pressed = false;
+            view.mouse_released = false;
+        }
+        let mut actions = renderer.render(&mut buffer, cur_w, cur_h, &view);
+        let record_actions =
+            records_ui::draw(&text, &mut buffer, (cur_w, cur_h), &app, mouse, pressed);
+        if overlay || !record_actions.is_empty() {
+            actions.clear();
+        }
+        actions.extend(record_actions.into_iter().map(UiAction::Record));
         for action in actions {
             app.handle_action(action);
         }
@@ -1301,6 +1373,8 @@ fn main() {
             .update_with_buffer(&buffer, cur_w, cur_h)
             .expect("更新窗口失败");
     }
+    app.tick_clock();
+    app.save_session();
 }
 
 #[cfg(all(test, target_os = "windows"))]

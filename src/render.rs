@@ -61,6 +61,7 @@ pub enum Screen {
     Menu,
     Settings,
     Game,
+    Replay,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -178,6 +179,7 @@ pub enum DropdownKind {
 
 #[derive(Clone, Copy, Debug)]
 pub enum UiAction {
+    Record(crate::records_ui::Action),
     StartGame,
     OpenSettings,
     BackToMenu,
@@ -276,9 +278,11 @@ impl<'a> Renderer<'a> {
         match view.screen {
             Screen::Menu => self.draw_menu(buf, &layout, &pal, view, &mut actions),
             Screen::Settings => self.draw_settings(buf, &layout, &pal, view, &mut actions),
-            Screen::Game => {
+            Screen::Game | Screen::Replay => {
                 self.draw_board(buf, &layout, &pal, view);
-                if !focus_board {
+                if view.screen == Screen::Replay {
+                    // The independent replay panel is drawn by records_ui.
+                } else if !focus_board {
                     self.draw_panel(buf, &layout, &pal, view, &mut actions);
                     if view.settings.board.chess_clock_enabled {
                         self.draw_clocks(buf, &layout, &pal, view, &mut actions);
@@ -300,7 +304,9 @@ impl<'a> Renderer<'a> {
                         UiAction::BackToMenu,
                     );
                 }
-                if view.move_confirmation_pending {
+                if view.screen == Screen::Replay {
+                    return actions;
+                } else if view.move_confirmation_pending {
                     self.draw_move_confirmation(buf, &layout, &pal, view, &mut actions);
                 } else if view.promotion.is_some() {
                     self.draw_promotion_dialog(buf, &layout, &pal, view, &mut actions);

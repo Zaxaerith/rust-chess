@@ -2,16 +2,26 @@
 use shakmaty::{Chess, Color, EnPassantMode, Position, fen::Fen};
 use std::time::Duration;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum GameResult {
-    Checkmate { winner: Color },
+    Checkmate {
+        #[serde(with = "crate::persistence::color_serde")]
+        winner: Color,
+    },
     Stalemate,
     InsufficientMaterial,
     ThreefoldRepetition,
     FivefoldRepetition,
     SeventyFiveMoves,
-    Timeout { loser: Color, draw: bool },
-    TimeoutUnresolved { loser: Color },
+    Timeout {
+        #[serde(with = "crate::persistence::color_serde")]
+        loser: Color,
+        draw: bool,
+    },
+    TimeoutUnresolved {
+        #[serde(with = "crate::persistence::color_serde")]
+        loser: Color,
+    },
 }
 
 impl GameResult {
@@ -72,7 +82,7 @@ impl GameResult {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ClockState {
     pub white: Duration,
     pub black: Duration,

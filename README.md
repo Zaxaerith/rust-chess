@@ -2,7 +2,7 @@
 
 [简体中文](README_ZH.md)
 
-> Development candidate: **v0.1.4 Reliability & Bug Fixes** (local, unpublished). Previous stable release: v0.1.3. See [validation and limitations](RELIABILITY_v0.1.4.md).
+> Local development candidate: **v0.2.0 Game Records & Replay** (unpublished). See [validation report](RELEASE_CANDIDATE_v0.2.0.md).
 
 A local window chess game written in Rust. Supports two-player, human vs AI, 5 AI difficulty levels, move animations, AI thinking pause, opening/ending animations, settings persistence, and multiple VSCode-inspired themes. v0.1.4 adds clock-based game results, clock-aware undo, explicit AI search errors, and regression tests.
 
@@ -125,3 +125,17 @@ Third‑party dependencies, assets and copyright notices are detailed in [THIRD_
 - [Pleco](https://github.com/pleco-rs/Pleco): Rust port of Stockfish, provides AI search
 - [Lichess](https://github.com/lichess-org/lila)Lichess: open‑source piece assets and licence information
 - [Visual Studio Code](https://github.com/microsoft/vscode)Visual Studio Code: UI theme colour references
+
+## Game records and replay (v0.2.0)
+
+- Main menu **Open PGN** opens one UTF-8 game in read-only replay. File limit: 4 MiB, 4096 mainline plies, variation depth 64. Comments, NAGs and variations are intentionally omitted with a notice; exports contain only the mainline. Multiple games and unsupported variants are rejected.
+- The live board toolbar provides **Export PGN**, **Replay**, **Copy FEN** and **Load FEN**. Export is available after game over as well. Native dialogs let you choose a path; cancellation leaves the game intact.
+- Replay has First/Previous/Next/Last controls, a scrollable clickable move list, and Left/Right/Home/End shortcuts. Back returns to the untouched live game or menu. Clocks and AI replies pause during replay; queued replies remain valid only for their original live position.
+- Load FEN accepts the complete six-field standard FEN. Paste with the button or Ctrl+V; Ctrl+A clears the field. Arrow/Home/End keys edit the caret while this field is focused. FEN starts an independent game with fresh clocks/history; it cannot reconstruct previous moves or repetition claims.
+- Autosave: `%LOCALAPPDATA%\RUST CHESS\autosave-v1.json`. Schema 1 stores the initial FEN, full moves, clocks and clock snapshots, mode/preferences and terminal reason. A SHA-256 envelope detects corruption. Atomic replacement and `.json.bak` preserve the last valid save. Corrupt/unknown saves are reported and kept; copy them to safety before manually repairing the primary. Failed writes leave recovery `.tmp` files rather than deleting data.
+- Save occurs after moves, undo, time gifts, game end, menu/exit, and every five seconds during active play. Offline time is not deducted. At startup choose Resume/New/Not now; no save silently replaces a running game. All current local games are casual.
+- File dialogs and the FEN input pause the live clock. A recurring save failure remains visibly marked after dismissing the first error. Only the most recent game is autosaved; use PGN for a permanent archive.
+- QA may set `RUST_CHESS_DATA_DIR` for isolated save files; normal storage remains the Windows user data directory. `settings.cfg` retains its prior location and keys.
+- Release packaging requires Python 3 to collect the locked dependencies' license texts: `./package.ps1`. Existing release folders/ZIPs are never overwritten. Test tools, configuration, autosaves and PGNs are not distributed.
+
+Current packaging gate: public packaging is blocked while the upstream Pleco 0.5.0 license-file review is unresolved. A marked QA-only ZIP may be generated under target/ for validation; it is not a public release.

@@ -10,6 +10,7 @@ mod fen;
 mod font;
 mod game;
 mod game_record;
+mod game_review;
 mod i18n;
 mod native_files;
 mod persistence;
@@ -19,6 +20,11 @@ mod records_app;
 mod records_ui;
 mod render;
 mod replay;
+mod review_app;
+mod review_cache;
+mod review_chart;
+mod review_scoring;
+mod review_ui;
 mod settings;
 mod theme;
 mod uci;
@@ -28,6 +34,8 @@ mod uci_protocol;
 mod records_tests;
 #[cfg(test)]
 mod reliability_tests;
+#[cfg(test)]
+mod review_tests;
 #[cfg(test)]
 mod uci_tests;
 
@@ -94,6 +102,7 @@ impl PieceAnim {
 
 struct App {
     analysis: analysis::Analysis,
+    review: game_review::Review,
     records: records_app::RecordsState,
     pos: Chess,
     history: Vec<Move>,
@@ -159,6 +168,7 @@ impl App {
         }
         Self {
             analysis: analysis::Analysis::default(),
+            review: game_review::Review::default(),
             records: records_app::RecordsState::default(),
             pos: Chess::default(),
             history: Vec::new(),
@@ -1331,6 +1341,7 @@ fn main() {
         app.poll_hint();
         app.periodic_save();
         app.poll_analysis();
+        app.poll_review();
         let (mut cur_w, mut cur_h) = window.get_size();
         cur_w = cur_w.max(1);
         cur_h = cur_h.max(1);
@@ -1402,6 +1413,8 @@ fn main() {
     }
     app.tick_clock();
     app.save_session();
+    app.cancel_review();
+    app.save_review_cache(true);
     if !app.shutdown_analysis() {
         eprintln!("UCI cleanup did not complete within deadline");
     }

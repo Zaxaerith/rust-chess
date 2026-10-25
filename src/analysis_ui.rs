@@ -3,6 +3,7 @@ use crate::{App, Screen, assets::fill_rect, font::TextRenderer, i18n::Language, 
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Action {
+    Review(crate::review_ui::ReviewAction),
     Toggle,
     Choose,
     Enable,
@@ -309,14 +310,37 @@ pub fn captures(app: &App, size: (usize, usize), mouse: Option<(f32, f32)>, pres
             Screen::Game | Screen::Replay | Screen::Menu | Screen::Settings
         )
         && mouse.is_some_and(|(x, y)| {
-            x >= size.0 as f32 - if app.analysis.panel { 292.0 } else { 136.0 }
+            x >= size.0 as f32
+                - if app.analysis.panel || app.screen == Screen::Replay {
+                    292.0
+                } else {
+                    136.0
+                }
                 && (app.analysis.panel || y <= 32.0)
         })
 }
 impl App {
     pub(crate) fn handle_analysis_action(&mut self, action: Action) {
+        if self.review.owns_engine()
+            && matches!(
+                action,
+                Action::Choose
+                    | Action::Analyze
+                    | Action::Stop
+                    | Action::Time
+                    | Action::Threads
+                    | Action::Hash
+                    | Action::MultiPV
+            )
+        {
+            self.analysis.error = Some(
+                "Game Review owns engine; cancel it before manual analysis/configuration".into(),
+            );
+            return;
+        }
         let result = (|| {
             match action {
+                Action::Review(action) => self.handle_review_action(action),
                 Action::Toggle => {
                     self.analysis.panel = !self.analysis.panel;
                     if !self.analysis.panel {
@@ -402,17 +426,17 @@ impl App {
         }
     }
 }
-struct Canvas<'a> {
-    font: &'a TextRenderer,
-    buf: &'a mut [u32],
-    size: (usize, usize),
-    mouse: Option<(f32, f32)>,
-    pressed: bool,
-    palette: crate::theme::Palette,
-    actions: Vec<Action>,
+pub(crate) struct Canvas<'a> {
+    pub(crate) font: &'a TextRenderer,
+    pub(crate) buf: &'a mut [u32],
+    pub(crate) size: (usize, usize),
+    pub(crate) mouse: Option<(f32, f32)>,
+    pub(crate) pressed: bool,
+    pub(crate) palette: crate::theme::Palette,
+    pub(crate) actions: Vec<Action>,
 }
 impl Canvas<'_> {
-    fn text(&mut self, x: f32, y: f32, value: &str, width: f32) {
+    pub(crate) fn text(&mut self, x: f32, y: f32, value: &str, width: f32) {
         let mut text: String = value.chars().take(200).collect();
         let size = (14.0 * (width / self.font.text_width(&text, 14.0).max(1.0))).clamp(11.0, 14.0);
         if self.font.text_width(&text, size) > width {
@@ -425,7 +449,7 @@ impl Canvas<'_> {
             .draw_text(self.buf, self.size, (x, y), &text, self.palette.text, size);
     }
 
-    fn button(&mut self, rect: (f32, f32, f32, f32), text: &str, action: Action) {
+    pub(crate) fn button(&mut self, rect: (f32, f32, f32, f32), text: &str, action: Action) {
         let (x, y, w, h) = rect;
         let hover = self
             .mouse
@@ -460,6 +484,9 @@ pub fn draw(
     if modal(app) {
         return vec![];
     }
+    if app.review.panel && app.screen == Screen::Replay {
+        return crate::review_ui::draw(font, buf, size, app, mouse, pressed);
+    }
     let words = words(app.settings.language);
     let mut c = Canvas {
         font,
@@ -472,6 +499,13 @@ pub fn draw(
     };
     let w = size.0 as f32;
     let h = size.1 as f32;
+    if app.screen == Screen::Replay {
+        c.button(
+            (w - 280.0, 4.0, 124.0, 28.0),
+            crate::review_ui::words(app.settings.language)[0],
+            Action::Review(crate::review_ui::ReviewAction::Open),
+        );
+    }
     c.button(
         (w - 136.0, 4.0, 124.0, 28.0),
         if app.analysis.panel {

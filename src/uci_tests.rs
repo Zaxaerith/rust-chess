@@ -12,7 +12,7 @@ use std::{
     },
 };
 
-fn fixture(mode: &str) -> (Config, PathBuf) {
+pub(crate) fn fixture(mode: &str) -> (Config, PathBuf) {
     static BIN: OnceLock<PathBuf> = OnceLock::new();
     static N: AtomicU64 = AtomicU64::new(0);
     let base = std::env::current_dir()
@@ -54,7 +54,7 @@ fn fixture(mode: &str) -> (Config, PathBuf) {
         dir,
     )
 }
-fn wait(c: &Controller, predicate: impl Fn(&uci::Report) -> bool) -> uci::Report {
+pub(crate) fn wait(c: &Controller, predicate: impl Fn(&uci::Report) -> bool) -> uci::Report {
     let until = Instant::now() + Duration::from_secs(6);
     loop {
         let r = c.report();
@@ -65,7 +65,7 @@ fn wait(c: &Controller, predicate: impl Fn(&uci::Report) -> bool) -> uci::Report
         std::thread::sleep(Duration::from_millis(5));
     }
 }
-fn ready(c: &Controller) {
+pub(crate) fn ready(c: &Controller) {
     let r = wait(c, |r| matches!(r.status, Status::Ready | Status::Failed));
     assert_eq!(r.status, Status::Ready, "{r:?}");
 }
@@ -77,7 +77,7 @@ fn request(id: u64) -> Request {
         movetime: 100,
     }
 }
-fn app() -> App {
+pub(crate) fn app() -> App {
     let mut a = App::new();
     a.settings = Settings::default();
     a.screen = Screen::Game;

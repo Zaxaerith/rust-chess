@@ -192,6 +192,8 @@ impl App {
         Ok(())
     }
     pub(crate) fn enter_replay(&mut self, game: ValidatedRecord, external: bool) {
+        self.cancel_review();
+        self.review.panel = false;
         if external {
             self.analysis_context(true);
         } else {
@@ -203,6 +205,8 @@ impl App {
         self.screen = Screen::Replay;
     }
     pub(crate) fn leave_replay(&mut self) {
+        self.cancel_review();
+        self.review.panel = false;
         self.cancel_analysis();
         self.records.replay = None;
         self.screen = self.records.replay_return;

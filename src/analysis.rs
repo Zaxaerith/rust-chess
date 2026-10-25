@@ -15,7 +15,7 @@ pub struct Analysis {
     pub report: Report,
     pub error: Option<String>,
     target: Option<Target>,
-    sequence: u64,
+    pub(crate) sequence: u64,
     pub context: u64,
     pub external_context: u64,
     pub live_context: u64,
@@ -81,6 +81,8 @@ impl App {
         }
     }
     pub(crate) fn analysis_context(&mut self, external: bool) {
+        self.cancel_review();
+        self.review.panel = false;
         self.cancel_analysis();
         self.analysis.context = self.analysis.context.wrapping_add(1);
         if external {
@@ -100,7 +102,9 @@ impl App {
         )
     }
     pub(crate) fn cancel_analysis(&mut self) {
-        if let Some(c) = &self.analysis.controller {
+        if !self.review.owns_engine()
+            && let Some(c) = &self.analysis.controller
+        {
             c.stop();
         }
         self.analysis.target = None;
@@ -116,6 +120,7 @@ impl App {
         }
     }
     pub(crate) fn close_analysis_engine(&mut self) {
+        self.cancel_review();
         self.cancel_analysis();
         if let Some(c) = self.analysis.controller.take() {
             c.close();
@@ -148,6 +153,9 @@ impl App {
         Ok(())
     }
     pub(crate) fn request_analysis(&mut self) -> Result<(), String> {
+        if self.review.owns_engine() {
+            return Err("Game Review owns engine; cancel it before manual analysis".into());
+        }
         if !matches!(self.screen, Screen::Game | Screen::Replay) {
             return Err("Analysis requires a game or replay".into());
         }
@@ -222,6 +230,9 @@ impl App {
         Ok(())
     }
     pub(crate) fn poll_analysis(&mut self) {
+        if self.review.owns_engine() {
+            return;
+        }
         if self
             .analysis
             .target
@@ -305,6 +316,22 @@ impl App {
         self.analysis.report = next;
     }
     pub(crate) fn analysis_visual(&self) -> crate::analysis_board::Visual {
+        if self.review.panel
+            && let Some(replay) = &self.records.replay
+            && let Some(job) = &self.review.job
+            && job.game_key == replay.identity
+        {
+            let point = job.points.get(replay.cursor).and_then(|p| p.as_ref());
+            return crate::analysis_board::Visual {
+                active: true,
+                score: point.and_then(|p| p.score),
+                arrow: point
+                    .and_then(|p| p.best.as_ref())
+                    .and_then(|m| m.parse::<shakmaty::uci::UciMove>().ok())
+                    .and_then(|m| m.to_move(&replay.game.positions[replay.cursor]).ok())
+                    .and_then(|m| uci_protocol::move_arrow(&m)),
+            };
+        }
         let neutral = crate::analysis_board::Visual {
             active: self.analysis.panel && matches!(self.screen, Screen::Game | Screen::Replay),
             ..Default::default()
@@ -362,6 +389,7 @@ impl App {
             .and_then(|t| uci_protocol::legal_move(&t.position, text).ok().flatten())
     }
     pub(crate) fn shutdown_analysis(&mut self) -> bool {
+        self.cancel_review();
         let mut ok = true;
         for c in [&mut self.analysis.controller, &mut self.analysis.retired]
             .into_iter()

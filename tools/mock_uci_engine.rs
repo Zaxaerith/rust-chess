@@ -13,6 +13,7 @@ fn main() {
     let mut stop: Option<mpsc::Sender<()>> = None;
     let mut position = String::new();
     let mut multipv = 1u32;
+    let mut searches=0usize;
     for line in io::stdin().lock().lines() {
         let Ok(line) = line else { break; };
         writeln!(log,"{line}").unwrap(); log.flush().unwrap();
@@ -35,8 +36,24 @@ fn main() {
         } else if let Some(n) = line.strip_prefix("setoption name MultiPV value ") { multipv = n.parse().unwrap(); }
         else if line.starts_with("position ") { position = line; }
         else if line.starts_with("go ") {
+            searches+=1;
             if mode == "exitsearch" { return; }
+            if mode.contains("review crash") && searches==3 {return;}
             let (tx, rx) = mpsc::channel(); stop = Some(tx);
+            if mode.contains("review") {
+                // Exact command-to-response fixture, prepared by Rust tests using
+                // the real validated record. No chess rules in this mock process.
+                let table=std::fs::read_to_string("review.tsv").unwrap();
+                let fields:Vec<String>=table.lines().find_map(|s| {let t:Vec<_>=s.split('\t').collect();(t[0]==position).then(||t.iter().map(|s|s.to_string()).collect())}).expect("missing review fixture position");
+                let (out, mode)=(out.clone(),mode.clone());
+                thread::spawn(move || {
+                    if fields[2]!="missing" {emit(&out,&format!("info depth {} score {} nodes 999 time 7 pv {}",fields[3],fields[2],fields[1]));}
+                    if mode.contains("pause")&&searches==3 {let _=rx.recv_timeout(Duration::from_secs(30));}
+                    else {let _=rx.recv_timeout(Duration::from_millis(40));}
+                    emit(&out,&format!("bestmove {}",fields[1]));
+                });
+                continue;
+            }
             let (out, mode, position) = (out.clone(),mode.clone(),position.clone());
             thread::spawn(move || {
                 emit(&out,"info depth 8 score cp 35 nodes 100 time 1");

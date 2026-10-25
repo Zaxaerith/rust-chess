@@ -1,18 +1,18 @@
 //! Bounded, tolerant parsing of UCI output. Rules remain in shakmaty.
 use shakmaty::{Chess, Color, Position, san::SanPlus, uci::UciMove};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Bound {
     Exact,
     Lower,
     Upper,
 }
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Score {
     Cp(i32),
     Mate(i32),
     /// White-view mate zero needs an explicit mated side (integer -0 loses it).
-    Mated(Color),
+    Mated(#[serde(with = "crate::persistence::color_serde")] Color),
 }
 pub const MAX_PV_PLIES: usize = 128;
 pub const MAX_MULTIPV: usize = 3;

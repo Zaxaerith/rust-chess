@@ -65,6 +65,7 @@ pub struct Report {
     pub best: Option<String>,
     pub warnings: Vec<String>,
     pub pid: Option<u32>,
+    pub engine_key: String,
 }
 #[derive(Clone, Debug)]
 pub struct Request {
@@ -423,6 +424,23 @@ fn run(cfg: &Config, desired: &Mutex<Desired>, report: &Mutex<Report>) -> Result
         }
     }
     let (warnings, mut count) = configure(&engine, &options, cfg)?;
+    // Identify the selected executable once on the background worker, never
+    // hash a potentially large engine on the GUI/render thread.
+    use sha2::{Digest, Sha256};
+    let mut file = std::fs::File::open(&cfg.path).map_err(|e| format!("Engine identity: {e}"))?;
+    if file.metadata().map_err(|e| e.to_string())?.len() > 256 * 1024 * 1024 {
+        return Err("Engine identity exceeds 256 MiB limit".into());
+    }
+    let mut digest = Sha256::new();
+    let mut chunk = [0u8; 65536];
+    loop {
+        let n = file.read(&mut chunk).map_err(|e| e.to_string())?;
+        if n == 0 {
+            break;
+        }
+        digest.update(&chunk[..n]);
+    }
+    report.lock().expect("UCI report").engine_key = format!("{:x}", digest.finalize());
     let mut configured = cfg.multipv;
     engine.barrier(desired)?;
     {

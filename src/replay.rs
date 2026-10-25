@@ -6,11 +6,13 @@ pub struct Replay {
     pub cursor: usize,
     pub scroll: usize,
     pub external: bool,
+    pub identity: String,
 }
 impl Replay {
     pub fn new(game: ValidatedRecord, external: bool) -> Self {
         let cursor = game.moves.len();
         Self {
+            identity: crate::review_cache::game_key(&game),
             game,
             cursor,
             scroll: cursor.saturating_sub(8),

@@ -1,7 +1,2 @@
-# Preserve the verified upstream bytes, including LF line endings.
-LICENSES/upstream/pleco-0.5.0-LICENSE-MIT -text
-LICENSES/dependencies/pleco-0.5.0/LICENSE-MIT -text
-LICENSES/upstream/pleco-0.5.0-provenance.json text eol=lf
-LICENSES/dependencies/pleco-0.5.0/pleco-0.5.0-provenance.json text eol=lf
-LICENSES/dependencies/INDEX.md text eol=lf
-LICENSES/dependencies/manifest.json text eol=lf
+# Preserve upstream license/notice/declaration bytes and their original line endings.
+LICENSES/** -text

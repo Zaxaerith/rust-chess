@@ -338,6 +338,7 @@ impl App {
                 | Action::Next
                 | Action::Last
                 | Action::Jump(_) => {
+                    self.cancel_analysis();
                     if let Some(r) = &mut self.records.replay {
                         match action {
                             Action::First => r.jump(0),

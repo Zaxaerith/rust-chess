@@ -4,6 +4,8 @@ from pathlib import Path
 import shutil
 import tempfile
 import unittest
+import hashlib
+import subprocess
 
 import collect_licenses as licenses
 
@@ -81,6 +83,27 @@ class HistoricalLicenseTests(unittest.TestCase):
         path.write_text(json.dumps(proof), encoding='utf-8')
         with self.assertRaises(RuntimeError):
             self.verify()
+
+
+class LicenseCheckoutTests(unittest.TestCase):
+    def test_every_current_manifest_file_matches_original_bytes(self):
+        manifest = json.loads((licenses.DEST / 'manifest.json').read_text(encoding='utf-8'))
+        for package in manifest:
+            for file in package['files']:
+                self.assertEqual(hashlib.sha256((licenses.ROOT / file['path']).read_bytes()).hexdigest(),
+                                 file['sha256'], file['path'])
+
+    def test_all_third_party_files_disable_git_text_conversion(self):
+        files = [p.relative_to(licenses.ROOT).as_posix() for p in (licenses.ROOT / 'LICENSES').rglob('*') if p.is_file()]
+        output = subprocess.check_output(['git', 'check-attr', 'text', '--', *files], cwd=licenses.ROOT, text=True)
+        self.assertTrue(all(line.endswith(': text: unset') for line in output.splitlines()), output)
+
+    def test_windows_autocrlf_checkout_preserves_ab_glyph_license(self):
+        relative = 'LICENSES/dependencies/ab_glyph-0.2.32/LICENSE'
+        data = subprocess.check_output(['git', '-c', 'core.autocrlf=true', 'cat-file',
+            '--filters', f'--path={relative}', f'HEAD:{relative}'], cwd=licenses.ROOT)
+        self.assertNotIn(b'\r\n', data)
+        self.assertEqual(data, (licenses.ROOT / relative).read_bytes())
 
 
 if __name__ == '__main__':

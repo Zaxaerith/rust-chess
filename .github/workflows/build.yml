@@ -14,17 +14,24 @@ jobs:
         with:
           components: rustfmt, clippy
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Check checked-out license bytes and provenance
+        run: python -B -m unittest discover -s tools -p test_collect_licenses.py
+
       - name: Check formatting
         run: cargo fmt --all -- --check
 
       - name: Test
-        run: cargo test
+        run: cargo test --locked -j 2
 
       - name: Clippy
-        run: cargo clippy --all-targets -- -D warnings
+        run: cargo clippy --locked -j 2 --all-targets -- -D warnings
 
       - name: Build release
-        run: cargo build --release
+        run: cargo build --release --locked -j 2
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

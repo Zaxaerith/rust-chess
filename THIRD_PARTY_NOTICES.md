@@ -45,3 +45,7 @@ v0.1.4 使用 CHA-Solver 判定超时后是否存在合作将死序列；它只�
 - 索引包含锁定的 Windows 构建/运行依赖；保留所有可用 LICENSE、NOTICE、COPYRIGHT 文件，Unicode 的 AND 许可条件亦随包保留。构建工具只在打包时使用，运行程序不依赖 Python。
 - 上游缺失文件的处理在索引逐项标记：failure_derive 使用同版本 failure 工作区许可；mucow 原发布包只带 MIT OR Apache-2.0 声明，本包选择 Apache-2.0 并附标准许可全文和原始声明，不冒称为上游独立文件。
 - **Pleco 0.5.0 已核实**：锁定发布包的源码提交为 `7122ae552507abd3853c5ad6ed37cc36637a0831`，该提交的 `pleco/LICENSE` 与 2017 年历史原件逐字节相同，版权为 `Copyright (c) 2017 Stephen Fleischman`。原件见 [MIT 全文](LICENSES/dependencies/pleco-0.5.0/LICENSE-MIT)，来源 URL、提交、Git blob、SHA-256 及适用性见 [核实记录](LICENSES/dependencies/pleco-0.5.0/pleco-0.5.0-provenance.json)。2022 年更新只改版权行，未用于替换此版本原件。当前上游仓库根目录 GPL 与此历史库版本的 MIT 分开核实，RUST CHESS 的 GPL-3.0-or-later 不变。
+
+## v0.2.1 外部分析
+
+UCI 通信使用 Rust 标准库，不新增 Rust 依赖。发行包不包含 Stockfish 或其他外部引擎、NNUE 文件、模拟测试引擎及用户引擎配置；用户自行取得外部引擎并遵循其许可。RUST CHESS 保持 GPL-3.0-or-later。第三方文件按原始字节保留，Git 禁止 LICENSES 全树的行尾转换，严格 SHA-256 校验继续生效。

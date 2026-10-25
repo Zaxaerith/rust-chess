@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-> 本地开发候选：**v0.2.0 Game Records & Replay**（未发布）。详见[验收报告](RELEASE_CANDIDATE_v0.2.0.md)。
+> 本地开发候选：**v0.2.1 UCI Engine Integration**（未发布），详见[验收报告](RELEASE_CANDIDATE_v0.2.1.md)。[v0.2.0](https://github.com/Zaxaerith/rust-chess/releases/tag/v0.2.0) 已正式发布。
 
 一个用 Rust 编写的本地窗口国际象棋游戏。支持双人对战、人机对战、5 档 AI
 难度、走棋动画、AI 思考停顿、开局结束动画、设置记忆，以及多套仿 VSCode
@@ -144,4 +144,14 @@ assets/
 - 测试可用 `RUST_CHESS_DATA_DIR` 隔离存档；正常设置仍使用原 `settings.cfg` 路径与键名。
 - 打包使用 `./package.ps1`，需 Python 3.11+ 收集并核实锁定依赖的许可证。已有发行目录/ZIP 不会被覆盖，测试工具、配置、用户存档和测试棋谱不进入发行包。
 
-Pleco 0.5.0 的历史 MIT 原件已与其发布源码提交核实，随包保留固定来源及校验记录。用户已亲自完成实际试玩，反馈没有发现问题；这是用户人工验证，不是自动窗口测试。最终门禁、包哈希和证据范围记录在仓库的 `RELEASE_CANDIDATE_v0.2.0.md`，报告不进入 ZIP，以免引用自身归档哈希。正式发布仍须单独授权。
+对于已发布的 v0.2.0，Pleco 0.5.0 的历史 MIT 原件已与发布源码提交核实，随包保留固定来源及校验记录。该版本的用户验收与包证据保留在历史 `RELEASE_CANDIDATE_v0.2.0.md`，不冒称为 v0.2.1 验收结果。报告不进入 ZIP，以免引用自身归档哈希。新的正式发布仍须单独授权。
+
+## 可选的外部 UCI 分析（v0.2.1）
+
+- 打开“UCI 分析”，选择自行安装的本地 `.exe`，再手动“启用引擎”。支持空格和 Unicode 路径，以引擎所在目录作为工作目录，支持相邻 NNUE 文件。不下载、不捆绑引擎，加载偏好不会自动执行。
+- “分析当前局面”针对实时棋盘或 Replay 游标，发送真实初始 FEN 和着法前缀。显示白方视角评分、深度、合法 SAN 最佳着法及主变化首手；`#` 表示将杀，`>=` / `<=` 表示评分边界。不同引擎的 cp 标定不等同于统一胜率。
+- 默认 2 线程、64 MiB Hash、1000 ms、MultiPV 1。按钮循环设置有界时间/线程/Hash（100–10000 ms、1–8、16–256 MiB）；改参数会关闭当前引擎，需重新启用。只设置引擎声明支持的 spin 参数，并按其范围限幅；不支持时显示降级提示并使用引擎默认值。
+- “停止分析”取消真实搜索，“关闭引擎”回收进程。落子、悔棋、导入及复盘跳转使旧结果失效。必须消费 stop 对应的 bestmove 才可开始下一搜索，超时则关闭引擎。分析不落子、不暂停实时棋钟，也不替换 Pleco 五档对弈；Replay 的只读停钟规则保留。
+- 独立 JSON 偏好文件 `analysis.cfg` 位于 `%LOCALAPPDATA%\RUST CHESS` 的存档旁（QA 可隔离），仅保存路径和资源设置，不保存启用许可，不进入自动存档 JSON。原 `settings.cfg` 保持兼容。
+- 只选择并运行您信任的引擎；本功能不是第三方程序沙箱。没有引擎配置仍可正常对弈、存档和复盘。本轮真实引擎、窗口测试证据及限制单独记录在 `RELEASE_CANDIDATE_v0.2.1.md`。
+- 验收采用 CLI / Rust 自动化优先，使用受控 Mock UCI 进程，不依赖 GUI 自动操作。分析测试运行 `cargo test --locked -j 2 uci_tests`；许可证/检出回归运行 `python -B -m unittest discover -s tools -p test_collect_licenses.py`。真实 Stockfish 与完整 UI 人工验收单独记录，不从无界面测试推断通过；长期约定保存在 `AGENTS.md`。

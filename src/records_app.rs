@@ -124,6 +124,7 @@ impl App {
     }
     pub(crate) fn restore_snapshot(&mut self, snapshot: Snapshot) -> Result<(), String> {
         let validated = snapshot.validate()?;
+        self.analysis_context(false);
         let initial = validated.positions[0].clone();
         let pos = validated
             .positions
@@ -163,6 +164,7 @@ impl App {
     }
     pub(crate) fn import_fen(&mut self, text: &str) -> Result<(), String> {
         let pos = fen::parse(text)?;
+        self.analysis_context(false);
         self.invalidate_searches();
         self.clear_input();
         self.animations.clear();
@@ -190,12 +192,18 @@ impl App {
         Ok(())
     }
     pub(crate) fn enter_replay(&mut self, game: ValidatedRecord, external: bool) {
+        if external {
+            self.analysis_context(true);
+        } else {
+            self.cancel_analysis();
+        }
         self.tick_clock();
         self.records.replay_return = self.screen;
         self.records.replay = Some(Replay::new(game, external));
         self.screen = Screen::Replay;
     }
     pub(crate) fn leave_replay(&mut self) {
+        self.cancel_analysis();
         self.records.replay = None;
         self.screen = self.records.replay_return;
         self.clock_last_tick = Instant::now();
@@ -245,6 +253,7 @@ impl App {
         Ok(())
     }
     pub(crate) fn reset_record(&mut self) {
+        self.analysis_context(false);
         self.records.initial = Chess::default();
         self.records.metadata = GameRecord::new(&self.records.initial, self.ai_mode);
         self.records.replay = None;

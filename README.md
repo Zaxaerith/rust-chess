@@ -2,7 +2,7 @@
 
 [简体中文](README_ZH.md)
 
-> Local development candidate: **v0.2.0 Game Records & Replay** (unpublished). See [validation report](RELEASE_CANDIDATE_v0.2.0.md).
+> Local development candidate: **v0.2.1 UCI Engine Integration** (unpublished). See [validation report](RELEASE_CANDIDATE_v0.2.1.md). [v0.2.0](https://github.com/Zaxaerith/rust-chess/releases/tag/v0.2.0) is already published.
 
 A local window chess game written in Rust. Supports two-player, human vs AI, 5 AI difficulty levels, move animations, AI thinking pause, opening/ending animations, settings persistence, and multiple VSCode-inspired themes. v0.1.4 adds clock-based game results, clock-aware undo, explicit AI search errors, and regression tests.
 
@@ -138,4 +138,14 @@ Third‑party dependencies, assets and copyright notices are detailed in [THIRD_
 - QA may set `RUST_CHESS_DATA_DIR` for isolated save files; normal storage remains the Windows user data directory. `settings.cfg` retains its prior location and keys.
 - Release packaging requires Python 3.11+ to collect and verify the locked dependencies' license texts: `./package.ps1`. Existing release folders/ZIPs are never overwritten. Test tools, configuration, autosaves and PGNs are not distributed.
 
-Pleco 0.5.0's historical MIT original is verified against its published source commit and bundled with pinned provenance. The user completed hands-on acceptance and reported no issues; this is user testing, not an automated window test. Final checks, artifact hashes and remaining evidence limits are recorded in the repository's `RELEASE_CANDIDATE_v0.2.0.md`, kept outside the ZIP to avoid a self-referential archive hash. Public release requires separate authorization.
+For the published v0.2.0, Pleco 0.5.0's historical MIT original is verified against its published source commit and bundled with pinned provenance. Its user acceptance and artifact evidence remain in the historical `RELEASE_CANDIDATE_v0.2.0.md`; they are not v0.2.1 acceptance results. Reports stay outside the ZIP to avoid self-referential archive hashes. A new public release requires separate authorization.
+
+## Optional external UCI analysis (v0.2.1)
+
+- Open **UCI analysis**, choose an independently installed local `.exe`, then explicitly enable it. Unicode/spaces are supported; the executable's directory is its working directory for adjacent NNUE files. No engine is downloaded or bundled, and nothing starts automatically when preferences load.
+- **Analyze position** uses the live position or Replay cursor, including its initial FEN and move prefix. Results show White's perspective, depth, best move and first PV move in SAN. `#` means mate; `>=` / `<=` are score bounds. Centipawn calibration varies by engine and is not a universal win probability.
+- Defaults: 2 threads, 64 MiB Hash, 1000 ms, MultiPV 1. Buttons cycle bounded time/threads/hash choices (100–10000 ms, 1–8, 16–256 MiB); changing options closes the engine and requires enabling again. Supported spin options are clamped to the engine's declared range. Missing optional settings use engine defaults and display a fallback warning.
+- **Stop analysis** cancels the real search. **Close engine** shuts down the process. Moves, undo, imports and replay jumps invalidate results. A stop must receive `bestmove` before a replacement search; an unresponsive engine is closed. Analysis never plays a move, pauses the live clock, or replaces Pleco's five AI levels. Replay remains read-only and paused.
+- `analysis.cfg` is a separate JSON preference file beside the autosave in `%LOCALAPPDATA%\RUST CHESS` (or the isolated QA data directory). It stores path and resource preferences, not enable permission. It is not part of autosave JSON; `settings.cfg` remains compatible.
+- Only run engines you trust and explicitly choose. This is process integration, not a sandbox for third-party programs. With no engine configured, normal play, save and replay remain available. Current real-engine/GUI test evidence and limitations are recorded separately in `RELEASE_CANDIDATE_v0.2.1.md`.
+- Acceptance is CLI/Rust first, with controlled Mock UCI processes; no GUI automation is required. Run `cargo test --locked -j 2 uci_tests` for the analysis suite and `python -B -m unittest discover -s tools -p test_collect_licenses.py` for license/checkout regressions. Complete UI acceptance and real Stockfish testing are recorded separately, not inferred from headless tests. `AGENTS.md` preserves this development convention.

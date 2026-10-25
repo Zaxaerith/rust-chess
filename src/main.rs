@@ -1,6 +1,8 @@
 #![windows_subsystem = "windows"]
 
 mod ai;
+mod analysis;
+mod analysis_ui;
 mod assets;
 mod display;
 mod fen;
@@ -18,11 +20,15 @@ mod render;
 mod replay;
 mod settings;
 mod theme;
+mod uci;
+mod uci_protocol;
 
 #[cfg(test)]
 mod records_tests;
 #[cfg(test)]
 mod reliability_tests;
+#[cfg(test)]
+mod uci_tests;
 
 use std::sync::mpsc::{self, Receiver, TryRecvError};
 use std::thread;
@@ -86,6 +92,7 @@ impl PieceAnim {
 }
 
 struct App {
+    analysis: analysis::Analysis,
     records: records_app::RecordsState,
     pos: Chess,
     history: Vec<Move>,
@@ -150,6 +157,7 @@ impl App {
             loaded.fps = 60;
         }
         Self {
+            analysis: analysis::Analysis::default(),
             records: records_app::RecordsState::default(),
             pos: Chess::default(),
             history: Vec::new(),
@@ -234,6 +242,7 @@ impl App {
     }
 
     fn invalidate_searches(&mut self) {
+        self.cancel_analysis();
         self.generation = self
             .generation
             .checked_add(1)
@@ -1300,6 +1309,7 @@ fn main() {
     );
     set_native_window_icons(&window);
     app.records.owner = window.get_window_handle() as usize;
+    app.init_analysis();
     let characters = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
     window.set_input_callback(Box::new(records_ui::CharacterInput(characters.clone())));
 
@@ -1318,6 +1328,7 @@ fn main() {
         app.poll_ai();
         app.poll_hint();
         app.periodic_save();
+        app.poll_analysis();
         let (mut cur_w, mut cur_h) = window.get_size();
         cur_w = cur_w.max(1);
         cur_h = cur_h.max(1);
@@ -1334,6 +1345,10 @@ fn main() {
         }
         let mut view = app.view_state(mouse, pressed, mouse_down, released);
         app.replay_view(&mut view);
+        if app.analysis.panel {
+            view.settings.board.zen_mode = ZenMode::No;
+            view.settings.board.immersive_mode = false;
+        }
         let overlay = app.records.fen_input.is_some()
             || app.records.message.is_some()
             || app.records.resume_prompt;
@@ -1348,6 +1363,16 @@ fn main() {
             actions.clear();
         }
         actions.extend(record_actions.into_iter().map(UiAction::Record));
+        let analysis_actions =
+            analysis_ui::draw(&text, &mut buffer, (cur_w, cur_h), &app, mouse, pressed);
+        if !overlay && analysis_ui::captures(&app, (cur_w, cur_h), mouse, pressed) {
+            actions.clear();
+        }
+        if !overlay {
+            for action in analysis_actions {
+                app.handle_analysis_action(action);
+            }
+        }
         for action in actions {
             app.handle_action(action);
         }
@@ -1375,6 +1400,9 @@ fn main() {
     }
     app.tick_clock();
     app.save_session();
+    if !app.shutdown_analysis() {
+        eprintln!("UCI cleanup did not complete within deadline");
+    }
 }
 
 #[cfg(all(test, target_os = "windows"))]

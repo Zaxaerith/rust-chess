@@ -121,12 +121,13 @@ fn scores_mate_bounds_multipv_and_tolerant_info() {
         assert_eq!(i.depth, Some(18));
         assert_eq!(i.nodes, Some(456));
         assert_eq!(i.time, Some(12));
-        assert_eq!(i.pv.as_deref(), Some("e2e4"));
+        assert_eq!(i.pv, Some(vec!["e2e4".into(), "e7e5".into()]));
     }
-    assert_eq!(
-        protocol::parse("info multipv 2 score cp 5 pv d2d4").unwrap(),
-        Message::Other
-    );
+    let Message::Info(second) = protocol::parse("info multipv 2 score cp 5 pv d2d4").unwrap()
+    else {
+        panic!()
+    };
+    assert_eq!(second.rank, 2);
     assert!(protocol::parse("info score cp NaN").is_err());
     assert!(protocol::parse("info score mate -2147483648").is_err());
     assert_eq!(
@@ -416,6 +417,13 @@ fn no_engine_defaults_bounds_old_settings_and_snapshot_exclusion() {
         serde_json::from_str(r#"{"threads":99999,"hash":99999,"movetime":1}"#).unwrap();
     cfg.clamp();
     assert_eq!((cfg.threads, cfg.hash, cfg.movetime), (8, 256, 100));
+    assert_eq!(cfg.multipv, 1); // v0.2.1 config has no MultiPV field.
+    cfg.multipv = u32::MAX;
+    cfg.clamp();
+    assert_eq!(cfg.multipv, 3);
+    cfg.multipv = 0;
+    cfg.clamp();
+    assert_eq!(cfg.multipv, 1);
     a.analysis.config.path = PathBuf::from("C:/not executed.exe");
     assert!(
         !serde_json::to_string(&a.snapshot())
@@ -520,6 +528,11 @@ fn analysis_preferences_load_bounded_and_never_auto_execute() {
     let loaded: Config =
         serde_json::from_slice(&std::fs::read(dir.join("analysis.cfg")).unwrap()).unwrap();
     assert_eq!(loaded.movetime, 3000);
+    a.handle_analysis_action(Action::MultiPV);
+    let loaded: Config =
+        serde_json::from_slice(&std::fs::read(dir.join("analysis.cfg")).unwrap()).unwrap();
+    assert_eq!(loaded.multipv, 2);
+    assert!(a.analysis.controller.is_none());
     std::fs::write(dir.join("analysis.cfg"), vec![b'x'; 16385]).unwrap();
     a.init_analysis();
     assert!(a.analysis.error.is_some());
@@ -612,7 +625,7 @@ fn previous_request_failure_does_not_relabel_old_scores_as_current() {
         info: protocol::Info {
             depth: Some(12),
             score: Some((Score::Cp(52), Bound::Exact)),
-            pv: Some("e2e4".into()),
+            pv: Some(vec!["e2e4".into()]),
             ..Default::default()
         },
         best: Some("e2e4".into()),
@@ -625,4 +638,495 @@ fn previous_request_failure_does_not_relabel_old_scores_as_current() {
     assert_eq!(a.analysis.report.info, protocol::Info::default());
     assert!(a.analysis.report.best.is_none());
     assert!(a.history.is_empty());
+}
+
+fn info(text: &str) -> protocol::Info {
+    let Message::Info(i) = protocol::parse(text).unwrap() else {
+        panic!("{text}")
+    };
+    i
+}
+fn words_pv(text: &str) -> Vec<String> {
+    text.split_whitespace().map(str::to_owned).collect()
+}
+
+#[test]
+fn full_pv_fields_order_limits_and_incomplete_messages() {
+    let parsed =
+        info("info pv e2e4 e7e5 g1f3 score mate -3 upperbound nodes 20 multipv 3 depth 18 time 7");
+    assert_eq!(parsed.rank, 3);
+    assert_eq!(parsed.depth, Some(18));
+    assert_eq!(parsed.score, Some((Score::Mate(-3), Bound::Upper)));
+    assert_eq!(parsed.pv, Some(words_pv("e2e4 e7e5 g1f3")));
+    assert_eq!((parsed.nodes, parsed.time), (Some(20), Some(7)));
+    assert_eq!(info("info depth 19").pv, None);
+    assert_eq!(info("info score cp 0").depth, None);
+    for bad in [
+        "info multipv 0",
+        "info multipv 4",
+        "info multipv -1",
+        "info multipv X",
+        "info pv",
+    ] {
+        assert!(protocol::parse(bad).is_err(), "{bad}");
+    }
+    assert!(protocol::parse(&format!("info pv {}", "e2e4 ".repeat(128))).is_ok());
+    assert!(protocol::parse(&format!("info pv {}", "e2e4 ".repeat(129))).is_err());
+    assert!(protocol::parse(&"info ".repeat(4000)).is_err());
+}
+
+#[test]
+fn rank_and_depth_updates_never_reuse_previous_depth_score_or_other_rank() {
+    let mut slots: [Option<protocol::Info>; 3] = Default::default();
+    for message in [
+        "info depth 18 multipv 2 score cp 31 pv d2d4 d7d5",
+        "info depth 18 multipv 1 score cp 52 pv e2e4 e7e5",
+        "info depth 19 multipv 1 pv g1f3 g8f6",
+    ] {
+        let i = info(message);
+        let index = i.rank - 1;
+        protocol::update_line(&mut slots[index], i);
+    }
+    assert!(slots[0].as_ref().unwrap().score.is_none());
+    assert_eq!(
+        slots[1].as_ref().unwrap().score,
+        Some((Score::Cp(31), Bound::Exact))
+    );
+    assert!(slots[2].is_none());
+    protocol::update_line(&mut slots[0], info("info depth 17 score cp 999 pv a1a8"));
+    assert_eq!(slots[0].as_ref().unwrap().depth, Some(19));
+    protocol::update_line(&mut slots[0], info("info depth 19 score cp 42"));
+    assert_eq!(slots[0].as_ref().unwrap().pv, Some(words_pv("g1f3 g8f6")));
+    protocol::update_line(&mut slots[0], info("info pv e2e4"));
+    assert!(slots[0].as_ref().unwrap().score.is_none());
+    assert!(slots[0].as_ref().unwrap().depth.is_none());
+}
+
+#[test]
+fn full_san_numbering_special_moves_and_failure_prefix_are_read_only() {
+    for (fen_text, pv, expected, from, to) in [
+        (
+            fen::write(&Chess::default()),
+            "e2e4 e7e5 g1f3 b8c6 f1b5",
+            "1. e4 e5 2. Nf3 Nc6 3. Bb5",
+            Square::E2,
+            Square::E4,
+        ),
+        (
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 17 42".into(),
+            "e7e5 g1f3 b8c6",
+            "42... e5 43. Nf3 Nc6",
+            Square::E7,
+            Square::E5,
+        ),
+        (
+            "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1".into(),
+            "e1g1 e8c8",
+            "1. O-O O-O-O",
+            Square::E1,
+            Square::G1,
+        ),
+        (
+            "r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 0 42".into(),
+            "e8g8",
+            "42... O-O",
+            Square::E8,
+            Square::G8,
+        ),
+        (
+            "7k/5P2/8/8/8/8/8/K7 w - - 0 1".into(),
+            "f7f8q h8h7",
+            "1. f8=Q+ Kh7",
+            Square::F7,
+            Square::F8,
+        ),
+        (
+            "7k/8/8/3pP3/8/8/8/K7 w - d6 0 1".into(),
+            "e5d6",
+            "1. exd6",
+            Square::E5,
+            Square::D6,
+        ),
+        (
+            "7k/8/5KQ1/8/8/8/8/8 w - - 0 1".into(),
+            "g6g7",
+            "1. Qg7#",
+            Square::G6,
+            Square::G7,
+        ),
+    ] {
+        let pos = fen::parse(&fen_text).unwrap();
+        let v = protocol::variation(&pos, &words_pv(pv));
+        assert_eq!(v.error, None, "{fen_text}");
+        assert_eq!(v.san, expected);
+        assert_eq!(v.arrow, Some((from, to)));
+        assert_eq!(fen::write(&pos), fen_text);
+    }
+    let broken = protocol::variation(&Chess::default(), &words_pv("e2e4 e7e5 a1a8"));
+    assert_eq!(broken.san, "1. e4 e5");
+    assert!(broken.error.unwrap().contains("ply 3"));
+    assert!(broken.arrow.is_none());
+    assert!(
+        protocol::variation(&Chess::default(), &words_pv("0000"))
+            .error
+            .is_some()
+    );
+}
+
+#[test]
+fn multipv_process_configuration_fallback_limits_and_stop_boundary() {
+    for (mode, count, expected) in [
+        ("multi", 1, 1),
+        ("multi", 2, 2),
+        ("multi", 3, 3),
+        ("nomultipv", 3, 1),
+        ("multi limited", 3, 2),
+    ] {
+        let (mut cfg, _) = fixture(mode);
+        cfg.multipv = count;
+        let mut c = Controller::start(cfg);
+        ready(&c);
+        c.request(request(1));
+        let r = wait(&c, |r| r.status == Status::Complete);
+        assert_eq!(r.multipv, expected);
+        assert_eq!(r.lines.iter().flatten().count(), expected);
+        if expected != count as usize {
+            assert!(r.warnings.iter().any(|s| s.starts_with("MultiPV:")));
+        }
+        if mode.starts_with("multi") {
+            assert_eq!(r.lines[0].as_ref().unwrap().depth, Some(19));
+            assert_eq!(
+                r.lines[0].as_ref().unwrap().score,
+                Some((Score::Cp(55), Bound::Exact))
+            );
+            if expected > 1 {
+                assert_eq!(
+                    r.lines[1].as_ref().unwrap().pv,
+                    Some(words_pv("d2d4 d7d5 c2c4"))
+                );
+            }
+        }
+        assert!(c.shutdown());
+    }
+    let (cfg, dir) = fixture("multi hold");
+    let mut c = Controller::start(cfg);
+    ready(&c);
+    c.request(request(1));
+    wait(&c, |r| r.info.depth == Some(19));
+    c.set_multipv(3);
+    c.request(request(2));
+    let r = wait(&c, |r| r.request == Some(2) && r.lines[2].is_some());
+    assert_eq!(r.multipv, 3);
+    c.set_multipv(2);
+    c.request(request(3));
+    let r = wait(&c, |r| r.request == Some(3) && r.lines[1].is_some());
+    assert!(r.lines[2].is_none());
+    assert!(c.shutdown());
+    let log = std::fs::read_to_string(dir.join("commands.log")).unwrap();
+    for count in [2, 3] {
+        assert!(log.contains(&format!("stop\nisready\nsetoption name MultiPV value {count}\nisready\nposition startpos\ngo")), "{log}");
+    }
+}
+
+fn inject_lines(a: &mut App, lines: &[&str]) -> std::sync::Arc<std::sync::Mutex<uci::Report>> {
+    let report = std::sync::Arc::new(std::sync::Mutex::new(uci::Report {
+        status: Status::Ready,
+        ..Default::default()
+    }));
+    a.analysis.panel = true;
+    a.analysis.controller = Some(Controller::with_test_report(report.clone()));
+    a.request_analysis().unwrap();
+    let mut r = report.lock().unwrap();
+    r.status = Status::Complete;
+    r.request = a.analysis.report.request;
+    r.multipv = lines.len();
+    for text in lines {
+        let i = info(text);
+        let index = i.rank - 1;
+        r.lines[index] = Some(i);
+    }
+    r.info = r.lines[0].clone().unwrap_or_default();
+    drop(r);
+    a.poll_analysis();
+    report
+}
+
+#[test]
+fn all_candidate_results_invalidate_on_game_replay_and_engine_changes() {
+    for change in 0..9 {
+        let mut a = app();
+        if change == 4 || change == 5 {
+            a.enter_replay(pgn::import(b"1. e4 e5 *").unwrap(), true);
+            a.handle_record_action(records_ui::Action::First);
+        }
+        let report = inject_lines(
+            &mut a,
+            &[
+                "info depth 10 score cp 52 pv e2e4 e7e5",
+                "info depth 10 multipv 2 score cp 20 pv d2d4 d7d5",
+                "info depth 10 multipv 3 score cp 10 pv g1f3 g8f6",
+            ],
+        );
+        assert!(a.analysis_visual().arrow.is_some());
+        match change {
+            0 => {
+                let mv = "e2e4"
+                    .parse::<shakmaty::uci::UciMove>()
+                    .unwrap()
+                    .to_move(&a.pos)
+                    .unwrap();
+                a.apply_move(mv);
+                a.undo();
+            }
+            1 => a.new_game(),
+            2 => a.import_fen("7k/8/8/8/8/8/P7/K7 b - - 0 1").unwrap(),
+            3 => a.enter_replay(pgn::import(b"1. d4 *").unwrap(), true),
+            4 => a.handle_record_action(records_ui::Action::Next),
+            5 => a.leave_replay(),
+            6 => a.close_analysis_engine(),
+            7 => a.cancel_analysis(),
+            _ => {
+                a.request_analysis().unwrap();
+            }
+        }
+        a.poll_analysis(); // Re-deliver the entire old three-line report.
+        assert!(
+            a.analysis.report.lines.iter().all(Option::is_none),
+            "change {change}"
+        );
+        assert!(a.analysis.variations.iter().all(Option::is_none));
+        assert!(a.analysis_visual().score.is_none());
+        assert!(a.analysis_visual().arrow.is_none());
+        drop(report);
+    }
+}
+
+#[test]
+fn replay_full_pv_isolation_black_scores_invalid_candidate_and_selection() {
+    let mut a = app();
+    let before = a.snapshot();
+    a.enter_replay(pgn::import(b"1. e4 e5 2. Nf3 *").unwrap(), true);
+    a.handle_record_action(records_ui::Action::Jump(1));
+    inject_lines(
+        &mut a,
+        &[
+            "info depth 18 score cp 52 lowerbound pv e7e5 g1f3",
+            "info depth 17 multipv 2 score mate -3 pv c7c5 g1f3",
+            "info depth 19 multipv 3 score cp 20 pv d7d5 a1a8",
+        ],
+    );
+    assert_eq!(
+        a.analysis.report.lines[0].as_ref().unwrap().score,
+        Some((Score::Cp(-52), Bound::Upper))
+    );
+    assert_eq!(
+        a.analysis.variations[0].as_ref().unwrap().san,
+        "1... e5 2. Nf3"
+    );
+    assert!(a.analysis.variations[2].as_ref().unwrap().error.is_some());
+    assert!(a.analysis.report.lines[2].as_ref().unwrap().score.is_none());
+    a.handle_analysis_action(Action::Select(1));
+    assert_eq!(
+        a.analysis_visual().score,
+        Some((Score::Mate(3), Bound::Exact))
+    );
+    assert_eq!(a.analysis_visual().arrow, Some((Square::C7, Square::C5)));
+    a.handle_analysis_action(Action::Select(2));
+    assert!(a.analysis_visual().arrow.is_none());
+    let cursor = a.records.replay.as_ref().unwrap().cursor;
+    a.tick_clock_at(a.clock_last_tick + Duration::from_secs(20));
+    assert_eq!(a.clocks, before.clocks);
+    assert_eq!(a.history.len(), 0);
+    assert_eq!(cursor, 1);
+    assert_eq!(fen::write(&a.pos), before.current_fen);
+    assert_eq!(a.snapshot().record.moves, before.record.moves);
+}
+
+#[test]
+fn evaluation_fraction_labels_extremes_bounds_and_mate_zero() {
+    use crate::analysis_board::{score_label, white_fraction};
+    let cp = |n| Some((Score::Cp(n), Bound::Exact));
+    assert_eq!(white_fraction(None), 0.5);
+    assert_eq!(white_fraction(cp(0)), 0.5);
+    let mut previous = 0.0;
+    for n in [i32::MIN, -4000, -1000, -50, 0, 50, 1000, 4000, i32::MAX] {
+        let value = white_fraction(cp(n));
+        assert!((0.0..=1.0).contains(&value));
+        assert!(value >= previous);
+        previous = value;
+    }
+    for (n, fraction) in [(3, 1.0), (-3, 0.0)] {
+        assert_eq!(
+            white_fraction(Some((Score::Mate(n), Bound::Exact))),
+            fraction
+        );
+    }
+    for (side, text, fraction) in [(Color::White, "M-0", 0.0), (Color::Black, "M+0", 1.0)] {
+        let value = Some(protocol::white_score((Score::Mate(0), Bound::Exact), side));
+        assert_eq!(score_label(value), text);
+        assert_eq!(white_fraction(value), fraction);
+    }
+    assert_eq!(score_label(Some((Score::Cp(52), Bound::Lower))), ">=+0.52");
+    assert_eq!(score_label(Some((Score::Mate(-3), Bound::Upper))), "<=M-3");
+}
+
+#[test]
+fn overlay_pixels_geometry_flips_sizes_and_castling_targets() {
+    let font = font::TextRenderer::load();
+    let base = 0x00555555;
+    for size in [(640, 480), (1280, 720)] {
+        let l = render::Layout::new(size.0, size.1, false);
+        for flipped in [false, true] {
+            let (fx, fy) = l.square_center(Square::E2, flipped);
+            let (tx, ty) = l.square_center(Square::E4, flipped);
+            assert_eq!(fx, tx);
+            assert_eq!(fy > ty, !flipped);
+            for (score, white_fraction) in [
+                (None, 0.5),
+                (Some((Score::Cp(0), Bound::Exact)), 0.5),
+                (Some((Score::Mate(3), Bound::Exact)), 1.0),
+                (Some((Score::Mate(-3), Bound::Exact)), 0.0),
+                (Some((Score::Cp(400), Bound::Lower)), 0.75),
+                (Some((Score::Cp(-400), Bound::Upper)), 0.25),
+                (
+                    Some((Score::Cp(i32::MAX), Bound::Exact)),
+                    analysis_board::white_fraction(Some((Score::Cp(4000), Bound::Exact))),
+                ),
+                (
+                    Some((Score::Cp(i32::MIN), Bound::Exact)),
+                    analysis_board::white_fraction(Some((Score::Cp(-4000), Bound::Exact))),
+                ),
+            ] {
+                let mut buf = vec![base; size.0 * size.1];
+                analysis_board::draw(
+                    &mut buf,
+                    size,
+                    &font,
+                    analysis_board::Visual {
+                        active: true,
+                        score,
+                        arrow: Some((Square::E2, Square::E4)),
+                    },
+                    &l,
+                    flipped,
+                    &theme::Theme::DarkPlus.palette(),
+                );
+                let x = (l.board_left - 16.0) as usize;
+                let white = (l.board_top as usize..(l.board_top + l.board_size) as usize)
+                    .filter(|y| buf[y * size.0 + x] == 0x00eeeeee)
+                    .count();
+                assert!((white as f64 - f64::from(l.board_size) * white_fraction).abs() <= 1.0);
+                let midpoint = ((fy + ty) / 2.0) as usize * size.0 + fx as usize;
+                assert_ne!(buf[midpoint], base);
+                assert_eq!(
+                    buf[l.square_center(Square::A4, flipped).1 as usize * size.0
+                        + l.square_center(Square::A4, flipped).0 as usize],
+                    base
+                );
+            }
+            for (fen_text, mv, from, to) in [
+                (
+                    "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1",
+                    "e1c1",
+                    Square::E1,
+                    Square::C1,
+                ),
+                (
+                    "r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 0 1",
+                    "e8g8",
+                    Square::E8,
+                    Square::G8,
+                ),
+            ] {
+                let v = protocol::variation(&fen::parse(fen_text).unwrap(), &words_pv(mv));
+                assert_eq!(v.arrow, Some((from, to)));
+                let mut buf = vec![base; size.0 * size.1];
+                analysis_board::draw(
+                    &mut buf,
+                    size,
+                    &font,
+                    analysis_board::Visual {
+                        active: true,
+                        score: None,
+                        arrow: v.arrow,
+                    },
+                    &l,
+                    flipped,
+                    &theme::Theme::DarkPlus.palette(),
+                );
+                let a = l.square_center(from, flipped);
+                let b = l.square_center(to, flipped);
+                assert_ne!(
+                    buf[((a.1 + b.1) / 2.0) as usize * size.0 + ((a.0 + b.0) / 2.0) as usize],
+                    base
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn candidate_rows_click_wrap_and_eleven_language_offscreen_layouts() {
+    let images = assets::PieceImages::load();
+    let font = font::TextRenderer::load();
+    let renderer = Renderer::new(&images, &font);
+    let mut a = app();
+    inject_lines(
+        &mut a,
+        &[
+            "info depth 18 score cp 52 pv e2e4 e7e5 g1f3 b8c6 f1b5",
+            "info depth 18 multipv 2 score cp 31 pv d2d4 d7d5 c2c4",
+            "info depth 17 multipv 3 score cp 20 pv g1f3 g8f6 d2d4",
+        ],
+    );
+    for lang in i18n::Language::ALL {
+        a.settings.language = lang;
+        assert!(
+            analysis_ui::words(lang)
+                .iter()
+                .chain(analysis_ui::extra_words(lang).iter())
+                .all(|s| !s.is_empty())
+        );
+        for size in [(640, 480), (1280, 720)] {
+            for i in 0..3 {
+                let rect = analysis_ui::candidate_rect(size, i);
+                assert!(rect.1 >= 246.0 && rect.1 + rect.3 < size.1 as f32 - 36.0);
+                let mut buf = vec![0; size.0 * size.1];
+                let view = a.view_state(None, false, false, false);
+                renderer.render(&mut buf, size.0, size.1, &view);
+                let before = buf.clone();
+                let actions = analysis_ui::draw(
+                    &font,
+                    &mut buf,
+                    size,
+                    &a,
+                    Some((rect.0 + 5.0, rect.1 + 5.0)),
+                    true,
+                );
+                assert_eq!(actions, vec![Action::Select(i)]);
+                a.handle_analysis_action(actions[0]);
+                assert_eq!(a.analysis.selected_line, i);
+                assert_eq!(
+                    a.analysis_visual().arrow,
+                    Some(match i {
+                        0 => (Square::E2, Square::E4),
+                        1 => (Square::D2, Square::D4),
+                        _ => (Square::G1, Square::F3),
+                    })
+                );
+                for y in 40..size.1 - 40 {
+                    let edge = size.0 - 292;
+                    assert_eq!(
+                        &before[y * size.0..y * size.0 + edge],
+                        &buf[y * size.0..y * size.0 + edge]
+                    );
+                }
+            }
+        }
+    }
+    let full = a.analysis.variations[0].as_ref().unwrap().san.clone();
+    let wrapped = analysis_ui::wrap_pv(&font, &full.repeat(10), 80.0, 2);
+    assert_eq!(wrapped.len(), 2);
+    assert!(wrapped[1].ends_with('…'));
+    assert_eq!(a.analysis.variations[0].as_ref().unwrap().san, full);
 }

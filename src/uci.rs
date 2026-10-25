@@ -20,6 +20,7 @@ pub struct Config {
     pub threads: u32,
     pub hash: u32,
     pub movetime: u32,
+    pub multipv: u32,
 }
 impl Default for Config {
     fn default() -> Self {
@@ -28,6 +29,7 @@ impl Default for Config {
             threads: 2,
             hash: 64,
             movetime: 1000,
+            multipv: 1,
         }
     }
 }
@@ -36,6 +38,7 @@ impl Config {
         self.threads = self.threads.clamp(1, 8);
         self.hash = self.hash.clamp(1, 256);
         self.movetime = self.movetime.clamp(100, 10000);
+        self.multipv = self.multipv.clamp(1, 3);
     }
 }
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -57,6 +60,8 @@ pub struct Report {
     pub error: Option<String>,
     pub request: Option<u64>,
     pub info: Info,
+    pub lines: [Option<Info>; 3],
+    pub multipv: usize,
     pub best: Option<String>,
     pub warnings: Vec<String>,
     pub pid: Option<u32>,
@@ -73,6 +78,7 @@ struct Desired {
     serial: u64,
     request: Option<Request>,
     quit: bool,
+    multipv: u32,
 }
 pub struct Controller {
     desired: Arc<Mutex<Desired>>,
@@ -90,7 +96,10 @@ impl Controller {
     }
     pub fn start(mut config: Config) -> Self {
         config.clamp();
-        let desired = Arc::new(Mutex::new(Desired::default()));
+        let desired = Arc::new(Mutex::new(Desired {
+            multipv: config.multipv,
+            ..Desired::default()
+        }));
         let report = Arc::new(Mutex::new(Report {
             status: Status::Starting,
             ..Report::default()
@@ -127,6 +136,12 @@ impl Controller {
     }
     pub fn stop(&self) {
         let mut d = self.desired.lock().expect("UCI request");
+        d.serial = d.serial.wrapping_add(1);
+        d.request = None;
+    }
+    pub fn set_multipv(&self, count: u32) {
+        let mut d = self.desired.lock().expect("UCI request");
+        d.multipv = count.clamp(1, 3);
         d.serial = d.serial.wrapping_add(1);
         d.request = None;
     }
@@ -342,13 +357,9 @@ fn configure(
     engine: &Engine,
     options: &[EngineOption],
     cfg: &Config,
-) -> Result<Vec<String>, String> {
+) -> Result<(Vec<String>, usize), String> {
     let mut warnings = vec![];
-    for (name, value, limit) in [
-        ("Threads", cfg.threads, 8),
-        ("Hash", cfg.hash, 256),
-        ("MultiPV", 1, 1),
-    ] {
+    for (name, value, limit) in [("Threads", cfg.threads, 8), ("Hash", cfg.hash, 256)] {
         if let Some(option) = options
             .iter()
             .find(|o| o.name.eq_ignore_ascii_case(name) && o.kind == "spin")
@@ -364,7 +375,32 @@ fn configure(
             warnings.push(format!("{name}: unsupported; engine default"));
         }
     }
-    Ok(warnings)
+    let (count, warning) = configure_multipv(engine, options, cfg.multipv)?;
+    warnings.extend(warning);
+    Ok((warnings, count))
+}
+fn configure_multipv(
+    engine: &Engine,
+    options: &[EngineOption],
+    count: u32,
+) -> Result<(usize, Option<String>), String> {
+    let Some(option) = options
+        .iter()
+        .find(|o| o.name.eq_ignore_ascii_case("MultiPV") && o.kind == "spin")
+    else {
+        return Ok((1, Some("MultiPV: unsupported; single PV only".into())));
+    };
+    let min = option.min.unwrap_or(1).max(1);
+    let max = option.max.unwrap_or(3).min(3);
+    if min > max {
+        return Err("Engine MultiPV range exceeds safe resource limit".into());
+    }
+    let safe = i64::from(count.clamp(1, 3)).clamp(min, max);
+    engine.send(&format!("setoption name {} value {safe}", option.name))?;
+    Ok((
+        safe as usize,
+        (safe != i64::from(count)).then(|| format!("MultiPV: engine range; using {safe}")),
+    ))
 }
 fn run(cfg: &Config, desired: &Mutex<Desired>, report: &Mutex<Report>) -> Result<(), String> {
     let mut engine = Engine::spawn(&cfg.path)?;
@@ -386,20 +422,22 @@ fn run(cfg: &Config, desired: &Mutex<Desired>, report: &Mutex<Report>) -> Result
             _ => {}
         }
     }
-    let warnings = configure(&engine, &options, cfg)?;
+    let (warnings, mut count) = configure(&engine, &options, cfg)?;
+    let mut configured = cfg.multipv;
     engine.barrier(desired)?;
     {
         let mut r = report.lock().expect("UCI report");
         r.status = Status::Ready;
         r.warnings = warnings;
+        r.multipv = count;
     }
     let mut serial = 0;
     let mut context = None;
     let mut active: Option<(Request, Instant)> = None;
     loop {
-        let (next_serial, next, quit) = {
+        let (next_serial, next, quit, multipv) = {
             let d = desired.lock().expect("UCI request");
-            (d.serial, d.request.clone(), d.quit)
+            (d.serial, d.request.clone(), d.quit, d.multipv)
         };
         if quit {
             return Ok(());
@@ -407,6 +445,18 @@ fn run(cfg: &Config, desired: &Mutex<Desired>, report: &Mutex<Report>) -> Result
         if next_serial != serial {
             if active.take().is_some() {
                 engine.stop_search(desired)?;
+            }
+            if multipv != configured {
+                // stop_search has consumed bestmove and synchronized. No option
+                // write can race a running search, including rapid UI changes.
+                let (effective, warning) = configure_multipv(&engine, &options, multipv)?;
+                engine.barrier(desired)?;
+                count = effective;
+                configured = multipv;
+                let mut r = report.lock().expect("UCI report");
+                r.multipv = count;
+                r.warnings.retain(|s| !s.starts_with("MultiPV:"));
+                r.warnings.extend(warning);
             }
             serial = next_serial;
             if let Some(request) = next {
@@ -421,6 +471,7 @@ fn run(cfg: &Config, desired: &Mutex<Desired>, report: &Mutex<Report>) -> Result
                 let mut r = report.lock().expect("UCI report");
                 r.request = Some(request.id);
                 r.info = Info::default();
+                r.lines = Default::default();
                 r.best = None;
                 r.error = None;
                 r.status = Status::Searching;
@@ -433,6 +484,7 @@ fn run(cfg: &Config, desired: &Mutex<Desired>, report: &Mutex<Report>) -> Result
                 r.status = Status::Stopped;
                 r.request = None;
                 r.info = Info::default();
+                r.lines = Default::default();
                 r.best = None;
             }
         }
@@ -442,22 +494,13 @@ fn run(cfg: &Config, desired: &Mutex<Desired>, report: &Mutex<Report>) -> Result
             .unwrap_or_else(|| Instant::now() + Duration::from_secs(60));
         match engine.receive(until, desired)? {
             Some(Message::Info(info)) if active.is_some() => {
+                if info.rank > count {
+                    continue;
+                }
                 let mut r = report.lock().expect("UCI report");
-                if info.depth.is_some() {
-                    r.info.depth = info.depth;
-                }
-                if info.score.is_some() {
-                    r.info.score = info.score;
-                }
-                if info.pv.is_some() {
-                    r.info.pv = info.pv;
-                }
-                if info.nodes.is_some() {
-                    r.info.nodes = info.nodes;
-                }
-                if info.time.is_some() {
-                    r.info.time = info.time;
-                }
+                let rank = info.rank;
+                protocol::update_line(&mut r.lines[rank - 1], info);
+                r.info = r.lines[0].clone().unwrap_or_default();
             }
             Some(Message::Best(best)) => {
                 if active.take().is_none() {

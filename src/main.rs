@@ -2,6 +2,7 @@
 
 mod ai;
 mod analysis;
+mod analysis_board;
 mod analysis_ui;
 mod assets;
 mod display;
@@ -1004,6 +1005,7 @@ impl App {
             Vec::new()
         };
         ViewState {
+            analysis: self.analysis_visual(),
             pos: self.pos.clone(),
             selected: self.selected,
             last_move: self.last_move,

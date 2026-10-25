@@ -20,6 +20,9 @@ pub struct Analysis {
     pub external_context: u64,
     pub live_context: u64,
     pub config_path: Option<PathBuf>,
+    pub variations: [Option<uci_protocol::Variation>; 3],
+    pub selected_line: usize,
+    cached: [Option<uci_protocol::Info>; 3],
 }
 struct Target {
     id: u64,
@@ -102,6 +105,10 @@ impl App {
         }
         self.analysis.target = None;
         self.analysis.report.info = Default::default();
+        self.analysis.report.lines = Default::default();
+        self.analysis.variations = Default::default();
+        self.analysis.cached = Default::default();
+        self.analysis.selected_line = 0;
         self.analysis.report.best = None;
         self.analysis.report.request = None;
         if self.analysis.controller.is_some() {
@@ -182,6 +189,9 @@ impl App {
         let id = self.analysis.sequence;
         let stamp = self.analysis_stamp();
         self.analysis.error = None;
+        self.analysis.variations = Default::default();
+        self.analysis.cached = Default::default();
+        self.analysis.selected_line = 0;
         if position.legal_moves().is_empty() {
             self.cancel_analysis();
             self.analysis.target = Some(Target {
@@ -205,6 +215,7 @@ impl App {
             movetime: self.analysis.config.movetime,
         });
         self.analysis.report.info = Default::default();
+        self.analysis.report.lines = Default::default();
         self.analysis.report.best = None;
         self.analysis.report.status = Status::Searching;
         self.analysis.report.request = Some(id);
@@ -225,6 +236,7 @@ impl App {
         let mut next = controller.report();
         if self.analysis.target.is_none() {
             next.info = Default::default();
+            next.lines = Default::default();
             next.best = None;
             next.request = None;
             if matches!(next.status, Status::Searching | Status::Complete) {
@@ -236,6 +248,7 @@ impl App {
                     // The engine may fail while stopping the previous request.
                     // Surface the transport failure, never its old position data.
                     next.info = Default::default();
+                    next.lines = Default::default();
                     next.best = None;
                     next.request = None;
                     self.analysis.report = next;
@@ -243,9 +256,6 @@ impl App {
                 return;
             }
             let validate = (|| {
-                if let Some(pv) = &next.info.pv {
-                    uci_protocol::legal_move(&target.position, pv)?;
-                }
                 if let Some(best) = &next.best {
                     uci_protocol::legal_move(&target.position, best)?;
                 }
@@ -256,12 +266,94 @@ impl App {
                 self.cancel_analysis();
                 return;
             }
+            // Convert only changed bounded PVs; GUI drawing never parses a line.
+            // Keep per-rank errors and valid prefixes without discarding other ranks.
+            self.analysis.error = None;
+            for i in 0..3 {
+                if self.analysis.cached[i].as_ref().and_then(|l| l.pv.as_ref())
+                    != next.lines[i].as_ref().and_then(|l| l.pv.as_ref())
+                {
+                    self.analysis.variations[i] = next.lines[i]
+                        .as_ref()
+                        .and_then(|line| line.pv.as_ref())
+                        .map(|pv| uci_protocol::variation(&target.position, pv));
+                }
+                self.analysis.cached[i] = next.lines[i].clone();
+                if let Some(v) = &self.analysis.variations[i]
+                    && let Some(e) = &v.error
+                {
+                    self.analysis.error = Some(e.clone());
+                    if let Some(line) = &mut next.lines[i] {
+                        line.score = None;
+                    }
+                    if i == 0 {
+                        next.best = None;
+                        next.info.score = None;
+                    }
+                }
+                if let Some(line) = &mut next.lines[i] {
+                    line.score = line
+                        .score
+                        .map(|s| uci_protocol::white_score(s, target.position.turn()));
+                }
+            }
             next.info.score = next
                 .info
                 .score
                 .map(|s| uci_protocol::white_score(s, target.position.turn()));
         }
         self.analysis.report = next;
+    }
+    pub(crate) fn analysis_visual(&self) -> crate::analysis_board::Visual {
+        let neutral = crate::analysis_board::Visual {
+            active: self.analysis.panel && matches!(self.screen, Screen::Game | Screen::Replay),
+            ..Default::default()
+        };
+        if !self.analysis.panel
+            || self
+                .analysis
+                .target
+                .as_ref()
+                .is_none_or(|t| t.stamp != self.analysis_stamp())
+            || !matches!(
+                self.analysis.report.status,
+                Status::Searching | Status::Complete
+            )
+        {
+            return neutral;
+        }
+        let i = self.analysis.selected_line.min(2);
+        let invalid = self.analysis.variations[i]
+            .as_ref()
+            .is_some_and(|v| v.error.is_some());
+        let score = if invalid {
+            None
+        } else {
+            self.analysis.report.lines[i].as_ref().and_then(|l| l.score)
+        };
+        let arrow = self.analysis.variations[i]
+            .as_ref()
+            .and_then(|v| v.arrow)
+            .or_else(|| {
+                if i != 0 || invalid {
+                    return None;
+                }
+                let target = self.analysis.target.as_ref()?;
+                self.analysis
+                    .report
+                    .best
+                    .as_ref()?
+                    .parse::<shakmaty::uci::UciMove>()
+                    .ok()?
+                    .to_move(&target.position)
+                    .ok()
+                    .and_then(|mv| uci_protocol::move_arrow(&mv))
+            });
+        crate::analysis_board::Visual {
+            active: true,
+            score,
+            arrow,
+        }
     }
     pub(crate) fn analysis_san(&self, text: &str) -> Option<String> {
         self.analysis

@@ -1,12 +1,5 @@
 //! Compact sidebar overlay; board geometry and real game state stay unchanged.
-use crate::{
-    App, Screen,
-    assets::fill_rect,
-    font::TextRenderer,
-    i18n::Language,
-    uci::Status,
-    uci_protocol::{Bound, Score},
-};
+use crate::{App, Screen, assets::fill_rect, font::TextRenderer, i18n::Language, uci::Status};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Action {
@@ -19,6 +12,8 @@ pub enum Action {
     Time,
     Threads,
     Hash,
+    MultiPV,
+    Select(usize),
     First,
     Previous,
     Next,
@@ -322,7 +317,12 @@ impl App {
     pub(crate) fn handle_analysis_action(&mut self, action: Action) {
         let result = (|| {
             match action {
-                Action::Toggle => self.analysis.panel = !self.analysis.panel,
+                Action::Toggle => {
+                    self.analysis.panel = !self.analysis.panel;
+                    if !self.analysis.panel {
+                        self.cancel_analysis();
+                    }
+                }
                 Action::Choose => {
                     if let Some(path) = crate::native_files::choose_engine(self.records.owner)? {
                         self.close_analysis_engine();
@@ -340,6 +340,32 @@ impl App {
                 Action::Stop => {
                     self.cancel_analysis();
                     self.analysis.error = None;
+                }
+                Action::Select(i) => {
+                    if self
+                        .analysis
+                        .report
+                        .lines
+                        .get(i)
+                        .is_some_and(|l| l.is_some())
+                    {
+                        self.analysis.selected_line = i;
+                    }
+                }
+                Action::MultiPV => {
+                    let again = matches!(
+                        self.analysis.report.status,
+                        Status::Searching | Status::Complete
+                    );
+                    self.cancel_analysis();
+                    self.analysis.config.multipv = self.analysis.config.multipv % 3 + 1;
+                    if let Some(c) = &self.analysis.controller {
+                        c.set_multipv(self.analysis.config.multipv);
+                    }
+                    self.save_analysis_config();
+                    if again && self.analysis.controller.is_some() {
+                        self.request_analysis()?;
+                    }
                 }
                 Action::Time | Action::Threads | Action::Hash => {
                     self.close_analysis_engine();
@@ -387,11 +413,18 @@ struct Canvas<'a> {
 }
 impl Canvas<'_> {
     fn text(&mut self, x: f32, y: f32, value: &str, width: f32) {
-        let text: String = value.chars().take(100).collect();
-        let size = (14.0 * (width / self.font.text_width(&text, 14.0).max(1.0))).min(14.0);
+        let mut text: String = value.chars().take(200).collect();
+        let size = (14.0 * (width / self.font.text_width(&text, 14.0).max(1.0))).clamp(11.0, 14.0);
+        if self.font.text_width(&text, size) > width {
+            while !text.is_empty() && self.font.text_width(&format!("{text}…"), size) > width {
+                text.pop();
+            }
+            text.push('…');
+        }
         self.font
             .draw_text(self.buf, self.size, (x, y), &text, self.palette.text, size);
     }
+
     fn button(&mut self, rect: (f32, f32, f32, f32), text: &str, action: Action) {
         let (x, y, w, h) = rect;
         let hover = self
@@ -464,7 +497,7 @@ pub fn draw(
     let r = &app.analysis.report;
     c.text(
         x + 12.0,
-        58.0,
+        55.0,
         &format!(
             "{}: {}",
             words[21],
@@ -485,22 +518,12 @@ pub fn draw(
             Status::Failed => 19,
         }
     };
-    c.text(x + 12.0, 80.0, words[status], 252.0);
-    c.text(
-        x + 12.0,
-        102.0,
-        &app.analysis
-            .config
-            .path
-            .file_name()
-            .unwrap_or_default()
-            .to_string_lossy(),
-        252.0,
-    );
-    c.button((x + 12.0, 112.0, 252.0, 28.0), words[1], Action::Choose);
+    let more = extra_words(app.settings.language);
+    c.text(x + 12.0, 76.0, words[status], 252.0);
     let enabled = app.analysis.controller.is_some();
+    c.button((x + 12.0, 85.0, 122.0, 27.0), words[1], Action::Choose);
     c.button(
-        (x + 12.0, 146.0, 252.0, 28.0),
+        (x + 140.0, 85.0, 124.0, 27.0),
         if enabled { words[3] } else { words[2] },
         if enabled {
             Action::Disable
@@ -508,52 +531,51 @@ pub fn draw(
             Action::Enable
         },
     );
+    for (i, (label, value, action)) in [
+        (
+            words[6],
+            format!("{}ms", app.analysis.config.movetime),
+            Action::Time,
+        ),
+        (
+            words[7],
+            app.analysis.config.threads.to_string(),
+            Action::Threads,
+        ),
+        (
+            words[8],
+            format!("{}M", app.analysis.config.hash),
+            Action::Hash,
+        ),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        c.button(
+            (x + 12.0 + i as f32 * 86.0, 118.0, 80.0, 27.0),
+            &format!("{label} {value}"),
+            action,
+        );
+    }
     c.button(
-        (x + 12.0, 180.0, 252.0, 28.0),
-        &format!("{}: {} ms", words[6], app.analysis.config.movetime),
-        Action::Time,
+        (x + 12.0, 151.0, 78.0, 27.0),
+        &format!("MultiPV {}", app.analysis.config.multipv),
+        Action::MultiPV,
     );
-    c.button(
-        (x + 12.0, 214.0, 122.0, 28.0),
-        &format!("{}: {}", words[7], app.analysis.config.threads),
-        Action::Threads,
-    );
-    c.button(
-        (x + 140.0, 214.0, 124.0, 28.0),
-        &format!("{}: {} MiB", words[8], app.analysis.config.hash),
-        Action::Hash,
-    );
-    c.button((x + 12.0, 248.0, 154.0, 28.0), words[4], Action::Analyze);
-    c.button((x + 172.0, 248.0, 92.0, 28.0), words[5], Action::Stop);
-    let score = r
-        .info
-        .score
-        .map(|(score, bound)| {
-            format!(
-                "{}{}",
-                match bound {
-                    Bound::Exact => "",
-                    Bound::Lower => ">=",
-                    Bound::Upper => "<=",
-                },
-                match score {
-                    Score::Cp(cp) => format!("{:+.2}", f64::from(cp) / 100.0),
-                    Score::Mate(m) => format!("#{m:+}"),
-                }
-            )
-        })
-        .unwrap_or_else(|| "—".into());
-    c.text(x + 12.0, 300.0, &format!("{}: {score}", words[9]), 252.0);
+    c.button((x + 96.0, 151.0, 92.0, 27.0), words[4], Action::Analyze);
+    c.button((x + 194.0, 151.0, 70.0, 27.0), words[5], Action::Stop);
     c.text(
         x + 12.0,
-        322.0,
+        198.0,
         &format!(
             "{}: {}",
-            words[10],
-            r.info
-                .depth
-                .map(|n| n.to_string())
-                .unwrap_or_else(|| "—".into())
+            words[9],
+            crate::analysis_board::score_label(
+                r.lines
+                    .first()
+                    .and_then(|v| v.as_ref())
+                    .and_then(|v| v.score)
+            )
         ),
         252.0,
     );
@@ -562,35 +584,87 @@ pub fn draw(
         .as_deref()
         .and_then(|mv| app.analysis_san(mv))
         .unwrap_or_else(|| "—".into());
-    c.text(x + 12.0, 344.0, &format!("{}: {san}", words[11]), 252.0);
-    let pv = r
-        .info
-        .pv
-        .as_deref()
-        .and_then(|mv| app.analysis_san(mv))
-        .unwrap_or_else(|| "—".into());
-    c.text(x + 12.0, 366.0, &format!("{}: {pv}", words[12]), 252.0);
-    let error = app.analysis.error.as_ref().or(r.error.as_ref());
-    if let Some(e) = error {
-        c.text(x + 12.0, 390.0, &format!("{}: {e}", words[19]), 252.0);
+    c.text(
+        x + 12.0,
+        217.0,
+        &format!(
+            "{}: {san}  {}: {}/{}",
+            words[11],
+            more[0],
+            r.lines.iter().flatten().count(),
+            r.multipv.max(1)
+        ),
+        252.0,
+    );
+    if let Some(e) = app.analysis.error.as_ref().or(r.error.as_ref()) {
+        c.text(x + 12.0, 237.0, &format!("{}: {e}", words[19]), 252.0);
+    } else if r.warnings.iter().any(|s| s.starts_with("MultiPV:")) {
+        c.text(x + 12.0, 237.0, more[3], 252.0);
     } else if !r.warnings.is_empty() {
-        c.text(x + 12.0, 390.0, words[22], 252.0);
-    } else if !r.author.is_empty() {
-        c.text(x + 12.0, 390.0, &r.author, 252.0);
+        c.text(x + 12.0, 237.0, words[22], 252.0);
     }
-    if app.screen == Screen::Game {
-        c.text(
-            x + 12.0,
-            414.0,
-            &format!(
-                "{} {}s / {} {}s",
-                app.settings.language.text().white,
-                app.clocks.white.as_secs(),
-                app.settings.language.text().black,
-                app.clocks.black.as_secs()
-            ),
-            252.0,
+    for i in 0..3 {
+        let Some(line) = &r.lines[i] else {
+            continue;
+        }; // Never invent missing candidates.
+        let rect = candidate_rect(size, i);
+        let selected = i == app.analysis.selected_line;
+        fill_rect(
+            c.buf,
+            size,
+            rect.0 as i32,
+            rect.1 as i32,
+            rect.2 as i32,
+            rect.3 as i32,
+            if selected {
+                c.palette.button_active
+            } else {
+                c.palette.button
+            },
         );
+        if c.pressed
+            && c.mouse.is_some_and(|(mx, my)| {
+                mx >= rect.0 && mx < rect.0 + rect.2 && my >= rect.1 && my < rect.1 + rect.3
+            })
+        {
+            c.actions.push(Action::Select(i));
+        }
+        let depth = line
+            .depth
+            .map(|d| d.to_string())
+            .unwrap_or_else(|| "—".into());
+        c.text(
+            rect.0 + 5.0,
+            rect.1 + 15.0,
+            &format!(
+                "{}#{} {}  {} {}",
+                if selected { "> " } else { "" },
+                line.rank,
+                crate::analysis_board::score_label(line.score),
+                words[10],
+                depth
+            ),
+            rect.2 - 10.0,
+        );
+        let variation = app.analysis.variations[i].as_ref();
+        let pv = variation.map(|v| v.san.as_str()).unwrap_or(more[1]);
+        let rows = ((rect.3 - 22.0) / 15.0).max(1.0) as usize;
+        let value = if variation.is_some_and(|v| v.error.is_some()) {
+            format!("{}: {pv}", more[2])
+        } else {
+            pv.to_owned()
+        };
+        for (n, text) in wrap_pv(font, &value, rect.2 - 10.0, rows)
+            .iter()
+            .enumerate()
+        {
+            c.text(
+                rect.0 + 5.0,
+                rect.1 + 31.0 + n as f32 * 15.0,
+                text,
+                rect.2 - 10.0,
+            );
+        }
     }
     if app.screen == Screen::Replay {
         for (i, (text, action)) in [
@@ -603,11 +677,110 @@ pub fn draw(
         .enumerate()
         {
             c.button(
-                (x + 12.0 + i as f32 * 64.0, h - 40.0, 58.0, 28.0),
+                (x + 12.0 + i as f32 * 64.0, h - 36.0, 58.0, 26.0),
                 text,
                 action,
             );
         }
+    } else if app.screen == Screen::Game {
+        c.text(
+            x + 12.0,
+            h - 17.0,
+            &format!(
+                "{} {}s / {} {}s",
+                app.settings.language.text().white,
+                app.clocks.white.as_secs(),
+                app.settings.language.text().black,
+                app.clocks.black.as_secs()
+            ),
+            252.0,
+        );
     }
     c.actions
+}
+
+pub(crate) fn candidate_rect(size: (usize, usize), i: usize) -> (f32, f32, f32, f32) {
+    let row = ((size.1 as f32 - 296.0) / 3.0).max(50.0);
+    (
+        size.0 as f32 - 280.0,
+        246.0 + i as f32 * row,
+        252.0,
+        row - 5.0,
+    )
+}
+pub(crate) fn wrap_pv(font: &TextRenderer, text: &str, width: f32, rows: usize) -> Vec<String> {
+    let mut result = vec![];
+    let mut line = String::new();
+    for word in text.split_whitespace() {
+        let next = if line.is_empty() {
+            word.into()
+        } else {
+            format!("{line} {word}")
+        };
+        if font.text_width(&next, 14.0) > width && !line.is_empty() {
+            result.push(std::mem::take(&mut line));
+            if result.len() == rows {
+                result.last_mut().unwrap().push_str(" …");
+                return result;
+            }
+            line.push_str(word);
+        } else {
+            line = next;
+        }
+    }
+    if !line.is_empty() && result.len() < rows {
+        result.push(line);
+    }
+    result
+}
+/// Candidates / waiting for PV / invalid PV / MultiPV range/unsupported.
+pub fn extra_words(lang: Language) -> [&'static str; 4] {
+    match lang {
+        Language::Chinese => ["候选", "等待变化", "非法变化", "MultiPV 不支持或受限"],
+        Language::TraditionalChinese => ["候選", "等待變化", "非法變化", "MultiPV 不支援或受限"],
+        Language::English => [
+            "Candidates",
+            "Waiting for PV",
+            "Invalid PV",
+            "MultiPV unsupported or limited",
+        ],
+        Language::French => [
+            "Variantes",
+            "Attente variante",
+            "Variante illégale",
+            "MultiPV absent ou limité",
+        ],
+        Language::Spanish => [
+            "Candidatas",
+            "Esperando variante",
+            "Variante ilegal",
+            "MultiPV ausente o limitado",
+        ],
+        Language::Latin => [
+            "Variationes",
+            "Exspectans",
+            "Variatio illicita",
+            "MultiPV abest vel limitata",
+        ],
+        Language::Japanese => ["候補", "読み筋待機", "不正な読み筋", "MultiPV 非対応・制限"],
+        Language::Korean => ["후보", "변형 대기", "불법 변형", "MultiPV 미지원 또는 제한"],
+        Language::German => [
+            "Kandidaten",
+            "Warte auf Variante",
+            "Ungültige Variante",
+            "MultiPV fehlt oder begrenzt",
+        ],
+        Language::Italian => [
+            "Candidate",
+            "Attesa variante",
+            "Variante illegale",
+            "MultiPV assente o limitato",
+        ],
+        Language::Russian => [
+            "Варианты",
+            "Ожидание варианта",
+            "Неверный вариант",
+            "MultiPV отсутствует / ограничен",
+        ],
+    }
 }

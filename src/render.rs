@@ -15,6 +15,7 @@ use crate::preferences::{
 use crate::theme::{BoardStyle, Palette, Theme};
 
 pub struct ViewState {
+    pub analysis: crate::analysis_board::Visual,
     pub pos: Chess,
     pub selected: Option<Square>,
     pub last_move: Option<(Square, Square)>,
@@ -211,19 +212,23 @@ pub struct Renderer<'a> {
     font: &'a TextRenderer,
 }
 
-struct Layout {
+pub(crate) struct Layout {
     w: usize,
     h: usize,
-    board_left: f32,
-    board_top: f32,
-    board_size: f32,
-    sq: f32,
+    pub(crate) board_left: f32,
+    pub(crate) board_top: f32,
+    pub(crate) board_size: f32,
+    pub(crate) sq: f32,
     panel_x: f32,
     panel_w: f32,
 }
 
 impl Layout {
-    fn new(w: usize, h: usize, focus_board: bool) -> Self {
+    pub(crate) fn square_center(&self, sq: Square, flipped: bool) -> (f32, f32) {
+        let (x, y) = square_rect(sq, self, flipped);
+        (x + self.sq / 2.0, y + self.sq / 2.0)
+    }
+    pub(crate) fn new(w: usize, h: usize, focus_board: bool) -> Self {
         let panel_w = if focus_board { 0.0 } else { 280.0 };
         let margin = 24.0;
         let avail_w = (w as f32 - panel_w - margin * 2.0).max(320.0);
@@ -262,6 +267,7 @@ impl<'a> Renderer<'a> {
         view: &ViewState,
     ) -> Vec<UiAction> {
         let focus_board = view.screen == Screen::Game
+            && !view.analysis.active
             && (view.settings.board.immersive_mode || view.settings.board.zen_mode != ZenMode::No);
         let layout = Layout::new(width, height, focus_board);
         let pal = view.settings.theme.palette();
@@ -280,6 +286,15 @@ impl<'a> Renderer<'a> {
             Screen::Settings => self.draw_settings(buf, &layout, &pal, view, &mut actions),
             Screen::Game | Screen::Replay => {
                 self.draw_board(buf, &layout, &pal, view);
+                crate::analysis_board::draw(
+                    buf,
+                    (width, height),
+                    self.font,
+                    view.analysis,
+                    &layout,
+                    board_flipped(view),
+                    &pal,
+                );
                 if view.screen == Screen::Replay {
                     // The independent replay panel is drawn by records_ui.
                 } else if !focus_board {
@@ -1805,7 +1820,7 @@ impl<'a> Renderer<'a> {
                     7 - screen_rank
                 };
                 let y = layout.board_top + screen_rank as f32 * layout.sq + 10.0;
-                let x = layout.board_left - 20.0;
+                let x = layout.board_left + if view.analysis.active { 2.0 } else { -20.0 };
                 self.font.draw_text(
                     buf,
                     (layout.w, layout.h),
@@ -3214,6 +3229,7 @@ mod tests {
             for screen in [Screen::Menu, Screen::Settings, Screen::Game] {
                 let mut buffer = vec![0; 1280 * 720];
                 let view = ViewState {
+                    analysis: Default::default(),
                     pos: Chess::default(),
                     selected: None,
                     last_move: None,
@@ -3270,6 +3286,7 @@ mod tests {
         ] {
             let mut buffer = vec![0; 1280 * 720];
             let view = ViewState {
+                analysis: Default::default(),
                 pos: Chess::default(),
                 selected: None,
                 last_move: None,

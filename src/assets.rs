@@ -373,7 +373,7 @@ pub fn draw_arrow_up(buf: &mut [u32], w: usize, h: usize, cx: f32, cy: f32, size
     }
 }
 
-fn blend_color(dst: u32, src: u32, alpha: u32) -> u32 {
+pub(crate) fn blend_color(dst: u32, src: u32, alpha: u32) -> u32 {
     if alpha == 0 {
         return dst;
     }

@@ -2,7 +2,7 @@
 
 [简体中文](README_ZH.md)
 
-> Local development candidate: **v0.2.1 UCI Engine Integration** (unpublished). See [validation report](RELEASE_CANDIDATE_v0.2.1.md). [v0.2.0](https://github.com/Zaxaerith/rust-chess/releases/tag/v0.2.0) is already published.
+> Local development candidate: **v0.2.2 Analysis Board** (unpublished). See [validation report](RELEASE_CANDIDATE_v0.2.2.md). [v0.2.1](https://github.com/Zaxaerith/rust-chess/releases/tag/v0.2.1) is published.
 
 A local window chess game written in Rust. Supports two-player, human vs AI, 5 AI difficulty levels, move animations, AI thinking pause, opening/ending animations, settings persistence, and multiple VSCode-inspired themes. v0.1.4 adds clock-based game results, clock-aware undo, explicit AI search errors, and regression tests.
 
@@ -45,7 +45,7 @@ The build output is `target/release/chess_rust.exe`, you can copy it anywhere an
 
 ## Packaging for Release
 
-- Local manual packaging: run .\package.ps1, output goes to dist/
+- From v0.2.2: validate source, Release build and `./package.ps1 -SkipBuild -VerifyOnly` locally; do not create a local release ZIP or extracted release directory. Authorized releases are built and verified by GitHub Actions.
 - Automatic GitHub release: push a tag starting with v*, and Actions will automatically compile, package, and create a Release – see RELEASE.md
 
 ## VSCode Development
@@ -140,12 +140,16 @@ Third‑party dependencies, assets and copyright notices are detailed in [THIRD_
 
 For the published v0.2.0, Pleco 0.5.0's historical MIT original is verified against its published source commit and bundled with pinned provenance. Its user acceptance and artifact evidence remain in the historical `RELEASE_CANDIDATE_v0.2.0.md`; they are not v0.2.1 acceptance results. Reports stay outside the ZIP to avoid self-referential archive hashes. A new public release requires separate authorization.
 
-## Optional external UCI analysis (v0.2.1)
+## Analysis Board / optional UCI engine (v0.2.2)
 
 - Open **UCI analysis**, choose an independently installed local `.exe`, then explicitly enable it. Unicode/spaces are supported; the executable's directory is its working directory for adjacent NNUE files. No engine is downloaded or bundled, and nothing starts automatically when preferences load.
-- **Analyze position** uses the live position or Replay cursor, including its initial FEN and move prefix. Results show White's perspective, depth, best move and first PV move in SAN. `#` means mate; `>=` / `<=` are score bounds. Centipawn calibration varies by engine and is not a universal win probability.
-- Defaults: 2 threads, 64 MiB Hash, 1000 ms, MultiPV 1. Buttons cycle bounded time/threads/hash choices (100–10000 ms, 1–8, 16–256 MiB); changing options closes the engine and requires enabling again. Supported spin options are clamped to the engine's declared range. Missing optional settings use engine defaults and display a fallback warning.
+- **Analyze position** uses the live position or Replay cursor, including its initial FEN and move prefix. Results show White's perspective, depth, best move and full validated PVs in numbered SAN. `M+3` / `M-3` distinguish White / Black mating in 3 moves; `M+0` / `M-0` identify the mated side at distance zero; `>=` / `<=` are score bounds. Centipawn calibration varies by engine and is not a universal win probability.
+- Defaults: 2 threads, 64 MiB Hash, 1000 ms, MultiPV 1. Buttons cycle bounded time/threads/hash choices (100–10000 ms, 1–8, 16–256 MiB); changing these resource options closes the engine and requires enabling again. MultiPV cycles 1/2/3 and safely stops/synchronizes the search before reconfiguration and reanalysis, without restarting the engine. An unsupported MultiPV option explicitly falls back to 1; declared engine limits may reduce the count. Supported spin options are clamped to the engine's declared range. Missing optional settings use engine defaults and display a fallback warning.
 - **Stop analysis** cancels the real search. **Close engine** shuts down the process. Moves, undo, imports and replay jumps invalidate results. A stop must receive `bestmove` before a replacement search; an unresponsive engine is closed. Analysis never plays a move, pauses the live clock, or replaces Pleco's five AI levels. Replay remains read-only and paused.
 - `analysis.cfg` is a separate JSON preference file beside the autosave in `%LOCALAPPDATA%\RUST CHESS` (or the isolated QA data directory). It stores path and resource preferences, not enable permission. It is not part of autosave JSON; `settings.cfg` remains compatible.
-- Only run engines you trust and explicitly choose. This is process integration, not a sandbox for third-party programs. With no engine configured, normal play, save and replay remain available. Current real-engine/GUI test evidence and limitations are recorded separately in `RELEASE_CANDIDATE_v0.2.1.md`.
+- Only run engines you trust and explicitly choose. This is process integration, not a sandbox for third-party programs. With no engine configured, normal play, save and replay remain available. Current real-engine/GUI test evidence and limitations are recorded separately in `RELEASE_CANDIDATE_v0.2.2.md`. No real Stockfish or v0.2.2 manual UI acceptance is claimed.
 - Acceptance is CLI/Rust first, with controlled Mock UCI processes; no GUI automation is required. Run `cargo test --locked -j 2 uci_tests` for the analysis suite and `python -B -m unittest discover -s tools -p test_collect_licenses.py` for license/checkout regressions. Complete UI acceptance and real Stockfish testing are recorded separately, not inferred from headless tests. `AGENTS.md` preserves this development convention.
+
+- The vertical evaluation bar and selected-line arrow are view-only. Positive scores always favor White, including on a flipped board. The white fraction is `0.5 + atan(clamp(cp,-4000,4000)/400)/pi`, a bounded visualization, **not** a win probability; mate scores use endpoints and bounds retain `>=` / `<=`. With no valid score it is neutral and marked `—`.
+- Click a received candidate row to choose its score/arrow. Rows show rank, their own depth and score, then numbered SAN; the received/effective count never invents missing lines. Long text wraps with an explicit ellipsis; the model retains up to 128 plies per PV and 3 lines. SAN is validated on a temporary position only when the PV changes. Invalid PVs stop at the failing ply, show an error and suppress that line's arrow/score.
+- Predictions are not played game moves. MultiPV shares the same time budget, so more candidates may mean less depth. Live moves, undo, import, Replay navigation/exit, cancellation and engine changes invalidate every candidate together. `analysis.cfg` files without `multipv` load as 1. Only standard chess is supported, not UCI_Chess960 or arbitrary engine-specific option editors.

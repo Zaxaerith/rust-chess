@@ -1,5 +1,5 @@
 use crate::{
-    App, Instant, Key, Position, Screen,
+    App, Instant, Key, Screen,
     assets::{fill_rect, fill_rect_alpha},
     font::TextRenderer,
     i18n::Language,
@@ -9,6 +9,7 @@ use crate::{
 
 #[derive(Clone, Copy, Debug)]
 pub enum Action {
+    Advanced(crate::advanced_app::Action),
     OpenPgn,
     ExportPgn,
     CopyFen,
@@ -67,7 +68,7 @@ pub fn label(lang: Language, text: Text) -> &'static str {
             "粘贴",
             "操作失败",
             "仅载入主线；注释、评价与变化未保留，导出也不包含它们。",
-            "外部只读棋谱",
+            "外部棋谱（着法只读）",
             "当前对局复盘",
             "提示",
             "自动存档失败",
@@ -87,7 +88,7 @@ pub fn label(lang: Language, text: Text) -> &'static str {
             "貼上",
             "操作失敗",
             "僅載入主線；註解、評價與變化未保留，匯出亦不包含。",
-            "外部唯讀棋譜",
+            "外部棋譜（著法唯讀）",
             "目前對局復盤",
             "提示",
             "自動存檔失敗",
@@ -107,7 +108,7 @@ pub fn label(lang: Language, text: Text) -> &'static str {
             "Paste",
             "Operation failed",
             "Mainline only: comments, NAGs and variations were omitted and will not be exported.",
-            "Imported, read only",
+            "Imported PGN (moves read-only)",
             "Live game replay",
             "Notice",
             "Autosave failed",
@@ -127,7 +128,7 @@ pub fn label(lang: Language, text: Text) -> &'static str {
             "Coller",
             "Échec",
             "Ligne principale seule : commentaires, NAG et variantes omis, y compris à l'export.",
-            "Import en lecture seule",
+            "PGN importé (coups non modifiables)",
             "Relecture de partie",
             "Information",
             "Échec sauvegarde",
@@ -147,7 +148,7 @@ pub fn label(lang: Language, text: Text) -> &'static str {
             "Pegar",
             "Error",
             "Solo línea principal: comentarios, NAG y variantes omitidos, también al exportar.",
-            "Importado, solo lectura",
+            "PGN importado (jugadas fijas)",
             "Repetición de partida",
             "Aviso",
             "Error de guardado",
@@ -167,7 +168,7 @@ pub fn label(lang: Language, text: Text) -> &'static str {
             "Inserere",
             "Error",
             "Sola series principalis: commentaria et variationes omissa nec exportantur.",
-            "Importatum, solum legere",
+            "PGN externum (motus fixi)",
             "Repetitio ludi",
             "Notitia",
             "Error servandi",
@@ -187,7 +188,7 @@ pub fn label(lang: Language, text: Text) -> &'static str {
             "貼り付け",
             "操作失敗",
             "本譜のみ読込：コメント・評価・変化は省略し、出力にも含みません。",
-            "外部棋譜・読取専用",
+            "外部棋譜（着手は変更不可）",
             "現在の対局の再生",
             "通知",
             "自動保存失敗",
@@ -207,7 +208,7 @@ pub fn label(lang: Language, text: Text) -> &'static str {
             "붙여넣기",
             "작업 실패",
             "본선만 불러옵니다. 주석, 평가와 변화는 생략되며 내보내지 않습니다.",
-            "외부 읽기 전용 기보",
+            "외부 기보 (착수 변경 불가)",
             "현재 대국 재생",
             "알림",
             "자동 저장 실패",
@@ -227,7 +228,7 @@ pub fn label(lang: Language, text: Text) -> &'static str {
             "Einfügen",
             "Fehler",
             "Nur Hauptlinie: Kommentare, NAGs und Varianten entfallen auch beim Export.",
-            "Import, schreibgeschützt",
+            "PGN importiert (Züge unveränderlich)",
             "Partiewiedergabe",
             "Hinweis",
             "Speichern fehlgeschlagen",
@@ -247,7 +248,7 @@ pub fn label(lang: Language, text: Text) -> &'static str {
             "Incolla",
             "Errore",
             "Solo linea principale: commenti, NAG e varianti omessi anche nell'esportazione.",
-            "Importato, sola lettura",
+            "PGN importato (mosse fisse)",
             "Replay della partita",
             "Avviso",
             "Salvataggio fallito",
@@ -267,7 +268,7 @@ pub fn label(lang: Language, text: Text) -> &'static str {
             "Вставить",
             "Ошибка",
             "Только главная линия: комментарии, NAG и варианты пропущены и не экспортируются.",
-            "Импорт, только чтение",
+            "Импорт PGN (ходы неизменяемы)",
             "Повтор текущей партии",
             "Сообщение",
             "Ошибка автосохранения",
@@ -297,8 +298,14 @@ impl minifb::InputCallback for CharacterInput {
 
 impl App {
     pub(crate) fn handle_record_action(&mut self, action: Action) {
+        if matches!(action, Action::New | Action::Resume | Action::Replay)
+            && self.defer_replay_loss(crate::advanced_app::Intent::Record(action))
+        {
+            return;
+        }
         let result: Result<(), String> = (|| {
             match action {
+                Action::Advanced(a) => self.handle_advanced_action(a),
                 Action::OpenPgn => self.import_pgn_dialog()?,
                 Action::ExportPgn => self.export_pgn_dialog()?,
                 Action::CopyFen => {
@@ -341,16 +348,21 @@ impl App {
                     self.cancel_analysis();
                     if let Some(r) = &mut self.records.replay {
                         match action {
-                            Action::First => r.jump(0),
+                            Action::First => r.first(),
                             Action::Previous => r.step(-1),
                             Action::Next => r.step(1),
-                            Action::Last => r.jump(r.game.moves.len()),
+                            Action::Last => r.last(),
                             Action::Jump(ply) => r.jump(ply),
                             _ => {}
                         }
+                        r.scroll = r.path_cursor().saturating_sub(2);
                     }
+                    self.advanced.last_tick = Instant::now();
                 }
                 Action::Resume => {
+                    if self.records.replay.is_some() {
+                        self.leave_replay();
+                    }
                     if let Some(save) = self.records.resume.clone() {
                         self.restore_snapshot(save)?;
                     } else if self.records.has_game {
@@ -385,6 +397,9 @@ impl App {
             if keys.contains(&Key::Escape) {
                 self.records.resume_prompt = false;
             }
+            return;
+        }
+        if self.advanced_keys(keys, chars, ctrl) {
             return;
         }
         if self.records.fen_input.is_some() {
@@ -455,13 +470,18 @@ impl App {
     }
     pub(crate) fn replay_view(&self, view: &mut ViewState) {
         if let Some(r) = &self.records.replay {
-            view.pos = r.game.positions[r.cursor].clone();
-            view.history_sans = r.game.sans.clone();
+            view.pos = r.position().clone();
+            view.history_sans = r
+                .path_ids()
+                .iter()
+                .skip(1)
+                .map(|id| r.tree.nodes[*id].san.clone())
+                .collect();
             view.selected = None;
-            view.last_move = r.cursor.checked_sub(1).map(|i| {
-                let mv = &r.game.moves[i];
-                (mv.from().expect("standard chess"), mv.to())
-            });
+            view.last_move = r.tree.nodes[r.node]
+                .mv
+                .as_ref()
+                .and_then(crate::uci_protocol::move_arrow);
             view.legal_targets.clear();
             view.ai_thinking = false;
             view.hint_thinking = false;
@@ -476,17 +496,17 @@ impl App {
     }
 }
 
-struct Canvas<'a> {
-    font: &'a TextRenderer,
-    buf: &'a mut [u32],
-    size: (usize, usize),
-    pal: Palette,
-    mouse: Option<(f32, f32)>,
-    pressed: bool,
-    actions: Vec<Action>,
+pub(crate) struct Canvas<'a> {
+    pub(crate) font: &'a TextRenderer,
+    pub(crate) buf: &'a mut [u32],
+    pub(crate) size: (usize, usize),
+    pub(crate) pal: Palette,
+    pub(crate) mouse: Option<(f32, f32)>,
+    pub(crate) pressed: bool,
+    pub(crate) actions: Vec<Action>,
 }
 impl Canvas<'_> {
-    fn button(&mut self, rect: (f32, f32, f32, f32), text: &str, action: Action) {
+    pub(crate) fn button(&mut self, rect: (f32, f32, f32, f32), text: &str, action: Action) {
         let (x, y, w, h) = rect;
         let hover = self
             .mouse
@@ -522,7 +542,7 @@ impl Canvas<'_> {
         self.font
             .draw_text(self.buf, self.size, (x, y), text, color, size);
     }
-    fn wrapped(&mut self, x: f32, mut y: f32, text: &str, width: f32, max_lines: usize) {
+    pub(crate) fn wrapped(&mut self, x: f32, mut y: f32, text: &str, width: f32, max_lines: usize) {
         let mut line = String::new();
         let mut lines = 0;
         for c in text.chars().take(2048) {
@@ -565,108 +585,10 @@ pub fn draw(
     let lang = app.settings.language;
     let w = size.0 as f32;
     let h = size.1 as f32;
-    if let Some(r) = &app.records.replay {
-        let x = w - 292.0;
-        let width = 276.0;
-        fill_rect(
-            c.buf,
-            size,
-            x as i32,
-            0,
-            width as i32,
-            h as i32,
-            c.pal.panel,
-        );
-        c.line(
-            x + 12.0,
-            28.0,
-            label(
-                lang,
-                if r.external {
-                    Text::ReadOnly
-                } else {
-                    Text::Live
-                },
-            ),
-            width - 24.0,
-            c.pal.accent,
-        );
-        let tags = &r.game.record.tags;
-        let white = tags.get("White").map(String::as_str).unwrap_or("?");
-        let black = tags.get("Black").map(String::as_str).unwrap_or("?");
-        c.line(
-            x + 12.0,
-            56.0,
-            &format!("{white} / {black}"),
-            width - 24.0,
-            c.pal.text,
-        );
-        c.line(
-            x + 12.0,
-            82.0,
-            &format!(
-                "{} · {}/{} · {}",
-                r.game.record.result,
-                r.cursor,
-                r.game.moves.len(),
-                if r.game.positions[r.cursor].turn() == shakmaty::Color::White {
-                    lang.text().white
-                } else {
-                    lang.text().black
-                }
-            ),
-            width - 24.0,
-            c.pal.text,
-        );
-        for (i, (text, action)) in [
-            ("|<", Action::First),
-            ("<", Action::Previous),
-            (">", Action::Next),
-            (">|", Action::Last),
-        ]
-        .into_iter()
-        .enumerate()
-        {
-            c.button((x + 12.0 + i as f32 * 64.0, 98.0, 58.0, 32.0), text, action);
-        }
-        let rows = ((h - 280.0) / 26.0).max(1.0) as usize;
-        for (row, i) in (r.scroll..r.game.moves.len()).take(rows).enumerate() {
-            let pos = &r.game.positions[i];
-            let prefix = format!(
-                "{}{}",
-                pos.fullmoves(),
-                if pos.turn() == shakmaty::Color::White {
-                    "."
-                } else {
-                    "..."
-                }
-            );
-            let text = format!(
-                "{} {prefix} {}",
-                if r.cursor == i + 1 { ">" } else { " " },
-                r.game.sans[i]
-            );
-            c.button(
-                (x + 12.0, 140.0 + row as f32 * 26.0, width - 24.0, 24.0),
-                &text,
-                Action::Jump(i + 1),
-            );
-        }
-        c.button(
-            (x + 12.0, h - 124.0, width - 24.0, 32.0),
-            label(lang, Text::Export),
-            Action::ExportPgn,
-        );
-        c.button(
-            (x + 12.0, h - 84.0, width - 24.0, 32.0),
-            label(lang, Text::CopyFen),
-            Action::CopyFen,
-        );
-        c.button(
-            (x + 12.0, h - 44.0, width - 24.0, 32.0),
-            label(lang, Text::Back),
-            Action::Back,
-        );
+    if app.records.replay.is_some() {
+        c.actions.extend(crate::advanced_ui::draw_panel(
+            font, c.buf, size, app, mouse, pressed,
+        ));
     } else if app.screen == Screen::Game {
         let width = ((w - 320.0) / 4.0).clamp(70.0, 130.0);
         for (i, (text, action)) in [

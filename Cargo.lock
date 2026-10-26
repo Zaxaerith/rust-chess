@@ -151,7 +151,7 @@ dependencies = [
 
 [[package]]
 name = "chess_rust"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "ab_glyph",
  "chasolver",

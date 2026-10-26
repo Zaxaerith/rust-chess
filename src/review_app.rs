@@ -164,7 +164,13 @@ impl App {
                 return Ok(());
             };
             if report.multipv != 1 {
-                if report.status == Status::Stopped {
+                // A Stopped report may still describe the previous manual
+                // configuration while set_multipv(1) is queued. Only reject
+                // an engine after it has acknowledged the requested setting.
+                if report.requested_multipv > 1 {
+                    return Ok(());
+                }
+                if report.status == Status::Stopped && report.requested_multipv == 1 {
                     return Err("Engine cannot provide single-PV review".into());
                 }
                 return Ok(());

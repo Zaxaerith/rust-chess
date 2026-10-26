@@ -36,7 +36,7 @@ fn responses(dir: &std::path::Path, game: &game_record::ValidatedRecord, score: 
         .join("\n");
     std::fs::write(dir.join("review.tsv"), lines).unwrap();
 }
-fn setup(game: game_record::ValidatedRecord, mode: &str) -> (App, PathBuf, Config) {
+pub(crate) fn setup(game: game_record::ValidatedRecord, mode: &str) -> (App, PathBuf, Config) {
     let (mut config, dir) = fixture(mode);
     config.multipv = 3;
     responses(&dir, &game, "cp 25");
@@ -50,7 +50,7 @@ fn setup(game: game_record::ValidatedRecord, mode: &str) -> (App, PathBuf, Confi
     ready(a.analysis.controller.as_ref().unwrap());
     (a, dir, config)
 }
-fn pump(a: &mut App, predicate: impl Fn(&Job) -> bool) {
+pub(crate) fn pump(a: &mut App, predicate: impl Fn(&Job) -> bool) {
     let until = Instant::now() + Duration::from_secs(8);
     loop {
         a.poll_analysis();
@@ -68,7 +68,7 @@ fn pump(a: &mut App, predicate: impl Fn(&Job) -> bool) {
         std::thread::sleep(Duration::from_millis(2));
     }
 }
-fn completed(a: &mut App) {
+pub(crate) fn completed(a: &mut App) {
     pump(a, |j| matches!(j.state, State::Completed | State::Failed));
     assert_eq!(
         a.review.job.as_ref().unwrap().state,

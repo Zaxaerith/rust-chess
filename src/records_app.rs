@@ -124,8 +124,13 @@ impl App {
     }
     pub(crate) fn restore_snapshot(&mut self, snapshot: Snapshot) -> Result<(), String> {
         let validated = snapshot.validate()?;
+        if self.needs_replay_save() {
+            self.defer_replay_loss(crate::advanced_app::Intent::Restore(Box::new(snapshot)));
+            return Ok(());
+        }
         self.analysis_context(false);
         let initial = validated.positions[0].clone();
+        self.advanced = crate::advanced_app::AdvancedState::default();
         let pos = validated
             .positions
             .last()
@@ -164,6 +169,10 @@ impl App {
     }
     pub(crate) fn import_fen(&mut self, text: &str) -> Result<(), String> {
         let pos = fen::parse(text)?;
+        if self.defer_replay_loss(crate::advanced_app::Intent::Fen(text.to_owned())) {
+            return Ok(());
+        }
+        self.advanced = crate::advanced_app::AdvancedState::default();
         self.analysis_context(false);
         self.invalidate_searches();
         self.clear_input();
@@ -192,23 +201,21 @@ impl App {
         Ok(())
     }
     pub(crate) fn enter_replay(&mut self, game: ValidatedRecord, external: bool) {
-        self.cancel_review();
-        self.review.panel = false;
-        if external {
-            self.analysis_context(true);
-        } else {
-            self.cancel_analysis();
-        }
-        self.tick_clock();
-        self.records.replay_return = self.screen;
-        self.records.replay = Some(Replay::new(game, external));
-        self.screen = Screen::Replay;
+        self.open_annotated_replay(
+            crate::annotated_game::AnnotatedGame::from_linear(game),
+            external,
+        );
     }
+
     pub(crate) fn leave_replay(&mut self) {
+        if self.defer_replay_loss(crate::advanced_app::Intent::Back) {
+            return;
+        }
         self.cancel_review();
         self.review.panel = false;
         self.cancel_analysis();
         self.records.replay = None;
+        self.advanced = crate::advanced_app::AdvancedState::default();
         self.screen = self.records.replay_return;
         self.clock_last_tick = Instant::now();
         // Retain existing receivers and generation. A queued reply is polled only
@@ -216,12 +223,16 @@ impl App {
     }
     pub(crate) fn display_fen(&self) -> String {
         if let Some(r) = &self.records.replay {
-            fen::write(&r.game.positions[r.cursor])
+            fen::write(r.position())
         } else {
             fen::write(&self.pos)
         }
     }
     pub(crate) fn export_pgn_dialog(&mut self) -> Result<(), String> {
+        if self.records.replay.is_some() {
+            self.export_annotated_dialog()?;
+            return Ok(());
+        }
         let record = self
             .records
             .replay
@@ -232,6 +243,7 @@ impl App {
         let name = format!("rust-chess-{}.pgn", record.created_unix);
         let path = crate::native_files::choose_pgn(true, self.records.owner, &name);
         self.clock_last_tick = Instant::now();
+        self.advanced.last_tick = Instant::now();
         if let Some(path) = path? {
             persistence::atomic_write(&path, text.as_bytes())?;
         }
@@ -240,23 +252,14 @@ impl App {
     pub(crate) fn import_pgn_dialog(&mut self) -> Result<(), String> {
         let path = crate::native_files::choose_pgn(false, self.records.owner, "");
         self.clock_last_tick = Instant::now();
+        self.advanced.last_tick = Instant::now();
         if let Some(path) = path? {
-            let game = crate::pgn::import(&persistence::read_limited(&path)?)?;
-            let omitted = game.record.omitted_annotations;
-            self.enter_replay(game, true);
-            if omitted {
-                self.records.message = Some(
-                    crate::records_ui::label(
-                        self.settings.language,
-                        crate::records_ui::Text::MainlineOnly,
-                    )
-                    .into(),
-                );
-            }
+            self.import_annotated_bytes(&persistence::read_limited(&path)?)?;
         }
         Ok(())
     }
     pub(crate) fn reset_record(&mut self) {
+        self.advanced = crate::advanced_app::AdvancedState::default();
         self.analysis_context(false);
         self.records.initial = Chess::default();
         self.records.metadata = GameRecord::new(&self.records.initial, self.ai_mode);

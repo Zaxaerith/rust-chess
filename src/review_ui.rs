@@ -393,6 +393,12 @@ impl App {
                 ReviewAction::Resume => self.resume_review()?,
                 ReviewAction::Cancel => self.cancel_review(),
                 ReviewAction::Jump(ply) => {
+                    // A shared ancestor may be a mainline node while Replay's
+                    // selected future still follows a variation. Curve points
+                    // always select the original mainline before jumping.
+                    if let Some(replay) = &mut self.records.replay {
+                        replay.return_mainline();
+                    }
                     self.handle_record_action(crate::records_ui::Action::Jump(ply))
                 }
                 ReviewAction::Time | ReviewAction::Limit => {
@@ -568,7 +574,15 @@ pub fn draw(
         error.map(|e| e.as_str()).unwrap_or(t[25]),
         252.0,
     );
-    if let Some(job) = job {
+    if !replay.on_mainline() {
+        c.text(
+            x + 12.0,
+            250.0,
+            crate::advanced_ui::words(app.settings.language)[20],
+            252.0,
+        );
+    }
+    if let Some(job) = job.filter(|_| replay.on_mainline()) {
         review_chart::draw(c.buf, size, font, job, replay.cursor, &c.palette);
         if pressed
             && let Some(mouse) = mouse

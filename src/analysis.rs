@@ -92,7 +92,7 @@ impl App {
         }
     }
     pub(crate) fn analysis_stamp(&self) -> String {
-        let cursor = self.records.replay.as_ref().map(|r| r.cursor);
+        let cursor = self.records.replay.as_ref().map(|r| r.node);
         format!(
             "{:?}:{}:{}:{cursor:?}:{}",
             self.screen,
@@ -153,6 +153,14 @@ impl App {
         Ok(())
     }
     pub(crate) fn request_analysis(&mut self) -> Result<(), String> {
+        if self
+            .records
+            .replay
+            .as_ref()
+            .is_some_and(|r| !r.on_mainline())
+        {
+            return Err(crate::advanced_ui::words(self.settings.language)[21].into());
+        }
         if self.review.owns_engine() {
             return Err("Game Review owns engine; cancel it before manual analysis".into());
         }
@@ -318,6 +326,7 @@ impl App {
     pub(crate) fn analysis_visual(&self) -> crate::analysis_board::Visual {
         if self.review.panel
             && let Some(replay) = &self.records.replay
+            && replay.on_mainline()
             && let Some(job) = &self.review.job
             && job.game_key == replay.identity
         {

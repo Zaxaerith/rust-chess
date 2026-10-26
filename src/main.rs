@@ -1,10 +1,14 @@
 #![windows_subsystem = "windows"]
 
+mod advanced_app;
+mod advanced_ui;
 mod ai;
 mod analysis;
 mod analysis_board;
 mod analysis_ui;
+mod annotated_game;
 mod assets;
+mod close_guard;
 mod display;
 mod fen;
 mod font;
@@ -30,6 +34,12 @@ mod theme;
 mod uci;
 mod uci_protocol;
 
+#[cfg(test)]
+mod advanced_app_tests;
+#[cfg(test)]
+mod advanced_replay_tests;
+#[cfg(test)]
+mod annotated_pgn_tests;
 #[cfg(test)]
 mod records_tests;
 #[cfg(test)]
@@ -101,6 +111,7 @@ impl PieceAnim {
 }
 
 struct App {
+    advanced: advanced_app::AdvancedState,
     analysis: analysis::Analysis,
     review: game_review::Review,
     records: records_app::RecordsState,
@@ -167,6 +178,7 @@ impl App {
             loaded.fps = 60;
         }
         Self {
+            advanced: advanced_app::AdvancedState::default(),
             analysis: analysis::Analysis::default(),
             review: game_review::Review::default(),
             records: records_app::RecordsState::default(),
@@ -540,11 +552,27 @@ impl App {
     }
 
     fn handle_action(&mut self, action: UiAction) {
+        if matches!(
+            action,
+            UiAction::StartGame
+                | UiAction::NewGame
+                | UiAction::BackToMenu
+                | UiAction::ExitGame
+                | UiAction::OpenSettings
+        ) && self.defer_replay_loss(advanced_app::Intent::Ui(action))
+        {
+            return;
+        }
         // Account for time spent rendering or processing an earlier action.
         self.tick_clock();
         if let Some(action) = records_ui::record_action(action) {
             self.handle_record_action(action);
             return;
+        }
+        if self.screen == Screen::Replay
+            && matches!(action, UiAction::BackToMenu | UiAction::OpenSettings)
+        {
+            self.leave_replay();
         }
         match action {
             UiAction::Record(_) => unreachable!("handled above"),
@@ -653,6 +681,9 @@ impl App {
     }
 
     fn start_game(&mut self) {
+        if self.defer_replay_loss(advanced_app::Intent::Ui(UiAction::StartGame)) {
+            return;
+        }
         self.ai_mode = self.settings.mode;
         self.screen = Screen::Game;
         self.new_game();
@@ -934,6 +965,12 @@ impl App {
     }
 
     fn new_game(&mut self) {
+        if self.defer_replay_loss(advanced_app::Intent::Ui(UiAction::NewGame)) {
+            return;
+        }
+        if self.screen == Screen::Replay {
+            self.screen = Screen::Game;
+        }
         self.reset_record();
         self.invalidate_searches();
         self.animations.clear();
@@ -1050,12 +1087,22 @@ impl App {
     }
 
     fn handle_scroll(&mut self, y: f32) {
+        if self.advanced_modal() {
+            return;
+        }
         if self.screen == Screen::Replay {
+            if self.advanced.choices {
+                self.advanced.choice_scroll = self
+                    .advanced
+                    .choice_scroll
+                    .saturating_add_signed(-(y.round() as isize));
+                return;
+            }
             if let Some(r) = &mut self.records.replay {
                 r.scroll = r
                     .scroll
                     .saturating_add_signed(-(y.round() as isize))
-                    .min(r.game.moves.len().saturating_sub(1));
+                    .min(r.path_len().saturating_sub(1));
             }
             return;
         }
@@ -1321,6 +1368,13 @@ fn main() {
     );
     set_native_window_icons(&window);
     app.records.owner = window.get_window_handle() as usize;
+    let close_guard = match close_guard::CloseGuard::new(app.records.owner) {
+        Ok(g) => g,
+        Err(e) => {
+            eprintln!("{e}");
+            return;
+        }
+    };
     app.init_analysis();
     let characters = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
     window.set_input_callback(Box::new(records_ui::CharacterInput(characters.clone())));
@@ -1328,6 +1382,10 @@ fn main() {
     let mut buffer = vec![0u32; win_w * win_h];
     let mut mouse_was_down = false;
     while window.is_open() && !app.exit_requested {
+        if close_guard.take_request() && !app.defer_replay_loss(advanced_app::Intent::Quit) {
+            app.exit_requested = true;
+            break;
+        }
         let keys = window.get_keys_pressed(minifb::KeyRepeat::Yes);
         let chars = std::mem::take(&mut *characters.lock().expect("text event queue"));
         app.record_keys(
@@ -1337,6 +1395,7 @@ fn main() {
         );
 
         app.tick_clock();
+        app.tick_replay_at(Instant::now());
         app.poll_ai();
         app.poll_hint();
         app.periodic_save();
@@ -1363,6 +1422,7 @@ fn main() {
             view.settings.board.immersive_mode = false;
         }
         let overlay = app.records.fen_input.is_some()
+            || app.advanced_modal()
             || app.records.message.is_some()
             || app.records.resume_prompt;
         if overlay {
@@ -1378,6 +1438,14 @@ fn main() {
         actions.extend(record_actions.into_iter().map(UiAction::Record));
         let analysis_actions =
             analysis_ui::draw(&text, &mut buffer, (cur_w, cur_h), &app, mouse, pressed);
+        if app.advanced_modal() && app.records.message.is_none() {
+            actions.clear();
+            actions.extend(
+                advanced_ui::draw_modal(&text, &mut buffer, (cur_w, cur_h), &app, mouse, pressed)
+                    .into_iter()
+                    .map(UiAction::Record),
+            );
+        }
         if !overlay && analysis_ui::captures(&app, (cur_w, cur_h), mouse, pressed) {
             actions.clear();
         }

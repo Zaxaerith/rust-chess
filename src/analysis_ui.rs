@@ -300,7 +300,10 @@ pub fn words(language: Language) -> [&'static str; 23] {
     }
 }
 fn modal(app: &App) -> bool {
-    app.records.fen_input.is_some() || app.records.message.is_some() || app.records.resume_prompt
+    app.advanced_modal()
+        || app.records.fen_input.is_some()
+        || app.records.message.is_some()
+        || app.records.resume_prompt
 }
 pub fn captures(app: &App, size: (usize, usize), mouse: Option<(f32, f32)>, pressed: bool) -> bool {
     !modal(app)

@@ -62,6 +62,7 @@ pub struct Report {
     pub info: Info,
     pub lines: [Option<Info>; 3],
     pub multipv: usize,
+    pub requested_multipv: u32,
     pub best: Option<String>,
     pub warnings: Vec<String>,
     pub pid: Option<u32>,
@@ -448,6 +449,7 @@ fn run(cfg: &Config, desired: &Mutex<Desired>, report: &Mutex<Report>) -> Result
         r.status = Status::Ready;
         r.warnings = warnings;
         r.multipv = count;
+        r.requested_multipv = cfg.multipv;
     }
     let mut serial = 0;
     let mut context = None;
@@ -473,6 +475,7 @@ fn run(cfg: &Config, desired: &Mutex<Desired>, report: &Mutex<Report>) -> Result
                 configured = multipv;
                 let mut r = report.lock().expect("UCI report");
                 r.multipv = count;
+                r.requested_multipv = multipv;
                 r.warnings.retain(|s| !s.starts_with("MultiPV:"));
                 r.warnings.extend(warning);
             }

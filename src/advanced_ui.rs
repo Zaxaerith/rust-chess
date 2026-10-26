@@ -512,9 +512,22 @@ pub fn draw_panel(
         Action::ExportPgn,
     );
     c.button(
-        (x + 12.0, h - 84.0, 252.0, 32.0),
+        (x + 12.0, h - 84.0, 122.0, 32.0),
         crate::records_ui::label(app.settings.language, crate::records_ui::Text::CopyFen),
         Action::CopyFen,
+    );
+    c.button(
+        (x + 140.0, h - 84.0, 124.0, 32.0),
+        crate::library_ui::words(app.settings.language)[if app.records.library_id.is_some() {
+            22
+        } else {
+            23
+        }],
+        Action::Library(if app.records.library_id.is_some() {
+            crate::library_app::Action::Save
+        } else {
+            crate::library_app::Action::Add
+        }),
     );
     c.button(
         (x + 12.0, h - 44.0, 252.0, 32.0),

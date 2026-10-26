@@ -63,6 +63,7 @@ pub enum Screen {
     Settings,
     Game,
     Replay,
+    Library,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -283,6 +284,7 @@ impl<'a> Renderer<'a> {
         );
         match view.screen {
             Screen::Menu => self.draw_menu(buf, &layout, &pal, view, &mut actions),
+            Screen::Library => {}
             Screen::Settings => self.draw_settings(buf, &layout, &pal, view, &mut actions),
             Screen::Game | Screen::Replay => {
                 self.draw_board(buf, &layout, &pal, view);

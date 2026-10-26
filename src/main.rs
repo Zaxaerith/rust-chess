@@ -16,6 +16,11 @@ mod game;
 mod game_record;
 mod game_review;
 mod i18n;
+mod library;
+mod library_app;
+#[cfg(test)]
+mod library_tests;
+mod library_ui;
 mod native_files;
 mod persistence;
 mod pgn;
@@ -111,6 +116,7 @@ impl PieceAnim {
 }
 
 struct App {
+    library: library_app::LibraryState,
     advanced: advanced_app::AdvancedState,
     analysis: analysis::Analysis,
     review: game_review::Review,
@@ -178,6 +184,7 @@ impl App {
             loaded.fps = 60;
         }
         Self {
+            library: library_app::LibraryState::default(),
             advanced: advanced_app::AdvancedState::default(),
             analysis: analysis::Analysis::default(),
             review: game_review::Review::default(),
@@ -1087,6 +1094,16 @@ impl App {
     }
 
     fn handle_scroll(&mut self, y: f32) {
+        if self.screen == Screen::Library {
+            if !self.library.busy() && self.library.remove.is_none() {
+                self.library.scroll = self
+                    .library
+                    .scroll
+                    .saturating_add_signed(-(y.round() as isize))
+                    .min(self.library.visible.len().saturating_sub(1));
+            }
+            return;
+        }
         if self.advanced_modal() {
             return;
         }
@@ -1401,6 +1418,7 @@ fn main() {
         app.periodic_save();
         app.poll_analysis();
         app.poll_review();
+        app.poll_library();
         let (mut cur_w, mut cur_h) = window.get_size();
         cur_w = cur_w.max(1);
         cur_h = cur_h.max(1);

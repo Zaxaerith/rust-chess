@@ -10,6 +10,7 @@ use crate::{
 #[derive(Clone, Copy, Debug)]
 pub enum Action {
     Advanced(crate::advanced_app::Action),
+    Library(crate::library_app::Action),
     OpenPgn,
     ExportPgn,
     CopyFen,
@@ -306,6 +307,7 @@ impl App {
         let result: Result<(), String> = (|| {
             match action {
                 Action::Advanced(a) => self.handle_advanced_action(a),
+                Action::Library(a) => self.handle_library_action(a),
                 Action::OpenPgn => self.import_pgn_dialog()?,
                 Action::ExportPgn => self.export_pgn_dialog()?,
                 Action::CopyFen => {
@@ -397,6 +399,9 @@ impl App {
             if keys.contains(&Key::Escape) {
                 self.records.resume_prompt = false;
             }
+            return;
+        }
+        if self.library_keys(keys, chars, ctrl) {
             return;
         }
         if self.advanced_keys(keys, chars, ctrl) {
@@ -537,7 +542,7 @@ impl Canvas<'_> {
             self.actions.push(action);
         }
     }
-    fn line(&mut self, x: f32, y: f32, text: &str, width: f32, color: u32) {
+    pub(crate) fn line(&mut self, x: f32, y: f32, text: &str, width: f32, color: u32) {
         let size = 16.0 * (width / self.font.text_width(text, 16.0).max(1.0)).min(1.0);
         self.font
             .draw_text(self.buf, self.size, (x, y), text, color, size);
@@ -582,6 +587,9 @@ pub fn draw(
         pressed,
         actions: vec![],
     };
+    c.actions.extend(crate::library_ui::draw(
+        font, c.buf, size, app, mouse, pressed,
+    ));
     let lang = app.settings.language;
     let w = size.0 as f32;
     let h = size.1 as f32;

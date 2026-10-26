@@ -22,6 +22,8 @@ pub struct Editor {
 }
 pub enum Intent {
     Back,
+    LibraryPage,
+    LibraryGame(String),
     Quit,
     Record(records_ui::Action),
     Ui(UiAction),
@@ -100,6 +102,8 @@ impl App {
     pub(crate) fn finish_intent(&mut self, intent: Intent) -> Result<(), String> {
         match intent {
             Intent::Back => self.leave_replay(),
+            Intent::LibraryPage => self.enter_library()?,
+            Intent::LibraryGame(id) => self.open_library_id(&id)?,
             Intent::Quit => self.exit_requested = true,
             Intent::Record(a) => self.handle_record_action(a),
             Intent::Ui(a) => self.handle_action(a),
@@ -125,6 +129,7 @@ impl App {
         if self.screen != Screen::Replay {
             self.records.replay_return = self.screen;
         }
+        self.records.library_id = None;
         self.records.replay = Some(crate::replay::Replay::from_annotated(tree, external));
         if let Some(r) = &mut self.records.replay {
             r.scroll = r.path_cursor().saturating_sub(2);
@@ -160,6 +165,7 @@ impl App {
         let Some(path) = picked? else {
             return Ok(false);
         };
+        self.guard_library_export(&path)?;
         self.save_annotated_to(&path)?;
         Ok(true)
     }

@@ -8,6 +8,7 @@ use crate::{
 use std::path::PathBuf;
 
 pub struct RecordsState {
+    pub library_id: Option<String>,
     pub initial: Chess,
     pub metadata: GameRecord,
     pub replay: Option<Replay>,
@@ -27,6 +28,7 @@ impl Default for RecordsState {
     fn default() -> Self {
         let initial = Chess::default();
         Self {
+            library_id: None,
             metadata: GameRecord::new(&initial, None),
             initial,
             replay: None,
@@ -161,6 +163,7 @@ impl App {
         self.clock_last_tick = Instant::now();
         self.records.has_game = true;
         self.records.replay = None;
+        self.records.library_id = None;
         self.records.resume = None;
         self.records.resume_prompt = false;
         self.screen = Screen::Game;
@@ -192,6 +195,7 @@ impl App {
         self.last_move = None;
         self.screen = Screen::Game;
         self.records.replay = None;
+        self.records.library_id = None;
         self.records.has_game = true;
         self.records.fen_input = None;
         self.records.resume_prompt = false;
@@ -215,6 +219,7 @@ impl App {
         self.review.panel = false;
         self.cancel_analysis();
         self.records.replay = None;
+        self.records.library_id = None;
         self.advanced = crate::advanced_app::AdvancedState::default();
         self.screen = self.records.replay_return;
         self.clock_last_tick = Instant::now();
@@ -264,6 +269,7 @@ impl App {
         self.records.initial = Chess::default();
         self.records.metadata = GameRecord::new(&self.records.initial, self.ai_mode);
         self.records.replay = None;
+        self.records.library_id = None;
         self.records.resume = None;
         self.records.resume_prompt = false;
         self.records.has_game = true;

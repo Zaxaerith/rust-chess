@@ -369,7 +369,7 @@ impl Visitor for TreeImporter {
 
 // Reader 0.26 skips semicolon comments and unknown tokens. Validate and
 // normalize the lexical envelope first; SAN legality still belongs to shakmaty.
-fn prepare(text: &str) -> Result<String, String> {
+fn prepare_part(text: &str, collection: bool) -> Result<(String, usize), String> {
     let b = text.as_bytes();
     let mut i = 0;
     let mut depth = 0;
@@ -382,6 +382,12 @@ fn prepare(text: &str) -> Result<String, String> {
     let mut out = String::new();
     let mut headers = String::new();
     while i < b.len() {
+        if collection && ended && !b[i].is_ascii_whitespace() && !b"{;".contains(&b[i]) {
+            break;
+        }
+        if i > MAX_FILE_BYTES {
+            return Err("PGN exceeds 4 MiB".into());
+        }
         match b[i] {
             c if c.is_ascii_whitespace() => {
                 out.push(' ');
@@ -553,7 +559,10 @@ fn prepare(text: &str) -> Result<String, String> {
     }
     headers.push('\n');
     headers.push_str(&out);
-    Ok(headers)
+    if i > MAX_FILE_BYTES {
+        return Err("PGN exceeds 4 MiB".into());
+    }
+    Ok((headers, i))
 }
 pub fn import_annotated(bytes: &[u8]) -> Result<AnnotatedGame, String> {
     if bytes.len() > MAX_FILE_BYTES {
@@ -571,7 +580,24 @@ pub fn import_annotated(bytes: &[u8]) -> Result<AnnotatedGame, String> {
     {
         return Err("PGN contains unsafe control characters".into());
     }
-    let prepared = prepare(text)?;
+    let prepared = prepare_part(text, false)?.0;
+    let mut reader = BufferedReader::new_cursor(prepared.as_bytes());
+    let game = reader
+        .read_game(&mut importer())
+        .map_err(|e| format!("PGN read: {e}"))?
+        .ok_or("No PGN game")??;
+    if reader
+        .read_game(&mut importer())
+        .map_err(|e| format!("PGN read: {e}"))?
+        .is_some()
+    {
+        return Err(
+            "Multiple PGN games are not supported by single-game Replay; use PGN Library".into(),
+        );
+    }
+    Ok(game)
+}
+fn importer() -> TreeImporter {
     let headers = Headers {
         record: GameRecord::new(&Chess::default(), None),
         pos: Chess::default(),
@@ -589,22 +615,10 @@ pub fn import_annotated(bytes: &[u8]) -> Result<AnnotatedGame, String> {
         nags: 0,
     };
     visitor.headers.record.tags.clear();
-    let mut reader = BufferedReader::new_cursor(prepared.as_bytes());
-    let game = reader
-        .read_game(&mut visitor)
-        .map_err(|e| format!("PGN read: {e}"))?
-        .ok_or("No PGN game")??;
-    if reader
-        .read_game(&mut visitor)
-        .map_err(|e| format!("PGN read: {e}"))?
-        .is_some()
-    {
-        return Err("Multiple PGN games are not supported".into());
-    }
-    Ok(game)
+    visitor
 }
 /// Legacy linear projection for the retained state/record regression suite.
-/// Application imports always use import_annotated; linear export stays public.
+/// Application imports retain annotated trees; linear export stays public.
 #[cfg(test)]
 pub fn import(bytes: &[u8]) -> Result<crate::game_record::ValidatedRecord, String> {
     let tree = import_annotated(bytes)?;
@@ -671,4 +685,88 @@ pub fn export_annotated(game: &AnnotatedGame) -> Result<String, String> {
         return Err("Annotated PGN export exceeds 4 MiB".into());
     }
     Ok(out)
+}
+
+/// Bounded collection envelope. One BufferedReader reads each game with a fresh
+/// TreeImporter. Only one validated tree is retained at a time by the sink.
+pub const MAX_COLLECTION_BYTES: usize = 32 * 1024 * 1024;
+pub const MAX_COLLECTION_GAMES: usize = 200;
+#[derive(Debug)]
+pub struct CollectionError {
+    pub game: usize,
+    pub reason: String,
+}
+pub fn import_collection(
+    bytes: &[u8],
+    mut sink: impl FnMut(usize, AnnotatedGame) -> Result<(), String>,
+) -> Result<usize, CollectionError> {
+    let fail = |game, reason| CollectionError { game, reason };
+    if bytes.len() > MAX_COLLECTION_BYTES {
+        return Err(fail(1, "Collection exceeds 32 MiB".into()));
+    }
+    let text = std::str::from_utf8(bytes)
+        .map_err(|e| {
+            fail(
+                0,
+                format!("PGN UTF-8 at input byte {}: {e}", e.valid_up_to()),
+            )
+        })?
+        .trim_start_matches('\u{feff}');
+    if text.trim().is_empty() {
+        return Err(fail(1, "Empty PGN".into()));
+    }
+    // Keep the validated lexical prefix (not 200 chess trees). A bad later game
+    // is reported only after the valid prefix has been delivered to the sink.
+    let mut rest = text;
+    let mut normalized = String::new();
+    let mut count = 0;
+    let mut lexical_error = None;
+    while !rest.trim().is_empty() {
+        if count == MAX_COLLECTION_GAMES {
+            lexical_error = Some(fail(count + 1, "Collection exceeds 200 games".into()));
+            break;
+        }
+        match prepare_part(rest, true) {
+            Ok((part, used)) => {
+                if part
+                    .chars()
+                    .any(|c| c.is_control() && !matches!(c, '\r' | '\n' | '\t'))
+                {
+                    lexical_error = Some(fail(
+                        count + 1,
+                        "PGN contains unsafe control characters".into(),
+                    ));
+                    break;
+                }
+                if normalized.len() + part.len() + 2 > MAX_COLLECTION_BYTES {
+                    lexical_error = Some(fail(
+                        count + 1,
+                        "Normalized collection exceeds 32 MiB".into(),
+                    ));
+                    break;
+                }
+                normalized.push_str(&part);
+                normalized.push_str("\n\n");
+                rest = &rest[used..];
+                count += 1;
+            }
+            Err(e) => {
+                lexical_error = Some(fail(count + 1, e));
+                break;
+            }
+        }
+    }
+    let mut reader = BufferedReader::new_cursor(normalized.as_bytes());
+    for index in 1..=count {
+        let game = reader
+            .read_game(&mut importer())
+            .map_err(|e| fail(index, format!("PGN read: {e}")))?
+            .ok_or_else(|| fail(index, "Missing PGN game".into()))?
+            .map_err(|e| fail(index, e))?;
+        sink(index, game).map_err(|e| fail(index, e))?;
+    }
+    if let Some(e) = lexical_error {
+        return Err(e);
+    }
+    Ok(count)
 }

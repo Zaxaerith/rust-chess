@@ -49,3 +49,12 @@ v0.1.4 使用 CHA-Solver 判定超时后是否存在合作将死序列；它只�
 ## v0.2.1 外部分析
 
 UCI 通信使用 Rust 标准库，不新增 Rust 依赖。发行包不包含 Stockfish 或其他外部引擎、NNUE 文件、模拟测试引擎及用户引擎配置；用户自行取得外部引擎并遵循其许可。RUST CHESS 保持 GPL-3.0-or-later。第三方文件按原始字节保留，Git 禁止 LICENSES 全树的行尾转换，严格 SHA-256 校验继续生效。
+
+## Lichess chess-openings reference data
+
+- Source: https://github.com/lichess-org/chess-openings
+- Fixed commit: `a6189a30dc273ccb21fc2536a9a2fefd5592a67a`
+- Attribution: Lichess Contributors.
+- License: **CC0-1.0**; original text in `LICENSES/chess-openings-CC0-1.0.txt`.
+- Original `a.tsv` through `e.tsv` provide ECO codes, English names and reference SAN routes. They are embedded in the executable for offline use. They provide classifications, **not engine evaluations or global match statistics**. Original bytes/URLs/SHA-256 are recorded in `LICENSES/chess-openings-provenance.json`; source copies remain in `data/chess-openings/` in the repository.
+- Runtime match counts and W/D/L come exclusively from the user's local PGN Library, not from this reference dataset. RUST CHESS's application code remains GPL-3.0-or-later.

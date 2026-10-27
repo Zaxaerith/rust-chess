@@ -106,5 +106,37 @@ class LicenseCheckoutTests(unittest.TestCase):
         self.assertEqual(data, (licenses.ROOT / relative).read_bytes())
 
 
+class OpeningDataTests(unittest.TestCase):
+    def test_pinned_cc0_originals_and_distribution(self):
+        import verify_opening_data
+        self.assertEqual(verify_opening_data.verify()['files'], 6)
+
+    def test_changed_cc0_data_or_provenance_fails(self):
+        import verify_opening_data
+        parent = licenses.ROOT / 'target/license-tests'
+        parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=parent) as folder:
+            root = Path(folder)
+            shutil.copytree(licenses.ROOT / 'data/chess-openings', root / 'data/chess-openings')
+            (root / 'LICENSES').mkdir()
+            for name in ['chess-openings-CC0-1.0.txt', 'chess-openings-provenance.json']:
+                shutil.copyfile(licenses.ROOT / 'LICENSES' / name, root / 'LICENSES' / name)
+            path = root / 'data/chess-openings/a.tsv'
+            original = path.read_bytes()
+            path.write_bytes(original.replace(b'\n', b'\r\n'))
+            with self.assertRaises(ValueError):
+                verify_opening_data.verify(root)
+            path.write_bytes(original)
+            path = root / 'data/chess-openings/provenance.json'
+            path.write_text(path.read_text().replace(verify_opening_data.COMMIT, 'main'), encoding='utf-8')
+            with self.assertRaises(ValueError):
+                verify_opening_data.verify(root)
+
+    def test_cc0_data_disables_checkout_conversion(self):
+        files = [p.relative_to(licenses.ROOT).as_posix() for p in (licenses.ROOT / 'data/chess-openings').iterdir()]
+        output = subprocess.check_output(['git', 'check-attr', 'text', '--', *files], cwd=licenses.ROOT, text=True)
+        self.assertTrue(all(line.endswith(': text: unset') for line in output.splitlines()), output)
+
+
 if __name__ == '__main__':
     unittest.main()

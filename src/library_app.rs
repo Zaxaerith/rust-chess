@@ -177,6 +177,7 @@ impl App {
         self.library.refresh();
         self.records.replay.as_mut().expect("replay").dirty = false;
         self.library.notice = Some(crate::library_ui::words(self.settings.language)[18].into());
+        self.update_opening_members();
         Ok(())
     }
     pub(crate) fn start_library_import(&mut self, path: &Path) -> Result<(), String> {
@@ -223,6 +224,7 @@ impl App {
                     t[19], report.added, t[20], report.skipped, t[21], report.failed
                 ));
                 self.library.error = report.error;
+                self.update_opening_members();
             }
             Err(TryRecvError::Empty) => {}
             Err(TryRecvError::Disconnected) => {
@@ -349,6 +351,7 @@ impl App {
             Ok::<_, String>(())
         })();
         self.library.error = result.err();
+        self.update_opening_members();
         if self.screen == Screen::Replay
             && let Some(e) = &self.library.error
         {

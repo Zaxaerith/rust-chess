@@ -64,6 +64,7 @@ pub enum Screen {
     Game,
     Replay,
     Library,
+    Opening,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -225,6 +226,17 @@ pub(crate) struct Layout {
 }
 
 impl Layout {
+    pub(crate) fn for_screen(w: usize, h: usize, screen: Screen, focus: bool) -> Self {
+        Self::new(
+            w,
+            if screen == Screen::Opening {
+                h.saturating_sub(64)
+            } else {
+                h
+            },
+            focus,
+        )
+    }
     pub(crate) fn square_center(&self, sq: Square, flipped: bool) -> (f32, f32) {
         let (x, y) = square_rect(sq, self, flipped);
         (x + self.sq / 2.0, y + self.sq / 2.0)
@@ -270,7 +282,7 @@ impl<'a> Renderer<'a> {
         let focus_board = view.screen == Screen::Game
             && !view.analysis.active
             && (view.settings.board.immersive_mode || view.settings.board.zen_mode != ZenMode::No);
-        let layout = Layout::new(width, height, focus_board);
+        let layout = Layout::for_screen(width, height, view.screen, focus_board);
         let pal = view.settings.theme.palette();
         let mut actions = Vec::new();
         fill_rect(
@@ -286,8 +298,11 @@ impl<'a> Renderer<'a> {
             Screen::Menu => self.draw_menu(buf, &layout, &pal, view, &mut actions),
             Screen::Library => {}
             Screen::Settings => self.draw_settings(buf, &layout, &pal, view, &mut actions),
-            Screen::Game | Screen::Replay => {
+            Screen::Game | Screen::Replay | Screen::Opening => {
                 self.draw_board(buf, &layout, &pal, view);
+                if view.screen == Screen::Opening {
+                    return actions;
+                }
                 crate::analysis_board::draw(
                     buf,
                     (width, height),

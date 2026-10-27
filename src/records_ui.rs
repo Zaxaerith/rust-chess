@@ -11,6 +11,7 @@ use crate::{
 pub enum Action {
     Advanced(crate::advanced_app::Action),
     Library(crate::library_app::Action),
+    Opening(crate::opening_app::Action),
     OpenPgn,
     ExportPgn,
     CopyFen,
@@ -308,6 +309,7 @@ impl App {
             match action {
                 Action::Advanced(a) => self.handle_advanced_action(a),
                 Action::Library(a) => self.handle_library_action(a),
+                Action::Opening(a) => self.handle_opening_action(a),
                 Action::OpenPgn => self.import_pgn_dialog()?,
                 Action::ExportPgn => self.export_pgn_dialog()?,
                 Action::CopyFen => {
@@ -399,6 +401,9 @@ impl App {
             if keys.contains(&Key::Escape) {
                 self.records.resume_prompt = false;
             }
+            return;
+        }
+        if self.opening_keys(keys, chars, ctrl) {
             return;
         }
         if self.library_keys(keys, chars, ctrl) {
@@ -588,6 +593,9 @@ pub fn draw(
         actions: vec![],
     };
     c.actions.extend(crate::library_ui::draw(
+        font, c.buf, size, app, mouse, pressed,
+    ));
+    c.actions.extend(crate::opening_ui::draw(
         font, c.buf, size, app, mouse, pressed,
     ));
     let lang = app.settings.language;

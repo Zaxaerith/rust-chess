@@ -23,6 +23,8 @@ pub struct Editor {
 pub enum Intent {
     Back,
     LibraryPage,
+    OpeningPage,
+    OpeningGame(String, String),
     LibraryGame(String),
     Quit,
     Record(records_ui::Action),
@@ -103,6 +105,8 @@ impl App {
         match intent {
             Intent::Back => self.leave_replay(),
             Intent::LibraryPage => self.enter_library()?,
+            Intent::OpeningPage => self.enter_opening()?,
+            Intent::OpeningGame(id, key) => self.opening_game(&id, &key)?,
             Intent::LibraryGame(id) => self.open_library_id(&id)?,
             Intent::Quit => self.exit_requested = true,
             Intent::Record(a) => self.handle_record_action(a),

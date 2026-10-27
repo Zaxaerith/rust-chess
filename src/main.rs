@@ -22,6 +22,12 @@ mod library_app;
 mod library_tests;
 mod library_ui;
 mod native_files;
+mod opening_app;
+mod opening_book;
+mod opening_stats;
+#[cfg(test)]
+mod opening_tests;
+mod opening_ui;
 mod persistence;
 mod pgn;
 mod preferences;
@@ -116,6 +122,7 @@ impl PieceAnim {
 }
 
 struct App {
+    opening: opening_app::Opening,
     library: library_app::LibraryState,
     advanced: advanced_app::AdvancedState,
     analysis: analysis::Analysis,
@@ -184,6 +191,7 @@ impl App {
             loaded.fps = 60;
         }
         Self {
+            opening: opening_app::Opening::default(),
             library: library_app::LibraryState::default(),
             advanced: advanced_app::AdvancedState::default(),
             analysis: analysis::Analysis::default(),
@@ -1094,6 +1102,14 @@ impl App {
     }
 
     fn handle_scroll(&mut self, y: f32) {
+        if self.screen == Screen::Opening {
+            self.opening.scroll = self
+                .opening
+                .scroll
+                .saturating_add_signed(-(y.round() as isize))
+                .min(self.opening_list_len().saturating_sub(1));
+            return;
+        }
         if self.screen == Screen::Library {
             if !self.library.busy() && self.library.remove.is_none() {
                 self.library.scroll = self
@@ -1419,6 +1435,7 @@ fn main() {
         app.poll_analysis();
         app.poll_review();
         app.poll_library();
+        app.poll_opening();
         let (mut cur_w, mut cur_h) = window.get_size();
         cur_w = cur_w.max(1);
         cur_h = cur_h.max(1);
@@ -1435,6 +1452,7 @@ fn main() {
         }
         let mut view = app.view_state(mouse, pressed, mouse_down, released);
         app.replay_view(&mut view);
+        app.opening_view(&mut view);
         if app.analysis.panel {
             view.settings.board.zen_mode = ZenMode::No;
             view.settings.board.immersive_mode = false;
@@ -1496,6 +1514,9 @@ fn main() {
         window
             .update_with_buffer(&buffer, cur_w, cur_h)
             .expect("更新窗口失败");
+    }
+    if !app.opening.shutdown(Duration::from_millis(1000)) {
+        eprintln!("Opening worker cleanup exceeded deadline");
     }
     app.tick_clock();
     app.save_session();

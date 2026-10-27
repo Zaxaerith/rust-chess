@@ -1,2 +1,5 @@
 # Preserve upstream license/notice/declaration bytes and their original line endings.
 LICENSES/** -text
+
+# Preserve the pinned CC0 data bytes for reproducible embedded inputs.
+data/chess-openings/** -text

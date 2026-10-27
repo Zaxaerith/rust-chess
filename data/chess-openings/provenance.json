@@ -1,0 +1,44 @@
+{
+  "source": "https://github.com/lichess-org/chess-openings",
+  "commit": "a6189a30dc273ccb21fc2536a9a2fefd5592a67a",
+  "license": "CC0-1.0",
+  "attribution": "Lichess Contributors",
+  "files": [
+    {
+      "path": "a.tsv",
+      "url": "https://raw.githubusercontent.com/lichess-org/chess-openings/a6189a30dc273ccb21fc2536a9a2fefd5592a67a/a.tsv",
+      "bytes": 67257,
+      "sha256": "3282e4c9155289a29224f9a85fba0decb46efa35c2fa5e39662d2ac48fb0f793"
+    },
+    {
+      "path": "b.tsv",
+      "url": "https://raw.githubusercontent.com/lichess-org/chess-openings/a6189a30dc273ccb21fc2536a9a2fefd5592a67a/b.tsv",
+      "bytes": 78124,
+      "sha256": "1d5ed134ebbd87915ead5683416e37583bb3e5ae3582b4d8cb5cb4aa7ef4f623"
+    },
+    {
+      "path": "c.tsv",
+      "url": "https://raw.githubusercontent.com/lichess-org/chess-openings/a6189a30dc273ccb21fc2536a9a2fefd5592a67a/c.tsv",
+      "bytes": 132304,
+      "sha256": "45e843c7b7e79a0d04d5bda879c9bd23f5a10974488bd8615e4f4c5d0749986f"
+    },
+    {
+      "path": "d.tsv",
+      "url": "https://raw.githubusercontent.com/lichess-org/chess-openings/a6189a30dc273ccb21fc2536a9a2fefd5592a67a/d.tsv",
+      "bytes": 73318,
+      "sha256": "1cf4057a8aece94f27bb3f278ad410ee2844831a642364eeceaafa091dbcceda"
+    },
+    {
+      "path": "e.tsv",
+      "url": "https://raw.githubusercontent.com/lichess-org/chess-openings/a6189a30dc273ccb21fc2536a9a2fefd5592a67a/e.tsv",
+      "bytes": 44061,
+      "sha256": "48c6f6645b031a5937c8386839debab0e2e48837251687ba1afb6369677f8546"
+    },
+    {
+      "path": "COPYING.txt",
+      "url": "https://raw.githubusercontent.com/lichess-org/chess-openings/a6189a30dc273ccb21fc2536a9a2fefd5592a67a/COPYING.txt",
+      "bytes": 7048,
+      "sha256": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499"
+    }
+  ]
+}

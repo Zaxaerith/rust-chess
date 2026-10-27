@@ -11,6 +11,8 @@ if (-not $SkipBuild) {
     cargo build --release --locked -j 2
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
+python -B tools/verify_puzzle_data.py
+if ($LASTEXITCODE -ne 0) { throw "Pinned CC0 puzzle data verification failed" }
 python -B tools/verify_opening_data.py
 if ($LASTEXITCODE -ne 0) { throw "Pinned CC0 opening data verification failed" }
 python tools/collect_licenses.py

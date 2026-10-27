@@ -484,7 +484,12 @@ pub fn draw(
     mouse: Option<(f32, f32)>,
     pressed: bool,
 ) -> Vec<Action> {
-    if modal(app) || matches!(app.screen, Screen::Library | Screen::Opening) {
+    if modal(app)
+        || matches!(
+            app.screen,
+            Screen::Library | Screen::Opening | Screen::Puzzle
+        )
+    {
         return vec![];
     }
     if app.review.panel && app.screen == Screen::Replay {

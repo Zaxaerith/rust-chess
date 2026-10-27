@@ -3,3 +3,6 @@ LICENSES/** -text
 
 # Preserve the pinned CC0 data bytes for reproducible embedded inputs.
 data/chess-openings/** -text
+
+# Preserve pinned official puzzle data, metadata and CC0 declaration bytes.
+data/chess-puzzles/** -text

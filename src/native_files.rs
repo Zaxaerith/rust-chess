@@ -64,26 +64,37 @@ pub fn local_date() -> String {
 }
 
 pub fn choose_pgn(save: bool, owner: usize, default_name: &str) -> Result<Option<PathBuf>, String> {
-    choose_file(save, owner, default_name, false)
+    choose_file(save, owner, default_name, 0)
 }
 pub fn choose_engine(owner: usize) -> Result<Option<PathBuf>, String> {
-    choose_file(false, owner, "", true)
+    choose_file(false, owner, "", 1)
+}
+pub fn choose_csv(owner: usize) -> Result<Option<PathBuf>, String> {
+    choose_file(false, owner, "", 2)
 }
 fn choose_file(
     save: bool,
     owner: usize,
     default_name: &str,
-    engine: bool,
+    kind: u8,
 ) -> Result<Option<PathBuf>, String> {
     let mut file = vec![0u16; 32768];
     let name = wide(default_name);
     file[..name.len()].copy_from_slice(&name);
-    let filter = wide(if engine {
+    let filter = wide(if kind == 1 {
         "UCI engine (*.exe)\0*.exe\0"
+    } else if kind == 2 {
+        "Lichess puzzles (*.csv)\0*.csv\0"
     } else {
         "Portable Game Notation (*.pgn)\0*.pgn\0All files (*.*)\0*.*\0"
     });
-    let ext = wide(if engine { "exe" } else { "pgn" });
+    let ext = wide(if kind == 1 {
+        "exe"
+    } else if kind == 2 {
+        "csv"
+    } else {
+        "pgn"
+    });
     let mut dialog: OpenFileName = unsafe { std::mem::zeroed() };
     dialog.size = std::mem::size_of::<OpenFileName>() as u32;
     dialog.owner = owner as *mut c_void;

@@ -2,7 +2,7 @@
 
 [简体中文](README_ZH.md)
 
-> Local development candidate: **v0.2.6 Opening Explorer** (unpublished). See [validation report](RELEASE_CANDIDATE_v0.2.6.md). [v0.2.5](https://github.com/Zaxaerith/rust-chess/releases/tag/v0.2.5) is published.
+> Local development candidate: **v0.2.7 Offline Chess Puzzles** (unpublished). See [validation report](RELEASE_CANDIDATE_v0.2.7.md). [v0.2.6](https://github.com/Zaxaerith/rust-chess/releases/tag/v0.2.6) is published.
 
 A local window chess game written in Rust. Supports two-player, human vs AI, 5 AI difficulty levels, move animations, AI thinking pause, opening/ending animations, settings persistence, and multiple VSCode-inspired themes. v0.1.4 adds clock-based game results, clock-aware undo, explicit AI search errors, and regression tests.
 
@@ -204,3 +204,42 @@ To clear cache, close the app and manually move/delete only the intended `.revie
 - The first Explorer visit builds the small reference index off the UI thread and attempts a matching cache load; normal program startup does neither. A single cancellable worker builds statistics, with per-game progress. Serialization and staging writes also run in the worker; only a final atomic rename happens after the UI rechecks the snapshot. Cancel/Back stops publication; previous valid cache is retained on cancellation/failure. A changed Library snapshot cannot overwrite current statistics as if fresh. Threads are cooperatively stopped/joined during normal exit with a 1-second deadline; unusually stalled OS file IO can exceed that deadline and is logged, not blocked forever.
 - Cache: `%LOCALAPPDATA%\RUST CHESS\opening-stats-v1.json` (explicit tests use `RUST_CHESS_DATA_DIR`). A checksum-protected schema-1 JSON, capped at 32 MiB, records algorithm/source/normalization/prefix identity and sorted Library ID/content hashes. Add/remove/save invalidates; favorite-only changes do not. Full annotated-content hashes conservatively mean comment-only saves also invalidate statistics, while Game Review's own identity remains unchanged. Rebuild explicitly after changes. Damaged/unknown cache reports an error and is retained; an explicit successful rebuild replaces only this statistics cache. Cache write errors leave completed results available in memory.
 - Neither Explorer navigation nor statistics alters PGNs, Library schema, live clocks/history, autosave or Review Cache; no UCI engine is started. Statistics are not an online database or Stockfish opening recommendation. Standard chess only, 160 navigable plies per Explorer path, at most the existing 2,000 Library entries. Large local libraries/slow disks take time; cancel is cooperative between bounded work units. Native/manual UI acceptance remains separate from CLI/Mock/offscreen evidence in the candidate report.
+
+
+## Offline Chess Puzzles (v0.2.7)
+
+- Main menu → **Chess Puzzles**. The executable embeds 512 validated Lichess CC0 puzzles;
+  no account, network connection, Python or external engine is needed for training.
+- Choose Theme, Rating range and Mixed / Unseen first / Retry errors. These buttons cycle
+  their finite options. Official theme identifiers remain recognizable across languages.
+  Show themes is optional because themes can reveal the tactic. Empty filters show no matches.
+- The initial opponent move is already played. Click or drag your pieces; the board faces
+  the solving side. Correct moves advance along the verified answer; the prescribed opponent
+  reply runs on the next UI tick. Always choose the actual promotion piece, including a knight.
+- Hint first marks the source, then the destination, separately for each answer turn.
+  Reveal opens read-only answer replay; Previous/Next or arrow keys navigate it. Details shows
+  the full reference SAN. Retry starts this puzzle again; Next/Back records an unfinished attempt
+  as Skipped. A different legal move is described as outside the reference, not objectively bad.
+  For mateIn1, any verified immediate checkmate is accepted.
+- Results distinguish First try (no hint/error), Assisted (hint or prior mismatch), Revealed,
+  and Skipped. Attempts include retries; `#` counts distinct attempted IDs and `✓#` distinct
+  solved IDs, so retries cannot inflate unique completion. The percentage is first-try attempts
+  divided by all recorded attempts, including skipped/revealed, not a player rating.
+- Progress: `%LOCALAPPDATA%\RUST CHESS\puzzle-progress-v1.json`; optional packs:
+  `%LOCALAPPDATA%\RUST CHESS\puzzles-v1\user.json`. Both respect `RUST_CHESS_DATA_DIR`.
+  Back up these two independent files while the app is closed. Corrupt/unsupported files are
+  preserved and reported; progress writing is disabled rather than overwriting damaged history.
+- Import CSV selects a small, uncompressed UTF-8 Lichess CSV (BOM/CRLF/quoted fields supported).
+  Required columns: PuzzleId,FEN,Moves,Rating,RatingDeviation,Popularity,NbPlays,Themes.
+  GameUrl,OpeningTags,DailyDate and other optional columns may be present. Limit16MiB/20000rows;
+  each line2..32plies, even length, all legal; user collection total20000 and32MiB. Select a
+  subset yourself before importing a larger official export; `.zst` is not supported.
+  A single worker validates all input, then atomically merges by PuzzleId. Identical IDs are
+  skipped without replacing existing puzzles or progress. Any invalid record aborts the whole
+  import with its ID/record and zero archived; cancellation before commit leaves storage intact.
+  Errors and added/duplicate counts appear in Details; source CSVs are never modified.
+- Training owns its chess state, timer and storage. It cannot make real-game moves, run Pleco/UCI,
+  or change Library, Opening statistics, Review Cache or autosave schema. No pack is bundled engine
+  output newly calculated by this app; Lichess puzzle Rating is not your personal rating.
+- [Pinned source, selection, hashes and Viewer revision limitation](data/chess-puzzles/README.md).
+  This version has CLI/offscreen validation; native CSV dialogs and player UI need human playtesting.

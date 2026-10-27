@@ -18,6 +18,8 @@ def require(condition, message):
 def verify(path):
     from verify_opening_data import verify as verify_openings
     verify_openings(ROOT)
+    from verify_puzzle_data import verify as verify_puzzles
+    verify_puzzles(ROOT)
     version = tomllib.loads((ROOT / 'Cargo.toml').read_text(encoding='utf-8'))['package']['version']
     manifest = json.loads((ROOT / 'LICENSES/dependencies/manifest.json').read_text(encoding='utf-8'))
     metadata = json.loads(subprocess.check_output([
@@ -42,6 +44,7 @@ def verify(path):
             'Dependency manifest does not match the complete locked Windows dependency graph')
     licenses = {
         'LICENSES/chasolver-MIT.txt', 'LICENSES/chess-MIT.txt',
+        'LICENSES/chess-puzzles-CC0-1.0.txt', 'LICENSES/chess-puzzles-provenance.json',
         'LICENSES/chess-openings-CC0-1.0.txt', 'LICENSES/chess-openings-provenance.json',
         'LICENSES/upstream/pleco-0.5.0-LICENSE-MIT',
         'LICENSES/upstream/pleco-0.5.0-provenance.json',

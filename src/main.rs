@@ -31,6 +31,13 @@ mod opening_ui;
 mod persistence;
 mod pgn;
 mod preferences;
+mod puzzle_app;
+mod puzzle_data;
+mod puzzle_session;
+mod puzzle_store;
+#[cfg(test)]
+mod puzzle_tests;
+mod puzzle_ui;
 mod records_app;
 mod records_ui;
 mod render;
@@ -122,6 +129,7 @@ impl PieceAnim {
 }
 
 struct App {
+    puzzles: puzzle_app::Puzzles,
     opening: opening_app::Opening,
     library: library_app::LibraryState,
     advanced: advanced_app::AdvancedState,
@@ -191,6 +199,7 @@ impl App {
             loaded.fps = 60;
         }
         Self {
+            puzzles: puzzle_app::Puzzles::default(),
             opening: opening_app::Opening::default(),
             library: library_app::LibraryState::default(),
             advanced: advanced_app::AdvancedState::default(),
@@ -676,8 +685,20 @@ impl App {
                 }
                 self.change_mode(mode);
             }
-            UiAction::PointerDown(sq) => self.handle_pointer_down(sq),
-            UiAction::PointerUp(sq) => self.handle_pointer_up(sq),
+            UiAction::PointerDown(sq) => {
+                if self.screen == Screen::Puzzle {
+                    self.puzzle_down(sq);
+                } else {
+                    self.handle_pointer_down(sq);
+                }
+            }
+            UiAction::PointerUp(sq) => {
+                if self.screen == Screen::Puzzle {
+                    self.puzzle_up(sq);
+                } else {
+                    self.handle_pointer_up(sq);
+                }
+            }
             UiAction::ConfirmMove => {
                 if let Some(mv) = self.pending_move.take() {
                     self.apply_move(mv);
@@ -691,7 +712,13 @@ impl App {
             UiAction::AddClockTime(color) => {
                 self.add_clock_time(color);
             }
-            UiAction::Promote(role) => self.handle_promotion(role),
+            UiAction::Promote(role) => {
+                if self.screen == Screen::Puzzle {
+                    self.puzzle_promote(role);
+                } else {
+                    self.handle_promotion(role);
+                }
+            }
         }
     }
 
@@ -1436,6 +1463,7 @@ fn main() {
         app.poll_review();
         app.poll_library();
         app.poll_opening();
+        app.poll_puzzles();
         let (mut cur_w, mut cur_h) = window.get_size();
         cur_w = cur_w.max(1);
         cur_h = cur_h.max(1);
@@ -1453,6 +1481,7 @@ fn main() {
         let mut view = app.view_state(mouse, pressed, mouse_down, released);
         app.replay_view(&mut view);
         app.opening_view(&mut view);
+        app.puzzle_view(&mut view);
         if app.analysis.panel {
             view.settings.board.zen_mode = ZenMode::No;
             view.settings.board.immersive_mode = false;
@@ -1518,8 +1547,14 @@ fn main() {
     if !app.opening.shutdown(Duration::from_millis(1000)) {
         eprintln!("Opening worker cleanup exceeded deadline");
     }
+    app.finish_puzzle();
+    if !app.puzzles.shutdown(Duration::from_millis(1500)) {
+        eprintln!("Puzzle worker cleanup exceeded deadline");
+    }
     app.tick_clock();
-    app.save_session();
+    if app.screen != Screen::Puzzle {
+        app.save_session();
+    }
     app.cancel_review();
     app.save_review_cache(true);
     if !app.shutdown_analysis() {

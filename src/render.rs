@@ -65,6 +65,7 @@ pub enum Screen {
     Replay,
     Library,
     Opening,
+    Puzzle,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -229,7 +230,7 @@ impl Layout {
     pub(crate) fn for_screen(w: usize, h: usize, screen: Screen, focus: bool) -> Self {
         Self::new(
             w,
-            if screen == Screen::Opening {
+            if matches!(screen, Screen::Opening | Screen::Puzzle) {
                 h.saturating_sub(64)
             } else {
                 h
@@ -298,9 +299,29 @@ impl<'a> Renderer<'a> {
             Screen::Menu => self.draw_menu(buf, &layout, &pal, view, &mut actions),
             Screen::Library => {}
             Screen::Settings => self.draw_settings(buf, &layout, &pal, view, &mut actions),
-            Screen::Game | Screen::Replay | Screen::Opening => {
+            Screen::Game | Screen::Replay | Screen::Opening | Screen::Puzzle => {
                 self.draw_board(buf, &layout, &pal, view);
                 if view.screen == Screen::Opening {
+                    return actions;
+                }
+                if view.screen == Screen::Puzzle {
+                    if view.promotion.is_some() {
+                        self.draw_promotion_dialog(buf, &layout, &pal, view, &mut actions);
+                    } else if let Some((mx, my)) = view.mouse {
+                        if view.mouse_pressed
+                            && let Some(sq) = self.square_at(mx, my, &layout, board_flipped(view))
+                        {
+                            actions.push(UiAction::PointerDown(sq));
+                        }
+                        if view.mouse_released {
+                            actions.push(UiAction::PointerUp(self.square_at(
+                                mx,
+                                my,
+                                &layout,
+                                board_flipped(view),
+                            )));
+                        }
+                    }
                     return actions;
                 }
                 crate::analysis_board::draw(
@@ -2402,20 +2423,40 @@ impl<'a> Renderer<'a> {
         actions: &mut Vec<UiAction>,
     ) {
         let tr = view.settings.language.text();
+        let puzzle = view.screen == Screen::Puzzle;
         fill_rect_alpha(
             buf,
             (layout.w, layout.h),
-            (0, 0),
-            layout.w as i32,
-            layout.h as i32,
+            if puzzle {
+                (layout.board_left as i32, layout.board_top as i32)
+            } else {
+                (0, 0)
+            },
+            if puzzle {
+                layout.board_size as i32
+            } else {
+                layout.w as i32
+            },
+            if puzzle {
+                layout.board_size as i32
+            } else {
+                layout.h as i32
+            },
             0x0000_0000,
             140,
         );
-
-        let box_w = 560.0;
+        let box_w = if puzzle { layout.board_size } else { 560.0 };
         let box_h = 230.0;
-        let bx = (layout.w as f32 - box_w) / 2.0;
-        let by = (layout.h as f32 - box_h) / 2.0;
+        let bx = if puzzle {
+            layout.board_left
+        } else {
+            (layout.w as f32 - box_w) / 2.0
+        };
+        let by = if puzzle {
+            layout.board_top + (layout.board_size - box_h) / 2.0
+        } else {
+            (layout.h as f32 - box_h) / 2.0
+        };
         fill_rect(
             buf,
             (layout.w, layout.h),
@@ -2446,9 +2487,9 @@ impl<'a> Renderer<'a> {
         let color = view.pos.turn();
         let roles = [Role::Queen, Role::Rook, Role::Bishop, Role::Knight];
         let names = [tr.queen, tr.rook, tr.bishop, tr.knight];
-        let bw = 100.0;
+        let bw = if puzzle { (box_w - 40.0) / 4.0 } else { 100.0 };
         let bh = 120.0;
-        let gap = 16.0;
+        let gap = if puzzle { 8.0 } else { 16.0 };
         let total = bw * 4.0 + gap * 3.0;
         let sx = bx + (box_w - total) / 2.0;
 

@@ -138,5 +138,35 @@ class OpeningDataTests(unittest.TestCase):
         self.assertTrue(all(line.endswith(': text: unset') for line in output.splitlines()), output)
 
 
+class PuzzleDataTests(unittest.TestCase):
+    def test_official_sample_license_and_source_rows(self):
+        import verify_puzzle_data
+        self.assertEqual(verify_puzzle_data.verify()['puzzles'], 512)
+
+    def test_modified_puzzle_data_and_license_are_rejected(self):
+        import verify_puzzle_data
+        parent = licenses.ROOT / 'target/license-tests'
+        parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=parent) as folder:
+            root = Path(folder)
+            shutil.copytree(licenses.ROOT / 'data/chess-puzzles', root / 'data/chess-puzzles')
+            (root / 'LICENSES').mkdir()
+            for name in ['chess-puzzles-CC0-1.0.txt', 'chess-puzzles-provenance.json']:
+                shutil.copyfile(licenses.ROOT / 'LICENSES' / name, root / 'LICENSES' / name)
+            verify_puzzle_data.verify(root)
+            for relative in ['data/chess-puzzles/puzzles.json', 'data/chess-puzzles/UPSTREAM_README.md', 'LICENSES/chess-puzzles-CC0-1.0.txt', 'LICENSES/chess-puzzles-provenance.json']:
+                path = root / relative
+                original = path.read_bytes()
+                path.write_bytes(original + b'changed')
+                with self.assertRaises(ValueError):
+                    verify_puzzle_data.verify(root)
+                path.write_bytes(original)
+
+    def test_puzzle_bytes_disable_git_text_conversion(self):
+        files = [p.relative_to(licenses.ROOT).as_posix() for p in (licenses.ROOT / 'data/chess-puzzles').iterdir()]
+        output = subprocess.check_output(['git', 'check-attr', 'text', '--', *files], cwd=licenses.ROOT, text=True)
+        self.assertTrue(all(line.endswith(': text: unset') for line in output.splitlines()), output)
+
+
 if __name__ == '__main__':
     unittest.main()

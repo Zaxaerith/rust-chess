@@ -12,6 +12,7 @@ pub enum Action {
     Advanced(crate::advanced_app::Action),
     Library(crate::library_app::Action),
     Opening(crate::opening_app::Action),
+    Puzzle(crate::puzzle_app::Action),
     OpenPgn,
     ExportPgn,
     CopyFen,
@@ -310,6 +311,7 @@ impl App {
                 Action::Advanced(a) => self.handle_advanced_action(a),
                 Action::Library(a) => self.handle_library_action(a),
                 Action::Opening(a) => self.handle_opening_action(a),
+                Action::Puzzle(a) => self.handle_puzzle_action(a),
                 Action::OpenPgn => self.import_pgn_dialog()?,
                 Action::ExportPgn => self.export_pgn_dialog()?,
                 Action::CopyFen => {
@@ -400,6 +402,18 @@ impl App {
         if self.records.resume_prompt {
             if keys.contains(&Key::Escape) {
                 self.records.resume_prompt = false;
+            }
+            return;
+        }
+        if self.screen == Screen::Puzzle {
+            if keys.contains(&Key::Escape) {
+                self.handle_puzzle_action(crate::puzzle_app::Action::Back);
+            }
+            if keys.contains(&Key::Left) {
+                self.handle_puzzle_action(crate::puzzle_app::Action::Previous);
+            }
+            if keys.contains(&Key::Right) {
+                self.handle_puzzle_action(crate::puzzle_app::Action::Forward);
             }
             return;
         }
@@ -598,10 +612,13 @@ pub fn draw(
     c.actions.extend(crate::opening_ui::draw(
         font, c.buf, size, app, mouse, pressed,
     ));
+    c.actions.extend(crate::puzzle_ui::draw(
+        font, c.buf, size, app, mouse, pressed,
+    ));
     let lang = app.settings.language;
     let w = size.0 as f32;
     let h = size.1 as f32;
-    if app.records.replay.is_some() {
+    if app.screen == Screen::Replay && app.records.replay.is_some() {
         c.actions.extend(crate::advanced_ui::draw_panel(
             font, c.buf, size, app, mouse, pressed,
         ));

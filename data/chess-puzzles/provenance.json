@@ -1,0 +1,274 @@
+{
+  "source": "https://huggingface.co/datasets/Lichess/chess-puzzles",
+  "official": "https://database.lichess.org/#puzzles",
+  "commit": "461725966ea46898ec6481372a6326de3281bfbd",
+  "license": "CC0-1.0",
+  "attribution": "Lichess Contributors",
+  "snapshot_checked_before_and_after": true,
+  "viewer_revision_note": "Viewer accepts revision parameter; no revision response header. Repository HEAD checked before and after; selected rows preserved with row index. Re-fetch must match hashes or stop, never assume current rows equal pinned snapshot.",
+  "count": 512,
+  "file": "puzzles.json",
+  "sha256": "c372fd943e5ad910deee03a25b73b2a58a0ef2f2c6b2a20a41ba1a1d7c27c1f5",
+  "selection": "32 disjoint offsets i*190000 (i=0..31), length 100; Popularity>=80, RatingDeviation<=100, 2..16 plies, Rating400..3000. First up to16 per required theme sorted popularity descending/deviation/row; fill round-robin five rating bins with same order; unique ID; final source row order.",
+  "batches": [
+    {
+      "offset": 0,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=0&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "a7e35d70ce83c82c2f141a358b35f7ff51e4baf3ee880c70359c71d52a5463e7",
+      "headers": {}
+    },
+    {
+      "offset": 190000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=190000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "4a45db2069d9c6fbc53089ad6aad5292f90c11de367901f0e9f0371e83bcfa21",
+      "headers": {}
+    },
+    {
+      "offset": 380000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=380000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "f67a339a8d9b40f25662a204d51cf051c0e07504e16706e9dc9b825de1b1b20b",
+      "headers": {}
+    },
+    {
+      "offset": 570000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=570000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "3f3322ae44b956f89d9029070fca8c5d4619f0f38e608d1ab45ae8a80ad2d0c8",
+      "headers": {}
+    },
+    {
+      "offset": 760000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=760000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "a2c4d0093af1efb0c08ae5c9ffa35a023e352f41c3df8033cf37ba0411cb277a",
+      "headers": {}
+    },
+    {
+      "offset": 950000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=950000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "7f03e53aa4caa7722c410885da2bb50f93cc2bfad293d5b0be0dca9133ab11e1",
+      "headers": {}
+    },
+    {
+      "offset": 1140000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=1140000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "3d1484bfd252bf35022bbf7298db1b574a7ddfaa587a03b8a4ef9776951f23ff",
+      "headers": {}
+    },
+    {
+      "offset": 1330000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=1330000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "57de1c17d5f3db7f2858a0afd0c966f73a5c7f818a5f5c1cc527700ae7104f8e",
+      "headers": {}
+    },
+    {
+      "offset": 1520000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=1520000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "65f912bb3f107cdaeb0a15b74523da255ab5be1c45a4a3821b0befc35ad34945",
+      "headers": {}
+    },
+    {
+      "offset": 1710000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=1710000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "e7bd9af48c4f348da4c3546ca03dd4c5338b09d73b6d3c1420412459eb99b463",
+      "headers": {}
+    },
+    {
+      "offset": 1900000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=1900000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "057fc644efff0a1a45ac76cfe96750406a2d3dd9fab8c4dc279b5d8583991084",
+      "headers": {}
+    },
+    {
+      "offset": 2090000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=2090000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "850381ecb94234c34074bdc386a65d419fe87f92de876cb82a20cb11c54519c4",
+      "headers": {}
+    },
+    {
+      "offset": 2280000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=2280000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "8b06b4ecf344f6f309a6ff8fa6c385591c0ac1ab315b1d6bb2eab3536041d6e6",
+      "headers": {
+        "x-revision": "461725966ea46898ec6481372a6326de3281bfbd"
+      }
+    },
+    {
+      "offset": 2470000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=2470000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "0eb7403852f8688f847df515b0fc8e44ad726efdbf18735206ded79869f941ab",
+      "headers": {}
+    },
+    {
+      "offset": 2660000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=2660000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "55852f8895c656f061dd7ba5be07fd772126b04c8a5fc1830ec27fb413f55820",
+      "headers": {}
+    },
+    {
+      "offset": 2850000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=2850000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "501e1ef8e324d5f486a1c0bd1043964f129c6ab37c86c1d672556c3482580f6a",
+      "headers": {}
+    },
+    {
+      "offset": 3040000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=3040000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "f09028ab9be1d2fe2135b381789ffffbe13e2ba09762061df26785a049cd652c",
+      "headers": {
+        "x-revision": "461725966ea46898ec6481372a6326de3281bfbd"
+      }
+    },
+    {
+      "offset": 3230000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=3230000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "b0d8f1351a1d846aced55e9e6717a8ff080295173bd7a8bef123e78686bfdce4",
+      "headers": {}
+    },
+    {
+      "offset": 3420000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=3420000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "72a462fa75bcf6676fbd806f8ae913de5749d34485a9cab71dc43fbe6924c580",
+      "headers": {}
+    },
+    {
+      "offset": 3610000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=3610000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "38ed37b71e05c5f47b637fa3b271336e081903c9adbb7b528da90995c5735c89",
+      "headers": {}
+    },
+    {
+      "offset": 3800000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=3800000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "78075ca50f6c0cd6fbcb01faf39d936bd46360540d997f969a852240275408bc",
+      "headers": {}
+    },
+    {
+      "offset": 3990000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=3990000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "f1c31c6ff525307b7ac5913865deec280647f66693b90bbfbfcc8f4394c879fe",
+      "headers": {}
+    },
+    {
+      "offset": 4180000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=4180000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "85911e70602075e11cf6ed23d0caade4dcc10b5ac6b9d5e2f75d78ba67143f67",
+      "headers": {}
+    },
+    {
+      "offset": 4370000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=4370000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "e80b6b20a34da2161e11e594183fff41bd7e6ff82b30ca5fcb8927936aa21807",
+      "headers": {}
+    },
+    {
+      "offset": 4560000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=4560000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "9f41d5bc2d60642e8e4fa1d52b8f3ad8b3cc3351965c507083ea38143403038c",
+      "headers": {}
+    },
+    {
+      "offset": 4750000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=4750000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "102062a11b01f02743f122e2afe770b49ac7db8572bb58e33e481ac79eddf529",
+      "headers": {}
+    },
+    {
+      "offset": 4940000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=4940000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "c538e663aee6aa931ea58196b5c7a85934c8e7b8c92a5c791cdf3a242e5de546",
+      "headers": {}
+    },
+    {
+      "offset": 5130000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=5130000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "f787f9bb46cfe08b2a517be4362407b0e8befa9b298f2c65e26212ae3717fb9b",
+      "headers": {}
+    },
+    {
+      "offset": 5320000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=5320000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "85e63c5b446b547dcaf897d1ca0b3aa78b6fbb6d56d392574609c1a02f8db7e6",
+      "headers": {}
+    },
+    {
+      "offset": 5510000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=5510000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "cf266fe5b47a9167a6a40ac2259830e5ff816da73b4ff81817341831990ff4af",
+      "headers": {}
+    },
+    {
+      "offset": 5700000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=5700000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "536a03d4f3b3c252f8cfb23c3ad600fffadf4aaf38bf7ba3099cfb5bd368562a",
+      "headers": {}
+    },
+    {
+      "offset": 5890000,
+      "length": 100,
+      "url": "https://datasets-server.huggingface.co/rows?dataset=Lichess%2Fchess-puzzles&config=default&split=train&offset=5890000&length=100&revision=461725966ea46898ec6481372a6326de3281bfbd",
+      "sha256": "5c50b7b992744a0a7d8806e2c23690a4d854cb5b0fd58c3266a4b05a653298de",
+      "headers": {}
+    }
+  ],
+  "theme_counts": {
+    "mateIn1": 77,
+    "mateIn2": 78,
+    "mateIn3": 26,
+    "fork": 59,
+    "pin": 37,
+    "skewer": 16,
+    "discoveredAttack": 22,
+    "backRankMate": 17,
+    "hangingPiece": 19,
+    "sacrifice": 51,
+    "promotion": 18,
+    "endgame": 264
+  },
+  "rating_bins": {
+    "400-1000": 127,
+    "1000-1400": 131,
+    "1400-1800": 97,
+    "1800-2200": 83,
+    "2200-3001": 74
+  },
+  "license_declaration": {
+    "url": "https://huggingface.co/datasets/Lichess/chess-puzzles/raw/461725966ea46898ec6481372a6326de3281bfbd/README.md",
+    "file": "UPSTREAM_README.md",
+    "sha256": "080193c64118ba9e01ebe04dc96797d595ec57994fd8bb04629e123a498b8eed"
+  },
+  "cc0_text": {
+    "file": "COPYING.txt",
+    "sha256": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499",
+    "source": "Unmodified formal CC0 1.0 text already distributed by Lichess chess-openings; puzzle CC0 dedication independently declared by pinned puzzle dataset card and database.lichess.org."
+  }
+}

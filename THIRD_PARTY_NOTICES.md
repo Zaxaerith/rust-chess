@@ -58,3 +58,12 @@ UCI 通信使用 Rust 标准库，不新增 Rust 依赖。发行包不包含 Sto
 - License: **CC0-1.0**; original text in `LICENSES/chess-openings-CC0-1.0.txt`.
 - Original `a.tsv` through `e.tsv` provide ECO codes, English names and reference SAN routes. They are embedded in the executable for offline use. They provide classifications, **not engine evaluations or global match statistics**. Original bytes/URLs/SHA-256 are recorded in `LICENSES/chess-openings-provenance.json`; source copies remain in `data/chess-openings/` in the repository.
 - Runtime match counts and W/D/L come exclusively from the user's local PGN Library, not from this reference dataset. RUST CHESS's application code remains GPL-3.0-or-later.
+
+
+## v0.2.7 Lichess 离线战术题数据（CC0-1.0）
+
+- 来源：[Lichess 官方数据库](https://database.lichess.org/#puzzles) 及其 [Lichess 官方 Hugging Face 镜像](https://huggingface.co/datasets/Lichess/chess-puzzles)。
+- Lichess Contributors，CC0-1.0。镜像固定提交 `461725966ea46898ec6481372a6326de3281bfbd`，实际选入 512 道真题；保留原始 PuzzleId、来源行、选择规则及 SHA-256。
+- 原始固定版本数据卡见 `data/chess-puzzles/UPSTREAM_README.md`。正式 CC0 1.0 全文原样见 [LICENSES/chess-puzzles-CC0-1.0.txt](LICENSES/chess-puzzles-CC0-1.0.txt)，出处/哈希见 [provenance](LICENSES/chess-puzzles-provenance.json)。正文复用 Lichess 已分发的标准 CC0 原件，题库 CC0 声明独立核实于固定数据卡。
+- Viewer 无 revision 响应头，因此以提取前后仓库 HEAD、每批实际响应哈希、最终不可变题库字节及源行记录核对，不声称单一 revision 查询参数具有额外快照保证。
+- 数据内嵌 EXE；运行时离线。题目 Rating 不属于玩家等级分，参考答案不是本程序重新计算的引擎建议。不含 Stockfish 或其他外部引擎，不暗示 Lichess 官方背书本项目；应用自身仍为 GPL-3.0-or-later。

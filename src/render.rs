@@ -66,6 +66,7 @@ pub enum Screen {
     Library,
     Opening,
     Puzzle,
+    Repertoire,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -230,7 +231,10 @@ impl Layout {
     pub(crate) fn for_screen(w: usize, h: usize, screen: Screen, focus: bool) -> Self {
         Self::new(
             w,
-            if matches!(screen, Screen::Opening | Screen::Puzzle) {
+            if matches!(
+                screen,
+                Screen::Opening | Screen::Puzzle | Screen::Repertoire
+            ) {
                 h.saturating_sub(64)
             } else {
                 h
@@ -299,12 +303,16 @@ impl<'a> Renderer<'a> {
             Screen::Menu => self.draw_menu(buf, &layout, &pal, view, &mut actions),
             Screen::Library => {}
             Screen::Settings => self.draw_settings(buf, &layout, &pal, view, &mut actions),
-            Screen::Game | Screen::Replay | Screen::Opening | Screen::Puzzle => {
+            Screen::Game
+            | Screen::Replay
+            | Screen::Opening
+            | Screen::Puzzle
+            | Screen::Repertoire => {
                 self.draw_board(buf, &layout, &pal, view);
                 if view.screen == Screen::Opening {
                     return actions;
                 }
-                if view.screen == Screen::Puzzle {
+                if matches!(view.screen, Screen::Puzzle | Screen::Repertoire) {
                     if view.promotion.is_some() {
                         self.draw_promotion_dialog(buf, &layout, &pal, view, &mut actions);
                     } else if let Some((mx, my)) = view.mouse {
@@ -2423,7 +2431,7 @@ impl<'a> Renderer<'a> {
         actions: &mut Vec<UiAction>,
     ) {
         let tr = view.settings.language.text();
-        let puzzle = view.screen == Screen::Puzzle;
+        let puzzle = matches!(view.screen, Screen::Puzzle | Screen::Repertoire);
         fill_rect_alpha(
             buf,
             (layout.w, layout.h),

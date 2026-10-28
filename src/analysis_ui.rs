@@ -487,7 +487,7 @@ pub fn draw(
     if modal(app)
         || matches!(
             app.screen,
-            Screen::Library | Screen::Opening | Screen::Puzzle
+            Screen::Library | Screen::Opening | Screen::Puzzle | Screen::Repertoire
         )
     {
         return vec![];

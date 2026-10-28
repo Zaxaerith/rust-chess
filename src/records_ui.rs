@@ -13,6 +13,7 @@ pub enum Action {
     Library(crate::library_app::Action),
     Opening(crate::opening_app::Action),
     Puzzle(crate::puzzle_app::Action),
+    Repertoire(crate::repertoire_app::Action),
     OpenPgn,
     ExportPgn,
     CopyFen,
@@ -312,6 +313,7 @@ impl App {
                 Action::Library(a) => self.handle_library_action(a),
                 Action::Opening(a) => self.handle_opening_action(a),
                 Action::Puzzle(a) => self.handle_puzzle_action(a),
+                Action::Repertoire(a) => self.handle_repertoire_action(a),
                 Action::OpenPgn => self.import_pgn_dialog()?,
                 Action::ExportPgn => self.export_pgn_dialog()?,
                 Action::CopyFen => {
@@ -403,6 +405,9 @@ impl App {
             if keys.contains(&Key::Escape) {
                 self.records.resume_prompt = false;
             }
+            return;
+        }
+        if self.repertoire_keys(keys, chars, ctrl) {
             return;
         }
         if self.screen == Screen::Puzzle {
@@ -613,6 +618,9 @@ pub fn draw(
         font, c.buf, size, app, mouse, pressed,
     ));
     c.actions.extend(crate::puzzle_ui::draw(
+        font, c.buf, size, app, mouse, pressed,
+    ));
+    c.actions.extend(crate::repertoire_ui::draw(
         font, c.buf, size, app, mouse, pressed,
     ));
     let lang = app.settings.language;

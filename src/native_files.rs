@@ -72,6 +72,9 @@ pub fn choose_engine(owner: usize) -> Result<Option<PathBuf>, String> {
 pub fn choose_csv(owner: usize) -> Result<Option<PathBuf>, String> {
     choose_file(false, owner, "", 2)
 }
+pub fn choose_json(save: bool, owner: usize, name: &str) -> Result<Option<PathBuf>, String> {
+    choose_file(save, owner, name, 3)
+}
 fn choose_file(
     save: bool,
     owner: usize,
@@ -85,6 +88,8 @@ fn choose_file(
         "UCI engine (*.exe)\0*.exe\0"
     } else if kind == 2 {
         "Lichess puzzles (*.csv)\0*.csv\0"
+    } else if kind == 3 {
+        "Repertoire JSON (*.json)\0*.json\0"
     } else {
         "Portable Game Notation (*.pgn)\0*.pgn\0All files (*.*)\0*.*\0"
     });
@@ -92,6 +97,8 @@ fn choose_file(
         "exe"
     } else if kind == 2 {
         "csv"
+    } else if kind == 3 {
+        "json"
     } else {
         "pgn"
     });

@@ -41,6 +41,13 @@ mod puzzle_ui;
 mod records_app;
 mod records_ui;
 mod render;
+mod repertoire;
+mod repertoire_app;
+mod repertoire_store;
+#[cfg(test)]
+mod repertoire_tests;
+mod repertoire_train;
+mod repertoire_ui;
 mod replay;
 mod review_app;
 mod review_cache;
@@ -129,6 +136,7 @@ impl PieceAnim {
 }
 
 struct App {
+    repertoire: repertoire_app::RepState,
     puzzles: puzzle_app::Puzzles,
     opening: opening_app::Opening,
     library: library_app::LibraryState,
@@ -199,6 +207,7 @@ impl App {
             loaded.fps = 60;
         }
         Self {
+            repertoire: repertoire_app::RepState::default(),
             puzzles: puzzle_app::Puzzles::default(),
             opening: opening_app::Opening::default(),
             library: library_app::LibraryState::default(),
@@ -583,6 +592,17 @@ impl App {
                 | UiAction::BackToMenu
                 | UiAction::ExitGame
                 | UiAction::OpenSettings
+        ) && self.defer_repertoire_loss(advanced_app::Intent::Ui(action))
+        {
+            return;
+        }
+        if matches!(
+            action,
+            UiAction::StartGame
+                | UiAction::NewGame
+                | UiAction::BackToMenu
+                | UiAction::ExitGame
+                | UiAction::OpenSettings
         ) && self.defer_replay_loss(advanced_app::Intent::Ui(action))
         {
             return;
@@ -688,6 +708,8 @@ impl App {
             UiAction::PointerDown(sq) => {
                 if self.screen == Screen::Puzzle {
                     self.puzzle_down(sq);
+                } else if self.screen == Screen::Repertoire {
+                    self.repertoire_down(sq);
                 } else {
                     self.handle_pointer_down(sq);
                 }
@@ -695,6 +717,8 @@ impl App {
             UiAction::PointerUp(sq) => {
                 if self.screen == Screen::Puzzle {
                     self.puzzle_up(sq);
+                } else if self.screen == Screen::Repertoire {
+                    self.repertoire_up(sq);
                 } else {
                     self.handle_pointer_up(sq);
                 }
@@ -715,6 +739,8 @@ impl App {
             UiAction::Promote(role) => {
                 if self.screen == Screen::Puzzle {
                     self.puzzle_promote(role);
+                } else if self.screen == Screen::Repertoire {
+                    self.repertoire_promote(role);
                 } else {
                     self.handle_promotion(role);
                 }
@@ -1129,6 +1155,16 @@ impl App {
     }
 
     fn handle_scroll(&mut self, y: f32) {
+        if self.screen == Screen::Repertoire {
+            if !self.repertoire.modal() {
+                self.repertoire.scroll = self
+                    .repertoire
+                    .scroll
+                    .saturating_add_signed(-(y.round() as isize))
+                    .min(999);
+            }
+            return;
+        }
         if self.screen == Screen::Opening {
             self.opening.scroll = self
                 .opening
@@ -1442,7 +1478,10 @@ fn main() {
     let mut buffer = vec![0u32; win_w * win_h];
     let mut mouse_was_down = false;
     while window.is_open() && !app.exit_requested {
-        if close_guard.take_request() && !app.defer_replay_loss(advanced_app::Intent::Quit) {
+        if close_guard.take_request()
+            && !app.defer_repertoire_loss(advanced_app::Intent::Quit)
+            && !app.defer_replay_loss(advanced_app::Intent::Quit)
+        {
             app.exit_requested = true;
             break;
         }
@@ -1464,6 +1503,7 @@ fn main() {
         app.poll_library();
         app.poll_opening();
         app.poll_puzzles();
+        app.poll_repertoire();
         let (mut cur_w, mut cur_h) = window.get_size();
         cur_w = cur_w.max(1);
         cur_h = cur_h.max(1);
@@ -1482,6 +1522,7 @@ fn main() {
         app.replay_view(&mut view);
         app.opening_view(&mut view);
         app.puzzle_view(&mut view);
+        app.repertoire_view(&mut view);
         if app.analysis.panel {
             view.settings.board.zen_mode = ZenMode::No;
             view.settings.board.immersive_mode = false;
@@ -1489,7 +1530,8 @@ fn main() {
         let overlay = app.records.fen_input.is_some()
             || app.advanced_modal()
             || app.records.message.is_some()
-            || app.records.resume_prompt;
+            || app.records.resume_prompt
+            || (app.screen == Screen::Repertoire && app.repertoire.modal());
         if overlay {
             view.mouse_pressed = false;
             view.mouse_released = false;
@@ -1552,7 +1594,13 @@ fn main() {
         eprintln!("Puzzle worker cleanup exceeded deadline");
     }
     app.tick_clock();
-    if app.screen != Screen::Puzzle {
+    if !app.repertoire.shutdown(Duration::from_millis(1000)) {
+        eprintln!("Repertoire reference task cleanup exceeded deadline");
+    }
+    if let Err(e) = app.settle_repertoire() {
+        eprintln!("Repertoire progress: {e}");
+    }
+    if !matches!(app.screen, Screen::Puzzle | Screen::Repertoire) {
         app.save_session();
     }
     app.cancel_review();

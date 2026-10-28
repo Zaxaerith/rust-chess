@@ -2,7 +2,7 @@
 
 [简体中文](README_ZH.md)
 
-> Local development candidate: **v0.2.7 Offline Chess Puzzles** (unpublished). See [validation report](RELEASE_CANDIDATE_v0.2.7.md). [v0.2.6](https://github.com/Zaxaerith/rust-chess/releases/tag/v0.2.6) is published.
+> Local development candidate: **v0.2.8 Opening Repertoire Trainer** (unpublished). See [validation report](RELEASE_CANDIDATE_v0.2.8.md). [v0.2.7](https://github.com/Zaxaerith/rust-chess/releases/tag/v0.2.7) is published.
 
 A local window chess game written in Rust. Supports two-player, human vs AI, 5 AI difficulty levels, move animations, AI thinking pause, opening/ending animations, settings persistence, and multiple VSCode-inspired themes. v0.1.4 adds clock-based game results, clock-aware undo, explicit AI search errors, and regression tests.
 
@@ -243,3 +243,65 @@ To clear cache, close the app and manually move/delete only the intended `.revie
   output newly calculated by this app; Lichess puzzle Rating is not your personal rating.
 - [Pinned source, selection, hashes and Viewer revision limitation](data/chess-puzzles/README.md).
   This version has CLI/offscreen validation; native CSV dialogs and player UI need human playtesting.
+
+
+## Opening Repertoire Trainer (v0.2.8)
+
+1. Main menu → **Opening Repertoire**. Create a White or Black repertoire and give it a name.
+   This training side is independent of player names in PGN. Repertoire notes and route notes
+   support Unicode; names are limited to128UTF-8bytes, notes4096bytes.
+2. **Edit routes** uses an independent board. Click/drag legal moves for either side; choose
+   any actual promotion piece. First/Previous/Next navigate the current draft. Save route
+   commits it; a failed write keeps the draft. To add a different response, navigate to the
+   shared prefix, click **Create branch**, play the other move, and save. The old route is kept.
+   Selecting a saved route and editing it retains its stable ID. Identical paths are deduplicated.
+   Delete asks for confirmation and removes only that route or selected repertoire.
+3. ECO/name uses the existing offline CC0 reference. It classifies the current position; your
+   own preparation is not an engine recommendation. Unknown stays Unknown. Standard initial
+   chess only; at most24repertoires,1000totalroutes and80plies per route; no FEN/Chess960 here.
+4. In **Opening Explorer**, Add to repertoire copies only the path actually navigated. In
+   **PGN Library**, Add to repertoire copies the selected game's actual mainline, default first40
+   plies (use +/− to adjust up to80 or actual length). Choose a target repertoire then Add.
+   Nonstandard initial FEN is rejected. RAVs, players, results and PGN annotations are not
+   silently converted into training answers, and original PGN/Library files stay unchanged.
+5. Choose **Due today / New routes / Free practice / Retry errors**, then Start training.
+   A session targets your prepared decision nodes; due/new practice may jump to a saved prefix
+   and auto-play already known/non-target parts. The actual SAN path and solving side remain
+   visible. On your turn all moves prepared in that exact historical context are acceptable.
+   Opponent continuations come only from saved routes, with reproducible seeded selection.
+   No Pleco/UCI/Stockfish search is run. A legal move outside preparation is a memory mismatch,
+   not an evaluation of its chess strength; illegal moves do not count as memory errors.
+6. Hint marks the source first, destination second. Show prepared line reveals a compatible
+   saved line and marks all displayed future player answers as assisted. Retry cannot erase
+   that fact. Next item can explicitly skip an unanswered card without learning it (→ counter)
+   and eventually ends; failed/hinted cards may get one bounded tail-of-session retry.
+7. A memory card is repertoire ID + legal-EP canonical position + sorted allowed-moves identity.
+   Equivalent transpositions can share progress. Actual continuation selection still uses the
+   full saved move prefix, so position merging cannot invent unsaved hybrid lines. Changing
+   only names/notes preserves cards; changed preparations affect only their old/new identities.
+8. Leitner levels1–5 schedule1/3/7/14/30days. First clean recall enters1; later clean recalls
+   promote up to5, at most once per session and UTCday. Hint/error resets1. Dates are integer
+   UTCdays since1970-01-01, independent of local timezone; clock rollback cannot move due dates
+   backwards. Learning statistics exclude obsolete card identities without deleting history.
+   Recent recall accuracy uses up to100 matching valid-card submissions from a global256-entry
+   ring: only unassisted correct submissions count in the numerator; hints alone are not
+   submissions. It is not a chess rating or winning probability. Other repertoires can age
+   older samples out of this small ring.
+9. Data is separate: `%LOCALAPPDATA%\RUST CHESS\repertoires-v1.json` (8MiB) and
+   `repertoire-progress-v1.json` (16MiB/100000historicalcards), respecting RUST_CHESS_DATA_DIR.
+   Both use atomic replacement and preserve corrupt/unknown-schema files. A failed progress
+   save keeps pending results; leaving requires retry saving, explicit discard, or staying.
+   No autosave, Puzzle progress, Library index, Opening cache or Game Review format changes.
+10. Export JSON backs up the complete collection (names, sides, routes and notes). Import
+    explicitly offers **Create independent / Merge selected / Cancel**. Independent copies get
+    new IDs; merge requires matching training sides, retains target name/book note and existing
+    notes on duplicate paths, adds other routes without replacing them. Never overwrites same-name
+    repertoires automatically. Backups must be outside managed application data. For a full
+    ID-preserving recovery including progress, close the app and back up/restore both named
+    primary JSON files together; the export dialog does not include progress. Orphan progress
+    is retained, so deleting/readding content does not erase other repertoires' history.
+
+The training screen is offline and isolated from a live game, clock and engines. Unsaved
+route/text edits are protected on navigation and native close requests. Automated evidence
+is CLI/Rust/offscreen only; native dialogs, input feel and real window closing still require
+human playtesting. No new third-party data or runtime dependencies were added in v0.2.8.

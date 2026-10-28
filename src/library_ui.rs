@@ -412,7 +412,7 @@ pub fn draw(
         16.0,
         30.0,
         &format!("{} ({})", t[0], s.visible.len()),
-        w - 32.0,
+        (w - 500.0).clamp(150.0, 700.0),
         c.pal.accent,
     );
     let query = if s.query.is_empty() {

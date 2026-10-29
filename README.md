@@ -2,7 +2,7 @@
 
 [简体中文](README_ZH.md)
 
-> Local development candidate: **v0.2.8 Opening Repertoire Trainer** (unpublished). See [validation report](RELEASE_CANDIDATE_v0.2.8.md). [v0.2.7](https://github.com/Zaxaerith/rust-chess/releases/tag/v0.2.7) is published.
+> Local development candidate: **v0.2.9 Position Editor & Analysis Workspace** (unpublished). See [validation report](RELEASE_CANDIDATE_v0.2.9.md). [v0.2.8](https://github.com/Zaxaerith/rust-chess/releases/tag/v0.2.8) is published.
 
 A local window chess game written in Rust. Supports two-player, human vs AI, 5 AI difficulty levels, move animations, AI thinking pause, opening/ending animations, settings persistence, and multiple VSCode-inspired themes. v0.1.4 adds clock-based game results, clock-aware undo, explicit AI search errors, and regression tests.
 
@@ -304,4 +304,65 @@ To clear cache, close the app and manually move/delete only the intended `.revie
 The training screen is offline and isolated from a live game, clock and engines. Unsaved
 route/text edits are protected on navigation and native close requests. Automated evidence
 is CLI/Rust/offscreen only; native dialogs, input feel and real window closing still require
-human playtesting. No new third-party data or runtime dependencies were added in v0.2.8.
+human playtesting for that candidate. v0.2.8 is now published. No new third-party data or runtime dependencies were added in v0.2.8.
+
+## Position Editor & Analysis Workspace (v0.2.9)
+
+1. Open **Position Editor** from the menu. The initial draft uses the standard
+   starting position. Existing saved work is restored into **Edit**, with no engine
+   execution. **Study current position** above the Game/Replay board copies that
+   displayed position into an independent study; Replay branches use their actual
+   selected position and retain the existing unsaved annotation confirmation.
+2. In **Piece tools**, choose any of the 12 piece icons and click a square to place
+   or replace it. Erase removes a piece. Move selects an existing piece; dragging
+   freely relocates it, without requiring a legal chess move. Flip changes only
+   the view. Empty board, Starting position, Clear square and Undo/Redo edit are
+   available (128 edit snapshots).
+3. Switch to **FEN fields** to set White/Black to move, the four independent
+   K/Q/k/q rights, an en passant square or `-`, and both move counters. Counters
+   are unsigned 32-bit values; the fullmove number starts at 1. Conflicting fields
+   stay visible in the draft until corrected. EP requires the implied pawn and
+   turn, and a zero halfmove clock. A missing capturing pawn does not remove an
+   otherwise valid traditional FEN EP target.
+4. **FEN text** opens a six-field text editor with paste and cursor controls.
+   Apply loads a syntactically valid standard draft, including a temporarily
+   illegal board; malformed text is rejected without changing the draft. Cancel
+   leaves it unchanged. **Validate** checks standard-chess legality using shakmaty
+   0.27.3 and the existing FEN parser. Missing/extra kings, back-rank pawns,
+   incompatible castling/EP, impossible checks and excessive material are errors.
+   This does not prove complete historical reachability from the normal start.
+5. **Study** validates before entry. Click/drag legal moves; choose Queen, Rook,
+   Bishop or Knight for promotion. First/Previous/Next/Last and Home/Left/Right/End
+   browse the single retained line. A new move from an earlier cursor replaces
+   its continuation. No engine is required to try moves. Return to Edit preserves
+   the draft and study; validating a different root replaces the old-root line.
+6. **UCI** opens the existing analysis panel. Explicitly choose/enable your own
+   installed engine, then analyze or stop. Existing movetime, Threads, Hash,
+   MultiPV 1–3, White-view scores, SAN PVs, evaluation bar and move arrows apply.
+   Drafts cannot be searched. Position changes, navigation, switching mode and
+   leaving cancel/invalidate old results. Terminal study positions are shown
+   without a search. No engine is downloaded, bundled or used to reply to moves.
+7. **Copy FEN** copies the current validated position with all six fields.
+   **Export PGN** saves the entire retained study line, even when viewing an
+   earlier cursor. Nonstandard roots include SetUp/FEN; unfinished lines use `*`,
+   and explicit terminal results use the existing record rules. The study is one
+   mainline; open its PGN in Advanced Replay to add annotations/variations.
+8. **Save workspace** explicitly saves draft, study, cursor and orientation in
+   `%LOCALAPPDATA%\RUST CHESS\position-workspace-v1.json` (schema 1, maximum 1 MiB;
+   `RUST_CHESS_DATA_DIR` overrides the directory). It can save a chess-illegal but
+   syntactically complete draft. Apply/cancel unfinished text input first.
+   Recovery always starts in Edit; corruption/unknown schema is reported and the
+   file is preserved. Copy this file while the app is closed to back it up.
+9. Unsaved draft/study changes are protected when leaving, replacing a draft or
+   closing: save, explicitly discard, or keep editing. PGN export is a study copy,
+   not a full workspace backup; it does not clear the workspace's save marker.
+   Normal game history, clocks, autosave, Library, Puzzle, Repertoire and Review
+   records are independent. Studying a copied position pauses the real game by
+   leaving Game; returning resumes that same game rather than playing the study.
+
+Only standard chess is supported, not Chess960. A FEN is the research starting
+point: its halfmove counter does not supply earlier moves or repetition history.
+The study has at most 4096 plies and rejects counter overflow rather than
+saturating. There is no automatic per-frame workspace disk write or concurrent
+multi-process editing support. Automated checks are CLI/Mock/offscreen; native
+dialogs, clipboard and complete real-window UX still need human playtesting.

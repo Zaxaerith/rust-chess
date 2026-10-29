@@ -15,6 +15,7 @@ use crate::preferences::{
 use crate::theme::{BoardStyle, Palette, Theme};
 
 pub struct ViewState {
+    pub board_override: Option<shakmaty::Board>,
     pub analysis: crate::analysis_board::Visual,
     pub pos: Chess,
     pub selected: Option<Square>,
@@ -67,6 +68,7 @@ pub enum Screen {
     Opening,
     Puzzle,
     Repertoire,
+    PositionWorkspace,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -231,9 +233,11 @@ impl Layout {
     pub(crate) fn for_screen(w: usize, h: usize, screen: Screen, focus: bool) -> Self {
         Self::new(
             w,
-            if matches!(
+            if screen == Screen::PositionWorkspace {
+                h.saturating_sub(96)
+            } else if matches!(
                 screen,
-                Screen::Opening | Screen::Puzzle | Screen::Repertoire
+                Screen::Opening | Screen::Puzzle | Screen::Repertoire | Screen::PositionWorkspace
             ) {
                 h.saturating_sub(64)
             } else {
@@ -307,12 +311,16 @@ impl<'a> Renderer<'a> {
             | Screen::Replay
             | Screen::Opening
             | Screen::Puzzle
-            | Screen::Repertoire => {
+            | Screen::Repertoire
+            | Screen::PositionWorkspace => {
                 self.draw_board(buf, &layout, &pal, view);
                 if view.screen == Screen::Opening {
                     return actions;
                 }
-                if matches!(view.screen, Screen::Puzzle | Screen::Repertoire) {
+                if matches!(
+                    view.screen,
+                    Screen::Puzzle | Screen::Repertoire | Screen::PositionWorkspace
+                ) {
                     if view.promotion.is_some() {
                         self.draw_promotion_dialog(buf, &layout, &pal, view, &mut actions);
                     } else if let Some((mx, my)) = view.mouse {
@@ -1674,6 +1682,10 @@ impl<'a> Renderer<'a> {
     }
 
     fn draw_board(&self, buf: &mut [u32], layout: &Layout, pal: &Palette, view: &ViewState) {
+        let board = view
+            .board_override
+            .as_ref()
+            .unwrap_or_else(|| view.pos.board());
         let flipped = board_flipped(view);
         let (light_square, dark_square) = view.settings.board_style.squares(pal);
         fill_rect(
@@ -1738,7 +1750,7 @@ impl<'a> Renderer<'a> {
                         125,
                     ),
                     DragTarget::Circle => {
-                        if view.pos.board().piece_at(sq).is_some() {
+                        if board.piece_at(sq).is_some() {
                             draw_ring(
                                 buf,
                                 (layout.w, layout.h),
@@ -1757,6 +1769,7 @@ impl<'a> Renderer<'a> {
         }
 
         if view.settings.board.board_highlights
+            && view.board_override.is_none()
             && view.pos.is_check()
             && let Some(ksq) = king_square(&view.pos, view.pos.turn())
         {
@@ -1774,7 +1787,7 @@ impl<'a> Renderer<'a> {
 
         for i in 0..64u32 {
             let sq = Square::new(i);
-            if let Some(piece) = view.pos.board().piece_at(sq) {
+            if let Some(piece) = board.piece_at(sq) {
                 if view.mouse_down && view.dragging_from == Some(sq) {
                     continue;
                 }
@@ -1818,7 +1831,7 @@ impl<'a> Renderer<'a> {
 
         if view.mouse_down
             && let (Some(from), Some((mx, my))) = (view.dragging_from, view.mouse)
-            && let Some(piece) = view.pos.board().piece_at(from)
+            && let Some(piece) = board.piece_at(from)
         {
             let scale = if view.settings.board.magnify_dragged_piece {
                 1.28
@@ -2431,7 +2444,10 @@ impl<'a> Renderer<'a> {
         actions: &mut Vec<UiAction>,
     ) {
         let tr = view.settings.language.text();
-        let puzzle = matches!(view.screen, Screen::Puzzle | Screen::Repertoire);
+        let puzzle = matches!(
+            view.screen,
+            Screen::Puzzle | Screen::Repertoire | Screen::PositionWorkspace
+        );
         fill_rect_alpha(
             buf,
             (layout.w, layout.h),
@@ -3181,6 +3197,42 @@ fn dropdown_current(view: &ViewState, kind: DropdownKind) -> String {
     }
 }
 
+pub(crate) fn workspace_result(language: Language, result: GameResult) -> String {
+    let tr = language.text();
+    match result {
+        GameResult::Checkmate { winner } => format!(
+            "{} {} {}",
+            tr.checkmate,
+            if winner == Color::White {
+                tr.white
+            } else {
+                tr.black
+            },
+            tr.wins
+        ),
+        GameResult::Stalemate => format!(
+            "{} · {}",
+            tr.draw,
+            language.reliability(ReliabilityText::Stalemate)
+        ),
+        GameResult::InsufficientMaterial => format!(
+            "{} · {}",
+            tr.draw,
+            language.reliability(ReliabilityText::InsufficientMaterial)
+        ),
+        GameResult::FivefoldRepetition => format!(
+            "{} · {}",
+            tr.draw,
+            language.reliability(ReliabilityText::Fivefold)
+        ),
+        GameResult::SeventyFiveMoves => format!(
+            "{} · {}",
+            tr.draw,
+            language.reliability(ReliabilityText::SeventyFiveMoves)
+        ),
+        _ => tr.draw.into(),
+    }
+}
 fn status_text(view: &ViewState) -> String {
     let tr = view.settings.language.text();
     if let Some(result) = view.result {
@@ -3295,6 +3347,7 @@ mod tests {
             for screen in [Screen::Menu, Screen::Settings, Screen::Game] {
                 let mut buffer = vec![0; 1280 * 720];
                 let view = ViewState {
+                    board_override: None,
                     analysis: Default::default(),
                     pos: Chess::default(),
                     selected: None,
@@ -3352,6 +3405,7 @@ mod tests {
         ] {
             let mut buffer = vec![0; 1280 * 720];
             let view = ViewState {
+                board_override: None,
                 analysis: Default::default(),
                 pos: Chess::default(),
                 selected: None,

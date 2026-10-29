@@ -14,6 +14,7 @@ pub enum Action {
     Opening(crate::opening_app::Action),
     Puzzle(crate::puzzle_app::Action),
     Repertoire(crate::repertoire_app::Action),
+    Workspace(crate::position_workspace::Action),
     OpenPgn,
     ExportPgn,
     CopyFen,
@@ -302,6 +303,11 @@ impl minifb::InputCallback for CharacterInput {
 
 impl App {
     pub(crate) fn handle_record_action(&mut self, action: Action) {
+        if !matches!(action, Action::Workspace(_))
+            && self.defer_workspace_loss(crate::advanced_app::Intent::Record(action))
+        {
+            return;
+        }
         if matches!(action, Action::New | Action::Resume | Action::Replay)
             && self.defer_replay_loss(crate::advanced_app::Intent::Record(action))
         {
@@ -314,6 +320,7 @@ impl App {
                 Action::Opening(a) => self.handle_opening_action(a),
                 Action::Puzzle(a) => self.handle_puzzle_action(a),
                 Action::Repertoire(a) => self.handle_repertoire_action(a),
+                Action::Workspace(a) => self.handle_workspace_action(a),
                 Action::OpenPgn => self.import_pgn_dialog()?,
                 Action::ExportPgn => self.export_pgn_dialog()?,
                 Action::CopyFen => {
@@ -408,6 +415,9 @@ impl App {
             return;
         }
         if self.repertoire_keys(keys, chars, ctrl) {
+            return;
+        }
+        if self.workspace_keys(keys, chars, ctrl) {
             return;
         }
         if self.screen == Screen::Puzzle {

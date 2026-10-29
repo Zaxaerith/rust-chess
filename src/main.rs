@@ -30,6 +30,11 @@ mod opening_tests;
 mod opening_ui;
 mod persistence;
 mod pgn;
+mod position_editor;
+#[cfg(test)]
+mod position_tests;
+mod position_ui;
+mod position_workspace;
 mod preferences;
 mod puzzle_app;
 mod puzzle_data;
@@ -136,6 +141,7 @@ impl PieceAnim {
 }
 
 struct App {
+    workspace: position_workspace::Workspace,
     repertoire: repertoire_app::RepState,
     puzzles: puzzle_app::Puzzles,
     opening: opening_app::Opening,
@@ -207,6 +213,7 @@ impl App {
             loaded.fps = 60;
         }
         Self {
+            workspace: position_workspace::Workspace::default(),
             repertoire: repertoire_app::RepState::default(),
             puzzles: puzzle_app::Puzzles::default(),
             opening: opening_app::Opening::default(),
@@ -592,6 +599,17 @@ impl App {
                 | UiAction::BackToMenu
                 | UiAction::ExitGame
                 | UiAction::OpenSettings
+        ) && self.defer_workspace_loss(advanced_app::Intent::Ui(action))
+        {
+            return;
+        }
+        if matches!(
+            action,
+            UiAction::StartGame
+                | UiAction::NewGame
+                | UiAction::BackToMenu
+                | UiAction::ExitGame
+                | UiAction::OpenSettings
         ) && self.defer_repertoire_loss(advanced_app::Intent::Ui(action))
         {
             return;
@@ -708,6 +726,8 @@ impl App {
             UiAction::PointerDown(sq) => {
                 if self.screen == Screen::Puzzle {
                     self.puzzle_down(sq);
+                } else if self.screen == Screen::PositionWorkspace {
+                    self.workspace_down(sq);
                 } else if self.screen == Screen::Repertoire {
                     self.repertoire_down(sq);
                 } else {
@@ -717,6 +737,8 @@ impl App {
             UiAction::PointerUp(sq) => {
                 if self.screen == Screen::Puzzle {
                     self.puzzle_up(sq);
+                } else if self.screen == Screen::PositionWorkspace {
+                    self.workspace_up(sq);
                 } else if self.screen == Screen::Repertoire {
                     self.repertoire_up(sq);
                 } else {
@@ -739,6 +761,8 @@ impl App {
             UiAction::Promote(role) => {
                 if self.screen == Screen::Puzzle {
                     self.puzzle_promote(role);
+                } else if self.screen == Screen::PositionWorkspace {
+                    self.workspace_promote(role);
                 } else if self.screen == Screen::Repertoire {
                     self.repertoire_promote(role);
                 } else {
@@ -1120,6 +1144,7 @@ impl App {
             Vec::new()
         };
         ViewState {
+            board_override: None,
             analysis: self.analysis_visual(),
             pos: self.pos.clone(),
             selected: self.selected,
@@ -1479,6 +1504,7 @@ fn main() {
     let mut mouse_was_down = false;
     while window.is_open() && !app.exit_requested {
         if close_guard.take_request()
+            && !app.defer_workspace_loss(advanced_app::Intent::Quit)
             && !app.defer_repertoire_loss(advanced_app::Intent::Quit)
             && !app.defer_replay_loss(advanced_app::Intent::Quit)
         {
@@ -1523,6 +1549,7 @@ fn main() {
         app.opening_view(&mut view);
         app.puzzle_view(&mut view);
         app.repertoire_view(&mut view);
+        app.workspace_view(&mut view);
         if app.analysis.panel {
             view.settings.board.zen_mode = ZenMode::No;
             view.settings.board.immersive_mode = false;
@@ -1532,6 +1559,7 @@ fn main() {
             || app.records.message.is_some()
             || app.records.resume_prompt
             || (app.screen == Screen::Repertoire && app.repertoire.modal());
+        let overlay = overlay || (app.screen == Screen::PositionWorkspace && app.workspace.modal());
         if overlay {
             view.mouse_pressed = false;
             view.mouse_released = false;
@@ -1545,6 +1573,18 @@ fn main() {
         actions.extend(record_actions.into_iter().map(UiAction::Record));
         let analysis_actions =
             analysis_ui::draw(&text, &mut buffer, (cur_w, cur_h), &app, mouse, pressed);
+        let workspace_actions = position_ui::draw(
+            &text,
+            &images,
+            &mut buffer,
+            (cur_w, cur_h),
+            &app,
+            mouse,
+            pressed,
+        );
+        if !workspace_actions.is_empty() {
+            actions.clear();
+        }
         if app.advanced_modal() && app.records.message.is_none() {
             actions.clear();
             actions.extend(
@@ -1563,6 +1603,9 @@ fn main() {
         }
         for action in actions {
             app.handle_action(action);
+        }
+        for action in workspace_actions {
+            app.handle_record_action(records_ui::Action::Workspace(action));
         }
 
         if app.window_title_update_requested {
@@ -1600,7 +1643,10 @@ fn main() {
     if let Err(e) = app.settle_repertoire() {
         eprintln!("Repertoire progress: {e}");
     }
-    if !matches!(app.screen, Screen::Puzzle | Screen::Repertoire) {
+    if !matches!(
+        app.screen,
+        Screen::Puzzle | Screen::Repertoire | Screen::PositionWorkspace
+    ) {
         app.save_session();
     }
     app.cancel_review();

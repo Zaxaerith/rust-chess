@@ -92,6 +92,14 @@ impl App {
         }
     }
     pub(crate) fn analysis_stamp(&self) -> String {
+        if self.screen == Screen::PositionWorkspace {
+            return format!(
+                "Workspace:{}:{}:{}",
+                self.analysis.context,
+                self.workspace.revision,
+                self.display_fen()
+            );
+        }
         let cursor = self.records.replay.as_ref().map(|r| r.node);
         format!(
             "{:?}:{}:{}:{cursor:?}:{}",
@@ -153,19 +161,28 @@ impl App {
         Ok(())
     }
     pub(crate) fn request_analysis(&mut self) -> Result<(), String> {
-        if self
-            .records
-            .replay
-            .as_ref()
-            .is_some_and(|r| !r.on_mainline())
+        if self.screen == Screen::Replay
+            && self
+                .records
+                .replay
+                .as_ref()
+                .is_some_and(|r| !r.on_mainline())
         {
             return Err(crate::advanced_ui::words(self.settings.language)[21].into());
         }
         if self.review.owns_engine() {
             return Err("Game Review owns engine; cancel it before manual analysis".into());
         }
-        if !matches!(self.screen, Screen::Game | Screen::Replay) {
-            return Err("Analysis requires a game or replay".into());
+        if !matches!(
+            self.screen,
+            Screen::Game | Screen::Replay | Screen::PositionWorkspace
+        ) {
+            return Err("Analysis requires a game, replay or position workspace".into());
+        }
+        if self.screen == Screen::PositionWorkspace
+            && (self.workspace.chess().is_none() || self.workspace.modal())
+        {
+            return Err("Validate the workspace and enter Study before UCI analysis".into());
         }
         let controller = self
             .analysis
@@ -178,7 +195,15 @@ impl App {
         ) {
             return Err("Engine is not ready".into());
         }
-        let (initial, moves, position, context) = if let Some(r) = &self.records.replay {
+        let (initial, moves, position, context) = if self.screen == Screen::PositionWorkspace {
+            let s = self.workspace.study.as_ref().ok_or("No workspace study")?;
+            (
+                &s.positions[0],
+                &s.moves[..s.cursor],
+                s.position().clone(),
+                self.analysis.context,
+            )
+        } else if let Some(r) = &self.records.replay {
             (
                 &r.game.positions[0],
                 &r.game.moves[..r.cursor],
@@ -208,7 +233,14 @@ impl App {
         self.analysis.variations = Default::default();
         self.analysis.cached = Default::default();
         self.analysis.selected_line = 0;
-        if position.legal_moves().is_empty() {
+        if position.legal_moves().is_empty()
+            || (self.screen == Screen::PositionWorkspace
+                && self
+                    .workspace
+                    .study
+                    .as_ref()
+                    .is_some_and(|s| s.result().is_some()))
+        {
             self.cancel_analysis();
             self.analysis.target = Some(Target {
                 id,
@@ -342,7 +374,10 @@ impl App {
             };
         }
         let neutral = crate::analysis_board::Visual {
-            active: self.analysis.panel && matches!(self.screen, Screen::Game | Screen::Replay),
+            active: self.analysis.panel
+                && (matches!(self.screen, Screen::Game | Screen::Replay)
+                    || (self.screen == Screen::PositionWorkspace
+                        && self.workspace.chess().is_some())),
             ..Default::default()
         };
         if !self.analysis.panel

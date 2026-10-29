@@ -227,6 +227,9 @@ impl App {
         // after returning to the real live position.
     }
     pub(crate) fn display_fen(&self) -> String {
+        if self.screen == Screen::PositionWorkspace {
+            return self.workspace.text();
+        }
         if let Some(r) = &self.records.replay {
             fen::write(r.position())
         } else {

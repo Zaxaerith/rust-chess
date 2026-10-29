@@ -300,7 +300,9 @@ pub fn words(language: Language) -> [&'static str; 23] {
     }
 }
 fn modal(app: &App) -> bool {
-    app.advanced_modal()
+    (app.screen == Screen::PositionWorkspace
+        && (app.workspace.modal() || app.workspace.chess().is_none()))
+        || app.advanced_modal()
         || app.records.fen_input.is_some()
         || app.records.message.is_some()
         || app.records.resume_prompt
@@ -310,7 +312,11 @@ pub fn captures(app: &App, size: (usize, usize), mouse: Option<(f32, f32)>, pres
         && pressed
         && matches!(
             app.screen,
-            Screen::Game | Screen::Replay | Screen::Menu | Screen::Settings
+            Screen::Game
+                | Screen::Replay
+                | Screen::Menu
+                | Screen::Settings
+                | Screen::PositionWorkspace
         )
         && mouse.is_some_and(|(x, y)| {
             x >= size.0 as f32
@@ -485,6 +491,7 @@ pub fn draw(
     pressed: bool,
 ) -> Vec<Action> {
     if modal(app)
+        || (app.screen == Screen::PositionWorkspace && !app.analysis.panel)
         || matches!(
             app.screen,
             Screen::Library | Screen::Opening | Screen::Puzzle | Screen::Repertoire
@@ -516,7 +523,9 @@ pub fn draw(
     }
     c.button(
         (w - 136.0, 4.0, 124.0, 28.0),
-        if app.analysis.panel {
+        if app.analysis.panel && app.screen == Screen::PositionWorkspace {
+            crate::position_ui::words(app.settings.language)[2]
+        } else if app.analysis.panel {
             words[20]
         } else {
             words[0]
